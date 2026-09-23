@@ -71,13 +71,14 @@ export interface DepositRequest {
   accountLogin: number;
   amount: number;
   currency: string;
-  paymentMethod: PaymentMethod;
+  paymentMethod: PaymentMethod | string;
   txHash?: string;
   proofDocumentUrl?: string;
   status: TransactionStatus;
   createdAt: string;
   updatedAt: string;
   remarks?: string;
+  plan?: string;
 }
 
 export interface WithdrawalRequest {
@@ -107,6 +108,8 @@ export interface WithdrawalRequest {
   createdAt: string;
   updatedAt: string;
   rejectReason?: string;
+  plan?: string;
+  paymentMethod?: string;
 }
 
 export interface Transaction {
@@ -239,5 +242,26 @@ export interface TopPerformingClient {
   accountsCount: number;
   totalDeposited: number;
 }
+
+export interface PaymentGatewayConfig {
+  id: string;
+  name: string;
+  paymentType: 'Crypto Wallet' | 'Bank Account' | 'Credit Card' | 'Other';
+  status: 'active' | 'inactive';
+  accountDetails: {
+    walletAddress?: string;
+    network?: string;
+    qrCodeUrl?: string;
+    bankName?: string;
+    accountHolder?: string;
+    accountNumber?: string;
+    iban?: string;
+    swiftCode?: string;
+    branch?: string;
+    instructions?: string;
+  };
+  createdAt: string;
+}
+
 
 
