@@ -2,14 +2,15 @@
 
 import React, { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { 
-  Bell, 
-  User, 
-  LogOut, 
+import {
+  Bell,
+  User,
+  LogOut,
   ChevronDown,
   Menu
 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
+import { HeaderSearchBar } from './HeaderSearchBar';
 
 export const AdminHeader: React.FC = () => {
   const pathname = usePathname();
@@ -46,7 +47,7 @@ export const AdminHeader: React.FC = () => {
     }
   };
 
-  const pendingItemsCount = 
+  const pendingItemsCount =
     kycRecords.filter(k => k.status === 'pending').length +
     deposits.filter(d => d.status === 'pending').length +
     withdrawals.filter(w => w.status === 'pending').length;
@@ -54,7 +55,7 @@ export const AdminHeader: React.FC = () => {
   return (
     <header className="h-16 border-b border-slate-200/90 bg-white/95 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
       {/* Title & Hamburger */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         <button
           onClick={() => setMobileSidebarOpen(true)}
           className="lg:hidden p-2 rounded-full text-slate-600 hover:text-purple-700 hover:bg-purple-50 transition-colors cursor-pointer border border-slate-200/80"
@@ -63,18 +64,20 @@ export const AdminHeader: React.FC = () => {
           <Menu className="w-5 h-5" />
         </button>
 
-        <div>
-          <h1 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2 font-heading">
+        <div className="min-w-0">
+          <h1 className="text-xs sm:text-base font-bold text-slate-900 truncate max-w-[130px] sm:max-w-xs md:max-w-none font-heading">
             {getPageTitle()}
           </h1>
-          <p className="text-[11px] text-slate-500 font-mono hidden sm:block">
-            Route: <span className="text-purple-600 font-semibold">{pathname}</span>
-          </p>
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="flex-1 max-w-lg mx-2 sm:mx-4">
+        <HeaderSearchBar />
+      </div>
+
       {/* Right Controls */}
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         {/* Notifications Bell */}
         <div className="relative">
           <button

@@ -171,3 +171,36 @@ export interface DashboardStats {
   depositsTrendPercent: number;
   withdrawalsTrendPercent: number;
 }
+
+// API Configurable Data Model for Revenue Analytics
+export interface RevenueAnalyticsConfig {
+  netRevenue: number;
+  netRevenueChange: number;
+  ibCommission: number;
+  ibTradingVolume: number;
+  depositsAmount: number;
+  withdrawalsAmount: number;
+  depositsTrend: number;
+  withdrawalsTrend: number;
+  period?: 'today' | '7d' | '30d' | 'year';
+  chartType?: 'radial' | 'bar';
+}
+
+// API Configurable Data Model for Account Distribution
+export interface AccountCategoryItem {
+  id: string;
+  name: string;
+  count: number;
+  color: string;
+  badgeColor?: string;
+  percentage?: number;
+}
+
+export interface AccountDistributionConfig {
+  title?: string;
+  periodLabel?: string;
+  categories: AccountCategoryItem[];
+  totalAccountTypes?: number;
+  totalAccountsCount?: number;
+}
+

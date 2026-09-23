@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Download, ChevronLeft, ChevronRight, ArrowUpDown, Filter, X } from 'lucide-react';
 import { Button } from './Button';
 
@@ -22,6 +22,7 @@ interface DataTableProps<T> {
   columns: Column<T>[];
   searchPlaceholder?: string;
   searchKeys?: (keyof T)[];
+  initialSearch?: string;
   filters?: {
     key: keyof T;
     label: string;
@@ -38,13 +39,43 @@ export function DataTable<T extends Record<string, unknown>>({
   columns,
   searchPlaceholder = 'Search records...',
   searchKeys = [],
+  initialSearch = '',
   filters = [],
   actions,
   pageSize = 10,
   emptyMessage = 'No records found matching your criteria.',
   exportFilename = 'export.csv',
 }: DataTableProps<T>) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
+
+  // Synchronize with URL query parameter (?search=...) and custom table search events
+  useEffect(() => {
+    const syncSearchFromUrl = (event?: Event) => {
+      const customEvent = event as CustomEvent<string> | undefined;
+      if (customEvent && customEvent.detail !== undefined) {
+        setSearchTerm(customEvent.detail);
+        setCurrentPage(1);
+        return;
+      }
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const query = params.get('search');
+        if (query !== null) {
+          setSearchTerm(query);
+          setCurrentPage(1);
+        }
+      }
+    };
+
+    syncSearchFromUrl();
+    window.addEventListener('popstate', syncSearchFromUrl);
+    window.addEventListener('crm-table-search', syncSearchFromUrl);
+
+    return () => {
+      window.removeEventListener('popstate', syncSearchFromUrl);
+      window.removeEventListener('crm-table-search', syncSearchFromUrl);
+    };
+  }, []);
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
   const [sortKey, setSortKey] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -154,7 +185,15 @@ export function DataTable<T extends Record<string, unknown>>({
             />
             {searchTerm && (
               <button
-                onClick={() => setSearchTerm('')}
+                onClick={() => {
+                  setSearchTerm('');
+                  if (typeof window !== 'undefined' && window.location.search.includes('search=')) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('search');
+                    const newUrl = url.pathname + (url.search ? url.search : '');
+                    window.history.replaceState({}, '', newUrl);
+                  }
+                }}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
