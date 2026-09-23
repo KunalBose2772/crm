@@ -1,7 +1,7 @@
 export type VerificationStatus = 'verified' | 'pending' | 'unverified' | 'rejected' | 'suspended';
 export type TransactionStatus = 'pending' | 'completed' | 'processing' | 'rejected' | 'failed';
 export type PaymentMethod = 'USDT_TRC20' | 'USDT_ERC20' | 'Bank_Wire' | 'Credit_Card' | 'Skrill' | 'Neteller' | 'Local_Bank';
-export type TransactionType = 'deposit' | 'withdrawal' | 'credit_bonus' | 'debit_correction' | 'internal_transfer' | 'ib_commission';
+export type TransactionType = 'deposit' | 'withdrawal' | 'credit_bonus' | 'debit_correction' | 'internal_transfer' | 'transfer' | 'ib_commission';
 
 export interface TradingAccount {
   id: string;
@@ -127,6 +127,7 @@ export interface Transaction {
   method: string;
   timestamp: string;
   description: string;
+  plan?: string;
 }
 
 export interface IBPartner {
