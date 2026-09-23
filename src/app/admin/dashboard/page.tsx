@@ -7,6 +7,9 @@ import { WelcomeBanner } from '@/components/dashboard/WelcomeBanner';
 import { LiveKPICard } from '@/components/dashboard/LiveKPICard';
 import { RevenueAnalyticsSection } from '@/components/dashboard/RevenueAnalyticsSection';
 import { AccountDistributionSection } from '@/components/dashboard/AccountDistributionSection';
+import { TodaysPerformanceSection } from '@/components/dashboard/TodaysPerformanceSection';
+import { RecentTransactionsSection } from '@/components/dashboard/RecentTransactionsSection';
+import { TopPerformingClientsSection } from '@/components/dashboard/TopPerformingClientsSection';
 import { Card, CardHeader, CardContent } from '@/components/ui/Card';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -249,167 +252,68 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* 5. Financial Health & Volume Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Treasury Flow Breakdown */}
-        <Card className="lg:col-span-2">
-          <CardHeader
-            title="Treasury Flow & Liquidity Overview"
-            subtitle="Real-time deposit and withdrawal settlement distribution"
-            icon={<Scale className="w-5 h-5 text-purple-600" />}
-          />
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-xs font-bold mb-2">
-                  <span className="text-purple-700">Total Deposits Processed</span>
-                  <span className="text-slate-800 font-mono tabular-nums">{formatCurrency(stats.totalDepositsVolume)} (71%)</span>
-                </div>
-                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-500 rounded-full w-[71%]" />
-                </div>
-              </div>
+      {/* 5. Today's Performance (with Royal Purple KPI Cards & Net Flow Today) */}
+      <TodaysPerformanceSection />
 
-              <div>
-                <div className="flex justify-between text-xs font-bold mb-2">
-                  <span className="text-rose-600">Total Withdrawals Disbursed</span>
-                  <span className="text-slate-800 font-mono tabular-nums">{formatCurrency(stats.totalWithdrawalsVolume)} (29%)</span>
-                </div>
-                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-rose-500 to-orange-400 rounded-full w-[29%]" />
-                </div>
-              </div>
-            </div>
+      {/* 6. Recent Transactions Table (from Image 1) */}
+      <RecentTransactionsSection />
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 pt-4 border-t border-slate-100">
-              <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 text-center">
-                <span className="text-xs font-medium text-slate-500 font-sans">Trading Volume</span>
-                <p className="text-lg font-bold text-purple-900 mt-1 font-mono tabular-nums">{stats.totalTradingVolumeLots.toLocaleString()} Lots</p>
-              </div>
-              <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 text-center">
-                <span className="text-xs font-medium text-slate-500 font-sans">Active Partners (IB)</span>
-                <p className="text-lg font-bold text-purple-900 mt-1 font-mono tabular-nums">{stats.activeIbsCount}</p>
-              </div>
-              <div className="p-4 rounded-2xl bg-purple-50/60 border border-purple-100 text-center">
-                <span className="text-xs font-medium text-slate-500 font-sans">Active Traders</span>
-                <p className="text-lg font-bold text-purple-900 mt-1 font-mono tabular-nums">{stats.activeClients}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* 7. Top Performing Clients Table (from Image 2) */}
+      <TopPerformingClientsSection />
 
-        {/* Action Shortcuts & Quick Operations */}
-        <Card>
-          <CardHeader
-            title="Operational Shortcuts"
-            subtitle="Frequent administrative workflows"
-            icon={<Clock className="w-5 h-5 text-purple-600" />}
-          />
-          <CardContent className="space-y-3">
-            <Link href="/admin/client-page" className="block">
-              <div className="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/60 hover:bg-purple-50/70 hover:border-purple-200 transition-all flex items-center justify-between group shadow-2xs">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-purple-100 text-purple-700">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-bold text-slate-900 font-heading">Client Directory</h5>
-                    <p className="text-[11px] text-slate-500 font-sans">Manage {clients.length} registered accounts</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
-              </div>
-            </Link>
-
-            <Link href="/admin/add-payments" className="block">
-              <div className="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/60 hover:bg-purple-50/70 hover:border-purple-200 transition-all flex items-center justify-between group shadow-2xs">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-700">
-                    <DollarSign className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-bold text-slate-900 font-heading">Manual Payment Adjustment</h5>
-                    <p className="text-[11px] text-slate-500 font-sans">Credit bonus or balance corrections</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
-              </div>
-            </Link>
-
-            <Link href="/admin/IB-Configuration" className="block">
-              <div className="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/60 hover:bg-purple-50/70 hover:border-purple-200 transition-all flex items-center justify-between group shadow-2xs">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-indigo-100 text-indigo-700">
-                    <TrendingUp className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-bold text-slate-900 font-heading">IB Tier Structure</h5>
-                    <p className="text-[11px] text-slate-500 font-sans">Adjust multi-level partner rebates</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
-              </div>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Ledger Activity Table */}
+      {/* 8. Operational Shortcuts & Quick Links */}
       <Card>
         <CardHeader
-          title="Recent Financial Transactions"
-          subtitle="Real-time audit log of deposits, payouts, bonuses, and rebates"
-          icon={<CheckCircle2 className="w-5 h-5 text-purple-600" />}
-          action={
-            <Link href="/admin/Admin-transaction-page">
-              <Button size="sm" variant="ghost" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
-                View All Transactions
-              </Button>
-            </Link>
-          }
+          title="Operational Shortcuts"
+          subtitle="Frequent administrative workflows and quick navigation"
+          icon={<Clock className="w-5 h-5 text-purple-600" />}
         />
-        <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left text-sm min-w-[700px]">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold text-slate-500 uppercase tracking-wider font-heading">
-                <th className="py-3.5 px-4">Ref ID</th>
-                <th className="py-3.5 px-4">Client</th>
-                <th className="py-3.5 px-4">Type</th>
-                <th className="py-3.5 px-4">Amount</th>
-                <th className="py-3.5 px-4">Method</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4">Timestamp</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-sans">
-              {transactions.slice(0, 5).map(tx => (
-                <tr key={tx.id} className="hover:bg-purple-50/30 transition-colors">
-                  <td className="py-3.5 px-4 font-mono text-xs text-purple-700 font-bold tabular-nums">{tx.referenceId}</td>
-                  <td className="py-3.5 px-4">
-                    <div className="font-bold text-slate-900">{tx.clientName}</div>
-                    <div className="text-xs text-slate-500">{tx.clientEmail}</div>
-                  </td>
-                  <td className="py-3.5 px-4">
-                    <span className="capitalize font-semibold text-xs text-slate-700 px-3 py-1 rounded-full bg-slate-100 border border-slate-200">
-                      {tx.type.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-900 font-mono text-xs sm:text-sm tabular-nums">
-                    {tx.type === 'withdrawal' || tx.type === 'debit_correction' ? '-' : '+'}
-                    {tx.amount.toLocaleString()} {tx.currency}
-                  </td>
-                  <td className="py-3.5 px-4 text-xs text-slate-600">{tx.method}</td>
-                  <td className="py-3.5 px-4">
-                    <StatusBadge status={tx.status} />
-                  </td>
-                  <td className="py-3.5 px-4 text-xs text-slate-500 tabular-nums" suppressHydrationWarning>
-                    {new Date(tx.timestamp).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Link href="/admin/client-page" className="block">
+            <div className="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/60 hover:bg-purple-50/70 hover:border-purple-200 transition-all flex items-center justify-between group shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-purple-100 text-purple-700">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div>
+                  <h5 className="text-sm font-bold text-slate-900 font-heading">Client Directory</h5>
+                  <p className="text-[11px] text-slate-500 font-sans">Manage registered accounts</p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
+            </div>
+          </Link>
+
+          <Link href="/admin/add-payments" className="block">
+            <div className="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/60 hover:bg-purple-50/70 hover:border-purple-200 transition-all flex items-center justify-between group shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-700">
+                  <DollarSign className="w-4 h-4" />
+                </div>
+                <div>
+                  <h5 className="text-sm font-bold text-slate-900 font-heading">Manual Adjustment</h5>
+                  <p className="text-[11px] text-slate-500 font-sans">Credit bonus or balance corrections</p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
+            </div>
+          </Link>
+
+          <Link href="/admin/IB-Configuration" className="block">
+            <div className="p-3.5 rounded-2xl border border-slate-200/90 bg-slate-50/60 hover:bg-purple-50/70 hover:border-purple-200 transition-all flex items-center justify-between group shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-indigo-100 text-indigo-700">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+                <div>
+                  <h5 className="text-sm font-bold text-slate-900 font-heading">IB Tier Structure</h5>
+                  <p className="text-[11px] text-slate-500 font-sans">Adjust multi-level partner rebates</p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-1 transition-all" />
+            </div>
+          </Link>
+        </CardContent>
       </Card>
     </div>
   );

@@ -204,3 +204,32 @@ export interface AccountDistributionConfig {
   totalAccountsCount?: number;
 }
 
+// API Configurable Data Model for Today's Performance (Image 1 & 3)
+export interface TodaysPerformanceConfig {
+  dateLabel?: string;
+  lastUpdated?: string;
+  totalNetDeposits: number;
+  totalNetDepositsChange?: number;
+  grossInflows: number;
+  grossInflowsChange?: number;
+  grossOutflows: number;
+  grossOutflowsChange?: number;
+  totalRegisteredClients: number;
+  totalRegisteredClientsChange?: number;
+  netFlowToday?: number;
+  depositRate?: number;
+  withdrawalRate?: number;
+  avgDeposit?: number;
+}
+
+// Top Performing Clients Leaderboard (Image 2)
+export interface TopPerformingClient {
+  id: string;
+  rank: number;
+  nameOrEmail: string;
+  depositsCount: number;
+  accountsCount: number;
+  totalDeposited: number;
+}
+
+
