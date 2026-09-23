@@ -7,7 +7,8 @@ import {
   User,
   LogOut,
   ChevronDown,
-  Menu
+  Menu,
+  ExternalLink
 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
 import { HeaderSearchBar } from './HeaderSearchBar';
@@ -78,6 +79,17 @@ export const AdminHeader: React.FC = () => {
 
       {/* Right Controls */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* Client Panel Button (Always opens in new tab) */}
+        <a
+          href="/client/dashboard"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50/80 text-blue-700 hover:bg-blue-100 text-xs font-semibold transition-all shadow-2xs"
+          title="Open Client Panel in new tab"
+        >
+          <span>Client Panel</span>
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
         {/* Notifications Bell */}
         <div className="relative">
           <button

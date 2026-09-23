@@ -2,11 +2,11 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, PlusCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
 
 export default function ClientOpenAccountPage() {
-  const { impersonation, showToast } = useCRM();
+  const { showToast } = useCRM();
   const [platform, setPlatform] = useState('MT5');
   const [type, setType] = useState('Standard');
   const [leverage, setLeverage] = useState('1:300');
@@ -24,41 +24,41 @@ export default function ClientOpenAccountPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <Link href="/client/dashboard" className="text-xs text-purple-400 hover:underline flex items-center gap-1.5 mb-1">
+        <Link href="/client/dashboard" className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-1.5 mb-1">
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
         </Link>
-        <h1 className="font-serif text-3xl font-bold text-white tracking-tight">Open New Trading Account</h1>
-        <p className="text-xs text-slate-400 mt-1">Configure live or demo account on Ocean Markets infrastructure</p>
+        <h1 className="font-serif text-3xl font-bold text-slate-900 tracking-tight">Open New Trading Account</h1>
+        <p className="text-xs text-slate-500 mt-1">Configure live or demo account on Ocean Markets infrastructure</p>
       </div>
 
-      <div className="bg-[#0E1422] border border-[#1C263C] rounded-2xl p-6 sm:p-8 space-y-6 shadow-xl">
+      <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
         {isSuccess ? (
           <div className="p-6 text-center space-y-4">
-            <div className="w-14 h-14 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="font-serif text-2xl font-bold text-white">Account Ready</h3>
-              <p className="text-xs text-slate-400 mt-1">Your new MT5 account has been provisioned.</p>
+              <h3 className="font-serif text-2xl font-bold text-slate-900">Account Ready</h3>
+              <p className="text-xs text-slate-500 mt-1">Your new MT5 account has been provisioned.</p>
             </div>
 
-            <div className="p-4 rounded-xl bg-[#12192A] border border-[#1E2B44] text-center space-y-1">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center space-y-1">
               <span className="text-[10px] font-mono uppercase text-slate-400">Account Login ID</span>
-              <div className="font-mono text-2xl font-extrabold text-amber-400">#{newLogin}</div>
-              <span className="text-xs text-slate-400 font-mono">Server: OceanMarkets-Live • 1:300</span>
+              <div className="font-mono text-2xl font-extrabold text-blue-700">#{newLogin}</div>
+              <span className="text-xs text-slate-500 font-mono">Server: OceanMarkets-Live • 1:300</span>
             </div>
 
             <div className="flex justify-center gap-3">
               <Link
                 href="/client/dashboard"
-                className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold"
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs"
               >
                 Go to Dashboard
               </Link>
               <button
                 type="button"
                 onClick={() => setIsSuccess(false)}
-                className="px-4 py-2 rounded-xl bg-[#141C2C] text-slate-300 text-xs font-bold hover:bg-[#1A2538]"
+                className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200"
               >
                 Open Another Account
               </button>
@@ -67,7 +67,7 @@ export default function ClientOpenAccountPage() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-xs font-mono uppercase text-slate-400 font-bold block mb-1.5">
+              <label className="text-xs font-mono uppercase text-slate-500 font-bold block mb-1.5">
                 Trading Platform
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -78,8 +78,8 @@ export default function ClientOpenAccountPage() {
                     onClick={() => setPlatform(p)}
                     className={`p-3 rounded-xl border text-xs font-bold text-left transition-all ${
                       platform === p
-                        ? 'border-purple-500 bg-purple-950/30 text-purple-300'
-                        : 'border-[#1E2B44] bg-[#12192A] text-slate-300 hover:bg-[#162035]'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-2xs'
+                        : 'border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100'
                     }`}
                   >
                     {p}
@@ -89,7 +89,7 @@ export default function ClientOpenAccountPage() {
             </div>
 
             <div>
-              <label className="text-xs font-mono uppercase text-slate-400 font-bold block mb-1.5">
+              <label className="text-xs font-mono uppercase text-slate-500 font-bold block mb-1.5">
                 Account Type
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -100,8 +100,8 @@ export default function ClientOpenAccountPage() {
                     onClick={() => setType(t)}
                     className={`p-3 rounded-xl border text-xs font-bold text-center transition-all ${
                       type === t
-                        ? 'border-purple-500 bg-purple-950/30 text-purple-300'
-                        : 'border-[#1E2B44] bg-[#12192A] text-slate-300 hover:bg-[#162035]'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-2xs'
+                        : 'border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100'
                     }`}
                   >
                     {t}
@@ -111,13 +111,13 @@ export default function ClientOpenAccountPage() {
             </div>
 
             <div>
-              <label className="text-xs font-mono uppercase text-slate-400 font-bold block mb-1.5">
+              <label className="text-xs font-mono uppercase text-slate-500 font-bold block mb-1.5">
                 Leverage
               </label>
               <select
                 value={leverage}
                 onChange={(e) => setLeverage(e.target.value)}
-                className="w-full px-4 py-2.5 bg-[#12192A] border border-[#1E2B44] rounded-xl text-white text-xs focus:outline-none focus:border-purple-500"
+                className="w-full px-4 py-2.5 bg-slate-50/60 border border-slate-200 rounded-xl text-slate-800 text-xs focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               >
                 <option value="1:100">1:100</option>
                 <option value="1:200">1:200</option>
@@ -128,7 +128,7 @@ export default function ClientOpenAccountPage() {
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#D9A05B] to-[#C28C42] hover:brightness-110 text-[#130E07] font-bold text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-xs active:scale-95 cursor-pointer"
             >
               Create Account
             </button>

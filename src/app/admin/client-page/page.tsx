@@ -171,11 +171,11 @@ export default function ClientManagementPage() {
     );
   };
 
-  // Wire "Login as Client" directly to Client Portal at /client/dashboard
+  // Wire "Login as Client" directly to Client Portal at /client/dashboard in a new tab
   const handleImpersonate = (client: Client) => {
     startImpersonation(client);
-    showToast('info', 'Client Portal Active', `Impersonating ${client.name}. Accessing trading desk.`);
-    router.push('/client/dashboard');
+    showToast('info', 'Client Portal Active', `Opening client workspace for ${client.name} in a new tab...`);
+    window.open('/client/dashboard', '_blank');
   };
 
   const handleSaveDetails = () => {

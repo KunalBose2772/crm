@@ -14,7 +14,8 @@ import {
   GitFork, 
   WalletCards, 
   Settings, 
-  TrendingUp
+  TrendingUp,
+  ExternalLink
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useCRM } from '@/context/CRMContext';
@@ -24,7 +25,8 @@ interface NavItem {
   href: string;
   icon: React.ReactNode;
   badge?: number;
-  badgeColor?: 'purple' | 'amber' | 'rose';
+  badgeColor?: 'purple' | 'amber' | 'rose' | 'blue';
+  isExternal?: boolean;
 }
 
 interface NavSection {
@@ -59,6 +61,12 @@ export const AdminSidebar: React.FC<{ isCollapsed?: boolean }> = ({ isCollapsed 
           label: 'Clients',
           href: '/admin/client-page',
           icon: <Users className="w-5 h-5" />,
+        },
+        {
+          label: 'Client Panel',
+          href: '/client/dashboard',
+          icon: <ExternalLink className="w-5 h-5 text-blue-600" />,
+          isExternal: true,
         },
         {
           label: 'KYC Verification',
@@ -172,7 +180,11 @@ export const AdminSidebar: React.FC<{ isCollapsed?: boolean }> = ({ isCollapsed 
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setMobileSidebarOpen(false)}
+                    target={item.isExternal ? '_blank' : undefined}
+                    rel={item.isExternal ? 'noopener noreferrer' : undefined}
+                    onClick={() => {
+                      if (!item.isExternal) setMobileSidebarOpen(false);
+                    }}
                     className={clsx(
                       'flex items-center gap-3 px-3.5 py-2.5 rounded-full text-sm font-medium transition-all group relative',
                       isActive
