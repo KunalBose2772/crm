@@ -35,6 +35,9 @@ export interface Client {
   totalBalance: number;
   accounts: TradingAccount[];
   notes?: string;
+  emailVerified?: boolean;
+  kycVerified?: boolean;
+  ibPartnerStatus?: 'active' | 'inactive' | 'None';
 }
 
 export interface KYCRecord {
