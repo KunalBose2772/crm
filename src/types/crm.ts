@@ -45,13 +45,18 @@ export interface KYCRecord {
   clientId: string;
   clientName: string;
   clientEmail: string;
+  clientPhone?: string;
   country: string;
+  dob?: string;
+  accountNumber?: string;
   documentType: 'Passport' | 'National_ID' | 'Driving_License' | 'Proof_of_Address';
   documentNumber: string;
   frontImageUrl: string;
   backImageUrl?: string;
   submittedAt: string;
   status: VerificationStatus;
+  reviewedDocsCount?: number;
+  totalDocsCount?: number;
   rejectionReason?: string;
   reviewedBy?: string;
   reviewedAt?: string;

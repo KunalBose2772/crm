@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCRM } from '@/context/CRMContext';
 import { Client, TradingAccount } from '@/types/crm';
 import { WelcomeBanner } from '@/components/dashboard/WelcomeBanner';
-import { Drawer } from '@/components/ui/Drawer';
 import { Modal } from '@/components/ui/Modal';
 import { 
   Search, 
@@ -29,11 +29,19 @@ import {
   TrendingUp,
   X,
   CreditCard,
-  Building
+  Building,
+  Eye,
+  EyeOff,
+  FileText,
+  AlertCircle,
+  XCircle,
+  CheckCircle2,
+  ExternalLink,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function ClientManagementPage() {
+  const router = useRouter();
   const { clients, updateClientStatus, addClient, startImpersonation, showToast } = useCRM();
 
   // Search and filter state
@@ -44,19 +52,33 @@ export default function ClientManagementPage() {
   const [kycFilter, setKycFilter] = useState<'all' | 'verified' | 'unverified'>('all');
   const [ibFilter, setIbFilter] = useState<'all' | 'active' | 'inactive' | 'none'>('all');
 
-  // Interactive Modals and Drawers state
+  // Interactive Modals state
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [isDetailsDrawerOpen, setIsDetailsDrawerOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isMt5ModalOpen, setIsMt5ModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // Form states for password change
-  const [passwordForm, setPasswordForm] = useState({
-    passwordType: 'master',
-    newPassword: '',
-    confirmPassword: '',
+  // Client Details Modal state (Image 1)
+  const [detailsTab, setDetailsTab] = useState<'personal' | 'documents' | 'financial'>('personal');
+  const [isEditingDetails, setIsEditingDetails] = useState(false);
+  const [clientForm, setClientForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    dob: '05/14/1992',
+    country: '',
+    education: '',
+    emailStatus: 'verified', // 'verified' | 'unverified'
+    kycStatus: 'verified', // 'verified' | 'unverified' | 'rejected'
+    ibStatus: 'Active', // 'Active' | 'Not Active' | 'None'
   });
+
+  // Password Modal state (Image 4)
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [currentPasswordVal, setCurrentPasswordVal] = useState('•••••••••••••••••••••••••');
+  const [newPasswordVal, setNewPasswordVal] = useState('');
 
   // Form state for new client
   const [newClientForm, setNewClientForm] = useState({
@@ -80,7 +102,7 @@ export default function ClientManagementPage() {
 
       if (!matchesSearch) return false;
 
-      // Status filter (activated = verified/pending/unverified; suspended = suspended)
+      // Status filter
       if (statusFilter === 'activated' && client.status === 'suspended') return false;
       if (statusFilter === 'suspended' && client.status !== 'suspended') return false;
 
@@ -105,7 +127,24 @@ export default function ClientManagementPage() {
   // Actions
   const handleOpenDetails = (client: Client) => {
     setSelectedClient(client);
-    setIsDetailsDrawerOpen(true);
+    const names = client.name.split(' ');
+    const firstName = names[0] || '';
+    const lastName = names.slice(1).join(' ') || '';
+    setClientForm({
+      firstName,
+      lastName,
+      email: client.email,
+      phone: client.phone || '4567890321',
+      dob: '05/14/1992',
+      country: client.country || 'Algeria',
+      education: '',
+      emailStatus: client.emailVerified !== false ? 'verified' : 'unverified',
+      kycStatus: client.kycVerified ? 'verified' : 'unverified',
+      ibStatus: client.ibPartnerStatus === 'active' ? 'Active' : (client.ibPartnerStatus === 'inactive' ? 'Not Active' : 'None'),
+    });
+    setDetailsTab('personal');
+    setIsEditingDetails(false);
+    setIsDetailsModalOpen(true);
   };
 
   const handleOpenMt5Accounts = (client: Client) => {
@@ -115,7 +154,9 @@ export default function ClientManagementPage() {
 
   const handleOpenManagePassword = (client: Client) => {
     setSelectedClient(client);
-    setPasswordForm({ passwordType: 'master', newPassword: '', confirmPassword: '' });
+    setCurrentPasswordVal('•••••••••••••••••••••••••');
+    setNewPasswordVal('');
+    setShowCurrentPassword(false);
     setIsPasswordModalOpen(true);
   };
 
@@ -130,17 +171,25 @@ export default function ClientManagementPage() {
     );
   };
 
+  // Wire "Login as Client" directly to Client Portal at /client/dashboard
   const handleImpersonate = (client: Client) => {
     startImpersonation(client);
+    showToast('info', 'Client Portal Active', `Impersonating ${client.name}. Accessing trading desk.`);
+    router.push('/client/dashboard');
+  };
+
+  const handleSaveDetails = () => {
+    showToast('success', 'Client Details Updated', `Changes saved for ${clientForm.firstName} ${clientForm.lastName}.`);
+    setIsEditingDetails(false);
   };
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!passwordForm.newPassword || passwordForm.newPassword !== passwordForm.confirmPassword) {
-      showToast('error', 'Password Mismatch', 'The passwords entered do not match.');
+    if (!newPasswordVal) {
+      showToast('error', 'Password Required', 'Please enter a new password.');
       return;
     }
-    showToast('success', 'Password Updated', `New ${passwordForm.passwordType} password set for ${selectedClient?.name}.`);
+    showToast('success', 'Password Updated', `New credentials applied for ${selectedClient?.name}.`);
     setIsPasswordModalOpen(false);
   };
 
@@ -165,7 +214,7 @@ export default function ClientManagementPage() {
       accounts: [
         {
           id: `acc_${Date.now()}`,
-          login: Math.floor(2600000 + Math.random() * 90000),
+          login: Math.floor(260000000 + Math.random() * 90000000),
           platform: 'MT5',
           type: 'Standard',
           currency: 'USD',
@@ -174,7 +223,7 @@ export default function ClientManagementPage() {
           freeMargin: 0,
           marginLevel: 0,
           leverage: '1:500',
-          server: 'Live-Server-01',
+          server: 'OceanMarkets-Live',
           createdAt: new Date().toISOString(),
         }
       ]
@@ -249,151 +298,157 @@ export default function ClientManagementPage() {
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3">
             {/* Search Input */}
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4 sm:w-5 sm:h-5 pointer-events-none" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, email, or country..."
-                className="w-full pl-11 pr-4 h-10 sm:h-12 border border-slate-200/90 rounded-xl sm:rounded-2xl focus:border-purple-600 focus:ring-2 focus:ring-purple-200/50 focus:outline-none transition-all text-xs sm:text-sm font-sans bg-slate-50/50 hover:bg-white"
+                placeholder="Search clients by name, email, or country..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl sm:rounded-2xl border border-purple-100 bg-purple-50/20 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200/50 transition-all font-sans"
               />
               {searchQuery && (
                 <button
+                  type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 rounded-full cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
 
-            {/* Action Buttons: Filters, Export, Add Client */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Filters Dropdown Button */}
+            {/* Quick Action Buttons */}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Filter Popover Button */}
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setFilterMenuOpen(!filterMenuOpen)}
                   className={clsx(
-                    "h-10 sm:h-12 px-3 sm:px-5 text-xs sm:text-sm rounded-xl sm:rounded-2xl font-bold transition-all duration-200 shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95",
-                    activeFiltersCount > 0 || filterMenuOpen
-                      ? "bg-purple-600 text-white shadow-sm ring-2 ring-purple-300"
-                      : "bg-purple-50 hover:bg-purple-100/90 text-purple-900 border border-purple-200/90"
+                    "flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold border transition-all cursor-pointer shadow-2xs",
+                    filterMenuOpen || activeFiltersCount > 0
+                      ? "bg-purple-600 text-white border-purple-600 shadow-purple-500/20"
+                      : "bg-white text-slate-700 border-purple-200/80 hover:bg-purple-50/50 hover:text-purple-700"
                   )}
                 >
-                  <Filter className="w-4 h-4" />
-                  <span className="hidden sm:inline font-heading">Filters</span>
+                  <Filter className="w-3.5 h-3.5" />
+                  <span>Filters</span>
                   {activeFiltersCount > 0 && (
-                    <span className="w-5 h-5 rounded-full bg-white text-purple-700 text-[10px] font-mono flex items-center justify-center font-bold">
+                    <span className="ml-0.5 px-1.5 py-0.2 rounded-full bg-white text-purple-700 text-[10px] font-extrabold">
                       {activeFiltersCount}
                     </span>
                   )}
                   <ChevronDown className={clsx("w-3.5 h-3.5 transition-transform duration-200", filterMenuOpen && "rotate-180")} />
                 </button>
 
-                {/* Filter Popover Dropdown */}
+                {/* Filter Dropdown Popover */}
                 {filterMenuOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setFilterMenuOpen(false)} />
-                    <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 rounded-2xl bg-white border border-purple-200 shadow-2xl p-4 z-50 animate-in fade-in zoom-in-95">
-                      <div className="flex items-center justify-between pb-2 mb-3 border-b border-purple-50">
-                        <span className="font-heading font-bold text-xs uppercase tracking-wider text-purple-900">
-                          Filter Clients
-                        </span>
-                        {activeFiltersCount > 0 && (
-                          <button
-                            type="button"
-                            onClick={resetFilters}
-                            className="text-xs text-rose-600 hover:underline font-semibold cursor-pointer"
-                          >
-                            Reset all
-                          </button>
-                        )}
+                  <div className="absolute right-0 mt-2 w-72 sm:w-80 rounded-2xl bg-white border border-purple-100 shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                      <span className="text-xs font-bold text-slate-900 font-heading">Filter Directory</span>
+                      <button
+                        type="button"
+                        onClick={resetFilters}
+                        className="text-[11px] font-bold text-purple-600 hover:underline cursor-pointer"
+                      >
+                        Reset All
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Account Status</label>
+                        <div className="grid grid-cols-3 gap-1">
+                          {(['all', 'activated', 'suspended'] as const).map((s) => (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => setStatusFilter(s)}
+                              className={clsx(
+                                "py-1 px-2 rounded-lg text-[11px] font-bold capitalize transition-all cursor-pointer",
+                                statusFilter === s
+                                  ? "bg-purple-600 text-white"
+                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              )}
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
-                      <div className="space-y-3 text-xs">
-                        {/* Status Filter */}
-                        <div>
-                          <label className="text-[11px] font-semibold text-slate-500 block mb-1">Status</label>
-                          <div className="grid grid-cols-3 gap-1">
-                            {(['all', 'activated', 'suspended'] as const).map(st => (
-                              <button
-                                key={st}
-                                type="button"
-                                onClick={() => setStatusFilter(st)}
-                                className={clsx(
-                                  "py-1.5 px-2 rounded-lg text-center font-medium capitalize transition-colors cursor-pointer",
-                                  statusFilter === st ? "bg-purple-600 text-white font-bold" : "bg-slate-50 text-slate-600 hover:bg-purple-50"
-                                )}
-                              >
-                                {st}
-                              </button>
-                            ))}
-                          </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Email Verification</label>
+                        <div className="grid grid-cols-3 gap-1">
+                          {(['all', 'verified', 'unverified'] as const).map((e) => (
+                            <button
+                              key={e}
+                              type="button"
+                              onClick={() => setEmailFilter(e)}
+                              className={clsx(
+                                "py-1 px-2 rounded-lg text-[11px] font-bold capitalize transition-all cursor-pointer",
+                                emailFilter === e
+                                  ? "bg-purple-600 text-white"
+                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              )}
+                            >
+                              {e}
+                            </button>
+                          ))}
                         </div>
+                      </div>
 
-                        {/* Email Verified Filter */}
-                        <div>
-                          <label className="text-[11px] font-semibold text-slate-500 block mb-1">Email Verification</label>
-                          <div className="grid grid-cols-3 gap-1">
-                            {(['all', 'verified', 'unverified'] as const).map(ef => (
-                              <button
-                                key={ef}
-                                type="button"
-                                onClick={() => setEmailFilter(ef)}
-                                className={clsx(
-                                  "py-1.5 px-2 rounded-lg text-center font-medium capitalize transition-colors cursor-pointer",
-                                  emailFilter === ef ? "bg-purple-600 text-white font-bold" : "bg-slate-50 text-slate-600 hover:bg-purple-50"
-                                )}
-                              >
-                                {ef}
-                              </button>
-                            ))}
-                          </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">KYC Verification</label>
+                        <div className="grid grid-cols-3 gap-1">
+                          {(['all', 'verified', 'unverified'] as const).map((k) => (
+                            <button
+                              key={k}
+                              type="button"
+                              onClick={() => setKycFilter(k)}
+                              className={clsx(
+                                "py-1 px-2 rounded-lg text-[11px] font-bold capitalize transition-all cursor-pointer",
+                                kycFilter === k
+                                  ? "bg-purple-600 text-white"
+                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              )}
+                            >
+                              {k}
+                            </button>
+                          ))}
                         </div>
+                      </div>
 
-                        {/* KYC Verified Filter */}
-                        <div>
-                          <label className="text-[11px] font-semibold text-slate-500 block mb-1">KYC Status</label>
-                          <div className="grid grid-cols-3 gap-1">
-                            {(['all', 'verified', 'unverified'] as const).map(kf => (
-                              <button
-                                key={kf}
-                                type="button"
-                                onClick={() => setKycFilter(kf)}
-                                className={clsx(
-                                  "py-1.5 px-2 rounded-lg text-center font-medium capitalize transition-colors cursor-pointer",
-                                  kycFilter === kf ? "bg-purple-600 text-white font-bold" : "bg-slate-50 text-slate-600 hover:bg-purple-50"
-                                )}
-                              >
-                                {kf}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* IB Partner Filter */}
-                        <div>
-                          <label className="text-[11px] font-semibold text-slate-500 block mb-1">IB Partner</label>
-                          <div className="grid grid-cols-4 gap-1">
-                            {(['all', 'active', 'inactive', 'none'] as const).map(ib => (
-                              <button
-                                key={ib}
-                                type="button"
-                                onClick={() => setIbFilter(ib)}
-                                className={clsx(
-                                  "py-1.5 px-1.5 rounded-lg text-center font-medium capitalize text-[10px] sm:text-xs transition-colors cursor-pointer",
-                                  ibFilter === ib ? "bg-purple-600 text-white font-bold" : "bg-slate-50 text-slate-600 hover:bg-purple-50"
-                                )}
-                              >
-                                {ib}
-                              </button>
-                            ))}
-                          </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">IB Partner Status</label>
+                        <div className="grid grid-cols-4 gap-1">
+                          {(['all', 'active', 'inactive', 'none'] as const).map((ib) => (
+                            <button
+                              key={ib}
+                              type="button"
+                              onClick={() => setIbFilter(ib)}
+                              className={clsx(
+                                "py-1 px-1.5 rounded-lg text-[10px] font-bold capitalize transition-all cursor-pointer",
+                                ibFilter === ib
+                                  ? "bg-purple-600 text-white"
+                                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                              )}
+                            >
+                              {ib}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     </div>
-                  </>
+
+                    <button
+                      type="button"
+                      onClick={() => setFilterMenuOpen(false)}
+                      className="w-full py-2 rounded-xl bg-purple-600 text-white font-bold text-xs hover:bg-purple-700 transition-colors shadow-xs"
+                    >
+                      Apply Filters
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -401,222 +456,253 @@ export default function ClientManagementPage() {
               <button
                 type="button"
                 onClick={handleExportCSV}
-                className="h-10 sm:h-12 px-3 sm:px-5 text-xs sm:text-sm rounded-xl sm:rounded-2xl font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/90 transition-all duration-200 shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                title="Export filtered clients to CSV"
+                className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold border border-purple-200/80 bg-white text-slate-700 hover:bg-purple-50/50 hover:text-purple-700 transition-all cursor-pointer shadow-2xs"
+                title="Export filtered records to CSV"
               >
-                <Download className="w-4 h-4 text-emerald-700" />
-                <span className="hidden sm:inline font-heading">Export</span>
+                <Download className="w-3.5 h-3.5 text-purple-600" />
+                <span className="hidden sm:inline">Export</span>
               </button>
 
-              {/* Add New Client Button */}
+              {/* Add Client Button */}
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(true)}
-                className="h-10 sm:h-12 px-3.5 sm:px-5 text-xs sm:text-sm rounded-xl sm:rounded-2xl font-bold bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-sm shadow-purple-500/25 transition-all cursor-pointer active:scale-95 whitespace-nowrap"
               >
-                <UserPlus className="w-4 h-4" />
-                <span className="font-heading">Add Client</span>
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>Add Client</span>
               </button>
             </div>
           </div>
 
-          {/* Bottom Counter & Active Filters Indicator */}
-          <div className="pt-2 sm:pt-3 border-t border-purple-50 flex items-center justify-between text-xs text-slate-500 font-sans">
-            <div>
-              Found <span className="text-purple-700 font-extrabold font-mono text-sm">{filteredClients.length}</span> clients
-              {searchQuery && (
-                <span className="text-slate-400 ml-1.5 font-normal">
-                  matching &ldquo;{searchQuery}&rdquo;
+          {/* Quick Active Filter Badges */}
+          {activeFiltersCount > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
+              <span className="text-[11px] text-slate-400 font-bold">Active Filters:</span>
+              {statusFilter !== 'all' && (
+                <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px] flex items-center gap-1">
+                  Status: {statusFilter}
+                  <X className="w-2.5 h-2.5 cursor-pointer" onClick={() => setStatusFilter('all')} />
                 </span>
               )}
-            </div>
-
-            {activeFiltersCount > 0 && (
+              {emailFilter !== 'all' && (
+                <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px] flex items-center gap-1">
+                  Email: {emailFilter}
+                  <X className="w-2.5 h-2.5 cursor-pointer" onClick={() => setEmailFilter('all')} />
+                </span>
+              )}
+              {kycFilter !== 'all' && (
+                <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px] flex items-center gap-1">
+                  KYC: {kycFilter}
+                  <X className="w-2.5 h-2.5 cursor-pointer" onClick={() => setKycFilter('all')} />
+                </span>
+              )}
+              {ibFilter !== 'all' && (
+                <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px] flex items-center gap-1">
+                  IB: {ibFilter}
+                  <X className="w-2.5 h-2.5 cursor-pointer" onClick={() => setIbFilter('all')} />
+                </span>
+              )}
               <button
                 type="button"
                 onClick={resetFilters}
-                className="text-purple-700 hover:text-purple-900 font-semibold cursor-pointer underline text-[11px]"
+                className="text-[10px] text-purple-600 font-bold hover:underline ml-1 cursor-pointer"
               >
-                Clear all filters
+                Clear All
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
         </div>
       </div>
 
-      {/* 3. DESKTOP CLIENTS DATA TABLE (Exact Columns matching reference HTML) */}
-      <div className="hidden lg:block bg-white rounded-2xl sm:rounded-3xl border border-purple-100/90 shadow-xs overflow-hidden">
+      {/* 3. DESKTOP CLIENT DIRECTORY TABLE (Hidden on Mobile) */}
+      <div className="hidden lg:block bg-white rounded-3xl border border-purple-100/90 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-purple-50">
-            {/* Table Header */}
-            <thead className="bg-slate-50/80">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider font-heading">
-                  Name &amp; Email
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider font-heading">
-                  Email Verified
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider font-heading">
-                  KYC Verified
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider font-heading">
-                  IB Partners
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider font-heading">
-                  Country
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-700 uppercase tracking-wider font-heading">
-                  Status
-                </th>
-                <th className="px-6 py-4 text-center text-xs font-bold text-slate-700 uppercase tracking-wider font-heading">
-                  Quick Actions
-                </th>
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-purple-100/90 bg-slate-50/70 text-slate-500 font-bold uppercase tracking-wider text-[11px] font-heading">
+                <th className="py-4 px-4 pl-6">Client Name</th>
+                <th className="py-4 px-4">Email</th>
+                <th className="py-4 px-3 text-center">Email Verified</th>
+                <th className="py-4 px-3 text-center">KYC Verified</th>
+                <th className="py-4 px-4">IB Partner Status</th>
+                <th className="py-4 px-4">Country</th>
+                <th className="py-4 px-3 text-center">Status</th>
+                <th className="py-4 px-4 pr-6 text-center">Actions</th>
               </tr>
             </thead>
-
-            {/* Table Body */}
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-purple-50 text-slate-700 font-sans">
               {filteredClients.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400 font-sans text-sm">
-                    No clients found matching the search criteria.
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                    <p className="text-sm font-semibold">No clients match your filter criteria.</p>
+                    <button
+                      type="button"
+                      onClick={() => { setSearchQuery(''); resetFilters(); }}
+                      className="mt-2 text-xs font-bold text-purple-600 hover:underline cursor-pointer"
+                    >
+                      Clear search &amp; filters
+                    </button>
                   </td>
                 </tr>
               ) : (
                 filteredClients.map((client) => {
                   const isSuspended = client.status === 'suspended';
-                  const isActivated = !isSuspended;
+                  const isEmailVerified = client.emailVerified !== false;
+                  const isKycVerified = !!client.kycVerified;
+                  const ibStatus = client.ibPartnerStatus || 'None';
 
                   return (
-                    <tr 
+                    <tr
                       key={client.id}
-                      className="hover:bg-purple-50/40 transition-colors duration-150 group"
+                      className={clsx(
+                        "hover:bg-purple-50/30 transition-colors group",
+                        isSuspended && "opacity-60 bg-rose-50/10"
+                      )}
                     >
-                      {/* 1. Name & Email */}
-                      <td className="px-6 py-3.5">
-                        <div className="font-bold text-slate-900 text-sm font-sans group-hover:text-purple-900 transition-colors">
-                          {client.name}
+                      {/* 1. Client Name */}
+                      <td className="py-4 px-4 pl-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                            {client.name.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="font-bold text-slate-900 block truncate group-hover:text-purple-700 transition-colors">
+                              {client.name}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              ID: {client.id}
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-xs text-slate-400 font-sans">
+                      </td>
+
+                      {/* 2. Email */}
+                      <td className="py-4 px-4">
+                        <span className="text-slate-600 font-mono text-[11px] block truncate max-w-[190px]">
                           {client.email}
-                        </div>
+                        </span>
                       </td>
 
-                      {/* 2. Email Verified */}
-                      <td className="px-6 py-3.5">
-                        {client.emailVerified ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                            <span>Verified</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
-                            <CircleAlert className="w-3.5 h-3.5 stroke-[2.5]" />
-                            <span>Unverified</span>
-                          </span>
-                        )}
+                      {/* 3. Email Verified Pill */}
+                      <td className="py-4 px-3 text-center">
+                        <span className={clsx(
+                          "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold",
+                          isEmailVerified
+                            ? "bg-emerald-100/90 text-emerald-800"
+                            : "bg-amber-100 text-amber-800"
+                        )}>
+                          {isEmailVerified ? <Check className="w-3 h-3 text-emerald-700" /> : <CircleAlert className="w-3 h-3 text-amber-700" />}
+                          <span>{isEmailVerified ? 'Verified' : 'Unverified'}</span>
+                        </span>
                       </td>
 
-                      {/* 3. KYC Verified */}
-                      <td className="px-6 py-3.5">
-                        {client.kycVerified ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                            <span>Verified</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
-                            <CircleAlert className="w-3.5 h-3.5 stroke-[2.5]" />
-                            <span>Unverified</span>
-                          </span>
-                        )}
+                      {/* 4. KYC Verified Pill */}
+                      <td className="py-4 px-3 text-center">
+                        <span className={clsx(
+                          "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold",
+                          isKycVerified
+                            ? "bg-emerald-100/90 text-emerald-800"
+                            : "bg-amber-100 text-amber-800"
+                        )}>
+                          {isKycVerified ? <Check className="w-3 h-3 text-emerald-700" /> : <CircleAlert className="w-3 h-3 text-amber-700" />}
+                          <span>{isKycVerified ? 'Verified' : 'Unverified'}</span>
+                        </span>
                       </td>
 
-                      {/* 4. IB Partners */}
-                      <td className="px-6 py-3.5 text-xs text-slate-700 capitalize font-medium">
-                        {client.ibPartnerStatus || 'None'}
+                      {/* 5. IB Partner Status */}
+                      <td className="py-4 px-4">
+                        <span className={clsx(
+                          "px-2.5 py-1 rounded-md text-[11px] font-bold inline-block",
+                          ibStatus === 'active'
+                            ? "bg-purple-100 text-purple-800"
+                            : ibStatus === 'inactive'
+                            ? "bg-slate-100 text-slate-600"
+                            : "bg-slate-100 text-slate-400"
+                        )}>
+                          {ibStatus}
+                        </span>
                       </td>
 
-                      {/* 5. Country */}
-                      <td className="px-6 py-3.5 text-xs text-slate-700 font-medium">
-                        {client.country}
+                      {/* 6. Country */}
+                      <td className="py-4 px-4">
+                        <span className="text-slate-700 font-medium block truncate max-w-[120px]">
+                          {client.country}
+                        </span>
                       </td>
 
-                      {/* 6. Status Badge */}
-                      <td className="px-6 py-3.5">
-                        {isActivated ? (
-                          <span className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-3 py-1 rounded-full shadow-2xs text-xs font-bold capitalize">
-                            activated
-                          </span>
-                        ) : (
-                          <span className="bg-gradient-to-r from-rose-500 to-red-600 text-white px-3 py-1 rounded-full shadow-2xs text-xs font-bold capitalize">
-                            suspended
-                          </span>
-                        )}
+                      {/* 7. Status */}
+                      <td className="py-4 px-3 text-center">
+                        <span className={clsx(
+                          "inline-block px-2.5 py-1 rounded-full text-[11px] font-bold capitalize",
+                          isSuspended
+                            ? "bg-rose-100 text-rose-800"
+                            : "bg-emerald-100 text-emerald-800"
+                        )}>
+                          {isSuspended ? 'Suspended' : 'Activated'}
+                        </span>
                       </td>
 
-                      {/* 7. Quick Actions */}
-                      <td className="px-6 py-3.5">
+                      {/* 8. Action Buttons */}
+                      <td className="py-4 px-4 pr-6">
                         <div className="flex items-center justify-center gap-1.5">
-                          {/* 1. View Details */}
+                          {/* Details Button */}
                           <button
                             type="button"
                             onClick={() => handleOpenDetails(client)}
-                            className="p-2 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:scale-110 transition-all cursor-pointer shadow-2xs"
+                            className="p-1.5 rounded-lg border border-purple-200/80 bg-white hover:bg-purple-50 text-purple-700 transition-colors cursor-pointer shadow-2xs"
                             title="View Details"
                           >
-                            <Pen className="w-4 h-4" />
+                            <Pen className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* 2. View MT5 Accounts */}
+                          {/* Accounts Button */}
                           <button
                             type="button"
                             onClick={() => handleOpenMt5Accounts(client)}
-                            className="p-2 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-110 transition-all cursor-pointer shadow-2xs"
+                            className="p-1.5 rounded-lg border border-blue-200/80 bg-white hover:bg-blue-50 text-blue-700 transition-colors cursor-pointer shadow-2xs"
                             title="View MT5 Accounts"
                           >
-                            <Monitor className="w-4 h-4" />
+                            <Monitor className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* 3. Login as Client */}
+                          {/* Login as Client Button (Wired to /client/dashboard) */}
                           <button
                             type="button"
                             onClick={() => handleImpersonate(client)}
-                            className="p-2 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:scale-110 transition-all cursor-pointer shadow-2xs"
-                            title="Login as Client"
+                            className="p-1.5 rounded-lg border border-emerald-200/80 bg-white hover:bg-emerald-50 text-emerald-700 transition-colors cursor-pointer shadow-2xs"
+                            title="Login as Client (Client Portal)"
                           >
-                            <LogIn className="w-4 h-4" />
+                            <LogIn className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* 4. Manage Password */}
+                          {/* Manage Password Button */}
                           <button
                             type="button"
                             onClick={() => handleOpenManagePassword(client)}
-                            className="p-2 rounded-full bg-purple-50 text-purple-600 hover:bg-purple-100 hover:scale-110 transition-all cursor-pointer shadow-2xs"
+                            className="p-1.5 rounded-lg border border-amber-200/80 bg-white hover:bg-amber-50 text-amber-700 transition-colors cursor-pointer shadow-2xs"
                             title="Manage Password"
                           >
-                            <Key className="w-4 h-4" />
+                            <Key className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* 5. Activate / Suspend */}
+                          {/* Suspend / Activate Toggle Button */}
                           <button
                             type="button"
                             onClick={() => handleToggleStatus(client)}
                             className={clsx(
-                              "p-2 rounded-full transition-all cursor-pointer hover:scale-110 shadow-2xs",
+                              "p-1.5 rounded-lg border transition-colors cursor-pointer shadow-2xs",
                               isSuspended
-                                ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                                : "bg-rose-100 text-rose-700 hover:bg-rose-200"
+                                ? "border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700"
+                                : "border-rose-200/80 bg-white hover:bg-rose-50 text-rose-600"
                             )}
-                            title={isSuspended ? "Activate Client" : "Suspend Client"}
+                            title={isSuspended ? 'Activate Client' : 'Suspend Client'}
                           >
-                            {isSuspended ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}
+                            {isSuspended ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
                           </button>
                         </div>
                       </td>
-
                     </tr>
                   );
                 })
@@ -624,413 +710,727 @@ export default function ClientManagementPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Directory Footer with Count */}
+        <div className="p-4 border-t border-purple-50 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500">
+          <div>
+            Showing <span className="font-bold text-slate-800">{filteredClients.length}</span> of{' '}
+            <span className="font-bold text-slate-800">{clients.length}</span> total clients
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-purple-700 font-semibold">
+              Live MT5 Realtime Connection Active
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* 4. MOBILE RESPONSIVE CARD VIEW (Exact match to reference HTML) */}
-      <div className="lg:hidden space-y-3.5">
+      {/* 4. MOBILE RESPONSIVE CARDS (Visible only on mobile/tablet) */}
+      <div className="lg:hidden space-y-3">
         {filteredClients.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-2xl border border-purple-100 text-slate-400 text-sm">
-            No clients found matching the search criteria.
+          <div className="p-8 bg-white rounded-2xl border border-purple-100 text-center text-slate-400">
+            <p className="text-sm font-semibold">No clients match your filter criteria.</p>
+            <button
+              type="button"
+              onClick={() => { setSearchQuery(''); resetFilters(); }}
+              className="mt-2 text-xs font-bold text-purple-600 hover:underline cursor-pointer"
+            >
+              Clear filters
+            </button>
           </div>
         ) : (
           filteredClients.map((client) => {
             const isSuspended = client.status === 'suspended';
-            const isActivated = !isSuspended;
+            const isEmailVerified = client.emailVerified !== false;
+            const isKycVerified = !!client.kycVerified;
 
             return (
-              <div 
+              <div
                 key={client.id}
-                className="bg-white rounded-2xl border border-purple-100/90 shadow-xs p-4 space-y-3.5 hover:border-purple-200 transition-all"
+                className={clsx(
+                  "p-4 rounded-2xl bg-white border border-purple-100/90 shadow-2xs space-y-3 transition-all",
+                  isSuspended && "opacity-75 bg-rose-50/20"
+                )}
               >
-                {/* Header: Name, Email & Status Badge */}
-                <div className="flex justify-between items-start gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-slate-900 text-sm truncate font-sans">
-                      {client.name}
-                    </h3>
-                    <p className="text-xs text-slate-400 truncate font-sans">
-                      {client.email}
-                    </p>
+                {/* Header: Name, Country, and Status */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                      {client.name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-sm leading-tight">{client.name}</h4>
+                      <span className="text-[10px] text-slate-400 font-mono block">ID: {client.id}</span>
+                    </div>
                   </div>
-                  {isActivated ? (
-                    <span className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-2.5 py-0.5 rounded-full text-[11px] font-bold capitalize shrink-0 shadow-2xs">
-                      activated
-                    </span>
-                  ) : (
-                    <span className="bg-gradient-to-r from-rose-500 to-red-600 text-white px-2.5 py-0.5 rounded-full text-[11px] font-bold capitalize shrink-0 shadow-2xs">
-                      suspended
-                    </span>
-                  )}
+                  <span className={clsx(
+                    "px-2 py-0.5 rounded-full text-[10px] font-bold capitalize shrink-0",
+                    isSuspended ? "bg-rose-100 text-rose-800" : "bg-emerald-100 text-emerald-800"
+                  )}>
+                    {isSuspended ? 'Suspended' : 'Activated'}
+                  </span>
                 </div>
 
-                {/* 2x2 Grid of details */}
-                <div className="grid grid-cols-2 gap-2.5 text-xs bg-slate-50/60 p-2.5 rounded-xl border border-slate-100">
-                  <div>
-                    <p className="text-slate-400 text-[10px] mb-1 font-semibold uppercase tracking-wider">Email Status</p>
-                    {client.emailVerified ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
-                        <Check className="w-3 h-3 stroke-[2.5]" /> Verified
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">
-                        <CircleAlert className="w-3 h-3 stroke-[2.5]" /> Unverified
-                      </span>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-slate-400 text-[10px] mb-1 font-semibold uppercase tracking-wider">KYC Status</p>
-                    {client.kycVerified ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
-                        <Check className="w-3 h-3 stroke-[2.5]" /> Verified
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">
-                        <CircleAlert className="w-3 h-3 stroke-[2.5]" /> Unverified
-                      </span>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-slate-400 text-[10px] mb-1 font-semibold uppercase tracking-wider">IB Partner</p>
-                    <p className="text-slate-800 font-bold capitalize text-xs">{client.ibPartnerStatus || 'None'}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-slate-400 text-[10px] mb-1 font-semibold uppercase tracking-wider">Country</p>
-                    <p className="text-slate-800 font-bold truncate text-xs">{client.country}</p>
+                {/* Email and Country */}
+                <div className="text-xs text-slate-600 space-y-1 font-mono">
+                  <div className="truncate">{client.email}</div>
+                  <div className="text-slate-400 font-sans text-[11px] flex items-center gap-1">
+                    <Globe className="w-3 h-3 text-slate-400" />
+                    <span>{client.country}</span>
+                    <span className="text-slate-300">•</span>
+                    <span>IB: {client.ibPartnerStatus || 'None'}</span>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-2 pt-2 border-t border-purple-50">
+                {/* Verification Pills */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-100">
+                  <span className={clsx(
+                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold",
+                    isEmailVerified ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"
+                  )}>
+                    {isEmailVerified ? <Check className="w-2.5 h-2.5" /> : <CircleAlert className="w-2.5 h-2.5" />}
+                    <span>Email: {isEmailVerified ? 'Verified' : 'Unverified'}</span>
+                  </span>
+
+                  <span className={clsx(
+                    "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold",
+                    isKycVerified ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"
+                  )}>
+                    {isKycVerified ? <Check className="w-2.5 h-2.5" /> : <CircleAlert className="w-2.5 h-2.5" />}
+                    <span>KYC: {isKycVerified ? 'Verified' : 'Unverified'}</span>
+                  </span>
+                </div>
+
+                {/* Action Buttons Row */}
+                <div className="grid grid-cols-4 gap-1.5 pt-2 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => handleOpenDetails(client)}
-                    className="flex-1 min-w-[calc(50%-0.25rem)] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                    className="flex flex-col items-center justify-center p-2 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors text-[10px] font-bold cursor-pointer"
                   >
-                    <Pen className="w-3.5 h-3.5" />
+                    <Pen className="w-3.5 h-3.5 mb-0.5" />
                     <span>Details</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleOpenMt5Accounts(client)}
-                    className="flex-1 min-w-[calc(50%-0.25rem)] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                    className="flex flex-col items-center justify-center p-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors text-[10px] font-bold cursor-pointer"
                   >
-                    <Monitor className="w-3.5 h-3.5" />
-                    <span>MT5</span>
+                    <Monitor className="w-3.5 h-3.5 mb-0.5" />
+                    <span>Accounts</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleImpersonate(client)}
-                    className="flex-1 min-w-[calc(50%-0.25rem)] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                    className="flex flex-col items-center justify-center p-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors text-[10px] font-bold cursor-pointer"
                   >
-                    <LogIn className="w-3.5 h-3.5" />
+                    <LogIn className="w-3.5 h-3.5 mb-0.5" />
                     <span>Login</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleOpenManagePassword(client)}
-                    className="flex-1 min-w-[calc(50%-0.25rem)] flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                    className="flex flex-col items-center justify-center p-2 rounded-xl bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors text-[10px] font-bold cursor-pointer"
                   >
-                    <Key className="w-3.5 h-3.5" />
-                    <span>Password</span>
-                  </button>
-
-                  {/* Suspend / Activate Full-Width Button */}
-                  <button
-                    type="button"
-                    onClick={() => handleToggleStatus(client)}
-                    className={clsx(
-                      "w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs",
-                      isSuspended
-                        ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                        : "bg-rose-100 text-rose-800 hover:bg-rose-200"
-                    )}
-                  >
-                    {isSuspended ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
-                    <span>{isSuspended ? 'Activate Client' : 'Suspend Client'}</span>
+                    <Key className="w-3.5 h-3.5 mb-0.5" />
+                    <span>Pass</span>
                   </button>
                 </div>
 
+                {/* Full-width toggle button */}
+                <button
+                  type="button"
+                  onClick={() => handleToggleStatus(client)}
+                  className={clsx(
+                    "w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs",
+                    isSuspended
+                      ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                      : "bg-rose-100 text-rose-800 hover:bg-rose-200"
+                  )}
+                >
+                  {isSuspended ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
+                  <span>{isSuspended ? 'Activate Client' : 'Suspend Client'}</span>
+                </button>
               </div>
             );
           })
         )}
       </div>
 
-      {/* 5. CLIENT DETAILS SLIDE-OUT DRAWER */}
-      <Drawer
-        isOpen={isDetailsDrawerOpen}
-        onClose={() => setIsDetailsDrawerOpen(false)}
-        title={selectedClient ? selectedClient.name : 'Client Details'}
-        subtitle={selectedClient ? `${selectedClient.email} • ID: ${selectedClient.id}` : ''}
-        width="xl"
+      {/* ========================================================================= */}
+      {/* 5. CLIENT DETAILS MODAL (Image 1)                                        */}
+      {/* ========================================================================= */}
+      <Modal
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+        title=""
+        maxWidth="4xl"
       >
-        {selectedClient && (
-          <div className="space-y-5">
-            {/* Top Status & Impersonate Bar */}
-            <div className="p-4 rounded-2xl bg-purple-50/80 border border-purple-200 flex items-center justify-between">
-              <div>
-                <span className="text-xs text-purple-900 font-bold block">Status Level</span>
-                <span className={clsx(
-                  "inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-xs font-bold capitalize",
-                  selectedClient.status === 'suspended' ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
-                )}>
-                  {selectedClient.status === 'suspended' ? 'Suspended' : 'Active Trader'}
-                </span>
-              </div>
+        <div className="space-y-6">
+          {/* Header Row: Title on Left, "Edit Details" button on Right (Image 1) */}
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+              Client Details
+            </h2>
+            <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => handleImpersonate(selectedClient)}
-                className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
+                onClick={() => {
+                  if (isEditingDetails) {
+                    handleSaveDetails();
+                  } else {
+                    setIsEditingDetails(true);
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
               >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Open Trading Portal</span>
+                <Pen className="w-3.5 h-3.5" />
+                <span>{isEditingDetails ? 'Save Details' : 'Edit Details'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsDetailsModalOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
               </button>
             </div>
-
-            {/* Contact Details */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 font-heading">
-                Contact &amp; Location
-              </h4>
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Mail className="w-4 h-4 text-purple-600 shrink-0" />
-                  <span className="truncate">{selectedClient.email}</span>
-                </div>
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Phone className="w-4 h-4 text-purple-600 shrink-0" />
-                  <span>{selectedClient.phone || '+1 555 0199'}</span>
-                </div>
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Globe className="w-4 h-4 text-purple-600 shrink-0" />
-                  <span className="truncate">{selectedClient.city || 'City'}, {selectedClient.country}</span>
-                </div>
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Building className="w-4 h-4 text-purple-600 shrink-0" />
-                  <span>IB: {selectedClient.ibPartnerStatus || 'None'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Financial Overview */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-center">
-                <span className="text-[10px] text-emerald-800 font-semibold block uppercase">Total Deposit</span>
-                <span className="text-sm sm:text-base font-extrabold text-emerald-700 font-mono">
-                  ${(selectedClient.totalDeposit || 0).toLocaleString()}
-                </span>
-              </div>
-              <div className="p-3 rounded-2xl bg-rose-50/80 border border-rose-200 text-center">
-                <span className="text-[10px] text-rose-800 font-semibold block uppercase">Total Withdrawal</span>
-                <span className="text-sm sm:text-base font-extrabold text-rose-700 font-mono">
-                  ${(selectedClient.totalWithdrawal || 0).toLocaleString()}
-                </span>
-              </div>
-              <div className="p-3 rounded-2xl bg-purple-50/80 border border-purple-200 text-center">
-                <span className="text-[10px] text-purple-800 font-semibold block uppercase">Net Balance</span>
-                <span className="text-sm sm:text-base font-extrabold text-purple-700 font-mono">
-                  ${(selectedClient.totalBalance || 0).toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            {/* Trading Accounts */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 font-heading">
-                  Trading Accounts ({selectedClient.accounts?.length || 0})
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsDetailsDrawerOpen(false);
-                    setIsMt5ModalOpen(true);
-                  }}
-                  className="text-xs text-purple-700 font-bold hover:underline cursor-pointer"
-                >
-                  Manage MT5
-                </button>
-              </div>
-
-              {selectedClient.accounts && selectedClient.accounts.length > 0 ? (
-                <div className="space-y-2">
-                  {selectedClient.accounts.map((acc) => (
-                    <div key={acc.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
-                      <div>
-                        <span className="font-mono font-bold text-slate-900 block">#{acc.login} ({acc.platform})</span>
-                        <span className="text-slate-400 text-[11px]">{acc.server} • Leverage {acc.leverage}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-mono font-extrabold text-emerald-600 block">${acc.balance.toLocaleString()}</span>
-                        <span className="text-slate-400 text-[11px]">Equity: ${acc.equity.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-400 italic">No trading accounts created yet.</p>
-              )}
-            </div>
           </div>
-        )}
-      </Drawer>
 
-      {/* 6. VIEW MT5 ACCOUNTS MODAL */}
+          {/* Navigation Tabs (Image 1) */}
+          <div className="flex items-center gap-8 border-b border-slate-200 text-sm font-sans">
+            <button
+              type="button"
+              onClick={() => setDetailsTab('personal')}
+              className={clsx(
+                "pb-3 font-semibold transition-all relative cursor-pointer",
+                detailsTab === 'personal'
+                  ? "text-purple-600 font-bold border-b-2 border-purple-600"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              Personal Information
+            </button>
+            <button
+              type="button"
+              onClick={() => setDetailsTab('documents')}
+              className={clsx(
+                "pb-3 font-semibold transition-all relative cursor-pointer",
+                detailsTab === 'documents'
+                  ? "text-purple-600 font-bold border-b-2 border-purple-600"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              Documents
+            </button>
+            <button
+              type="button"
+              onClick={() => setDetailsTab('financial')}
+              className={clsx(
+                "pb-3 font-semibold transition-all relative cursor-pointer",
+                detailsTab === 'financial'
+                  ? "text-purple-600 font-bold border-b-2 border-purple-600"
+                  : "text-slate-500 hover:text-slate-800"
+              )}
+            >
+              Financial Details
+            </button>
+          </div>
+
+          {/* Tab 1: Personal Information (Exact layout of Image 1) */}
+          {detailsTab === 'personal' && (
+            <div className="bg-white rounded-2xl border border-slate-100 p-4 sm:p-6 space-y-6 shadow-sm">
+              {/* 2-Column Input Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5 font-sans">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    value={clientForm.firstName}
+                    disabled={!isEditingDetails}
+                    onChange={(e) => setClientForm({ ...clientForm, firstName: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-xs sm:text-sm text-slate-800 font-sans focus:outline-none focus:border-purple-600 disabled:opacity-90"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5 font-sans">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    value={clientForm.lastName}
+                    disabled={!isEditingDetails}
+                    onChange={(e) => setClientForm({ ...clientForm, lastName: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-xs sm:text-sm text-slate-800 font-sans focus:outline-none focus:border-purple-600 disabled:opacity-90"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5 font-sans">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={clientForm.email}
+                    disabled={!isEditingDetails}
+                    onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-xs sm:text-sm text-slate-800 font-sans focus:outline-none focus:border-purple-600 disabled:opacity-90"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5 font-sans">
+                    Phone
+                  </label>
+                  <input
+                    type="text"
+                    value={clientForm.phone}
+                    disabled={!isEditingDetails}
+                    onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-xs sm:text-sm text-slate-800 font-sans focus:outline-none focus:border-purple-600 disabled:opacity-90"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5 font-sans">
+                    Date of Birth
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="mm/dd/yyyy"
+                    value={clientForm.dob}
+                    disabled={!isEditingDetails}
+                    onChange={(e) => setClientForm({ ...clientForm, dob: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-xs sm:text-sm text-slate-800 font-sans focus:outline-none focus:border-purple-600 disabled:opacity-90"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5 font-sans">
+                    Country
+                  </label>
+                  <input
+                    type="text"
+                    value={clientForm.country}
+                    disabled={!isEditingDetails}
+                    onChange={(e) => setClientForm({ ...clientForm, country: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-xs sm:text-sm text-slate-800 font-sans focus:outline-none focus:border-purple-600 disabled:opacity-90"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-xs font-semibold text-slate-700 block mb-1.5 font-sans">
+                    Education Level
+                  </label>
+                  <input
+                    type="text"
+                    placeholder=""
+                    value={clientForm.education}
+                    disabled={!isEditingDetails}
+                    onChange={(e) => setClientForm({ ...clientForm, education: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/70 text-xs sm:text-sm text-slate-800 font-sans focus:outline-none focus:border-purple-600 disabled:opacity-90"
+                  />
+                </div>
+              </div>
+
+              {/* Status Section 1: Email Status (Image 1) */}
+              <div className="space-y-2 pt-2">
+                <label className="text-xs font-semibold text-slate-700 block font-sans">
+                  Email Status
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => isEditingDetails && setClientForm({ ...clientForm, emailStatus: 'verified' })}
+                    className={clsx(
+                      "py-3 px-6 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all shadow-xs",
+                      clientForm.emailStatus === 'verified'
+                        ? "bg-[#54D696] text-white"
+                        : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50"
+                    )}
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Verified</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => isEditingDetails && setClientForm({ ...clientForm, emailStatus: 'unverified' })}
+                    className={clsx(
+                      "py-3 px-6 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all",
+                      clientForm.emailStatus === 'unverified'
+                        ? "bg-amber-500 text-white"
+                        : "bg-white border border-slate-200 text-slate-400 hover:bg-slate-50"
+                    )}
+                  >
+                    <CircleAlert className="w-4 h-4" />
+                    <span>Unverified</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Section 2: KYC Status (Image 1) */}
+              <div className="space-y-2 pt-2">
+                <label className="text-xs font-semibold text-slate-700 block font-sans">
+                  KYC Status
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => isEditingDetails && setClientForm({ ...clientForm, kycStatus: 'verified' })}
+                    className={clsx(
+                      "py-3 px-6 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all shadow-xs",
+                      clientForm.kycStatus === 'verified'
+                        ? "bg-[#54D696] text-white"
+                        : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50"
+                    )}
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>Verified</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => isEditingDetails && setClientForm({ ...clientForm, kycStatus: 'unverified' })}
+                    className={clsx(
+                      "py-3 px-6 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all",
+                      clientForm.kycStatus === 'unverified'
+                        ? "bg-amber-500 text-white"
+                        : "bg-white border border-slate-200 text-slate-400 hover:bg-slate-50"
+                    )}
+                  >
+                    <CircleAlert className="w-4 h-4" />
+                    <span>Unverified</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => isEditingDetails && setClientForm({ ...clientForm, kycStatus: 'rejected' })}
+                    className={clsx(
+                      "py-3 px-6 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all",
+                      clientForm.kycStatus === 'rejected'
+                        ? "bg-rose-500 text-white"
+                        : "bg-white border border-slate-200 text-slate-400 hover:bg-slate-50"
+                    )}
+                  >
+                    <XCircle className="w-4 h-4" />
+                    <span>Rejected</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Section 3: IB Partner Status (Image 1) */}
+              <div className="space-y-2 pt-2">
+                <label className="text-xs font-semibold text-slate-700 block font-sans">
+                  IB Partner Status
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => isEditingDetails && setClientForm({ ...clientForm, ibStatus: 'Active' })}
+                    className={clsx(
+                      "py-3 px-6 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all shadow-xs",
+                      clientForm.ibStatus === 'Active'
+                        ? "bg-[#A78BFA] text-white"
+                        : "bg-white border border-slate-200 text-slate-500 hover:bg-slate-50"
+                    )}
+                  >
+                    <span>Active</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => isEditingDetails && setClientForm({ ...clientForm, ibStatus: 'Not Active' })}
+                    className={clsx(
+                      "py-3 px-6 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all",
+                      clientForm.ibStatus === 'Not Active'
+                        ? "bg-slate-400 text-white"
+                        : "bg-white border border-slate-200 text-slate-400 hover:bg-slate-50"
+                    )}
+                  >
+                    <span>Not Active</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => isEditingDetails && setClientForm({ ...clientForm, ibStatus: 'None' })}
+                    className={clsx(
+                      "py-3 px-6 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all",
+                      clientForm.ibStatus === 'None'
+                        ? "bg-slate-400 text-white"
+                        : "bg-white border border-slate-200 text-slate-400 hover:bg-slate-50"
+                    )}
+                  >
+                    <span>None</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 2: Documents */}
+          {detailsTab === 'documents' && (
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4 shadow-sm">
+              <h4 className="text-sm font-bold text-slate-900 font-heading">Submitted KYC Documents</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs text-slate-800">Government ID / Passport</span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                      Verified
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">Document No: AL-88910492-X</p>
+                  <div className="text-[11px] text-purple-700 font-bold hover:underline cursor-pointer">
+                    View Uploaded Front Document
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs text-slate-800">Proof of Address (Utility Bill)</span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
+                      Verified
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">Issued: February 2026</p>
+                  <div className="text-[11px] text-purple-700 font-bold hover:underline cursor-pointer">
+                    View Uploaded Proof of Address
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab 3: Financial Details */}
+          {detailsTab === 'financial' && (
+            <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4 shadow-sm">
+              <h4 className="text-sm font-bold text-slate-900 font-heading">Funding &amp; Trading Balance</h4>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-center">
+                  <span className="text-[10px] uppercase font-bold text-emerald-800">Total Deposits</span>
+                  <div className="font-mono text-xl font-extrabold text-emerald-700 mt-1">
+                    ${(selectedClient?.totalDeposit || 0).toLocaleString()}
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-100 text-center">
+                  <span className="text-[10px] uppercase font-bold text-rose-800">Total Withdrawals</span>
+                  <div className="font-mono text-xl font-extrabold text-rose-700 mt-1">
+                    ${(selectedClient?.totalWithdrawal || 0).toLocaleString()}
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl bg-purple-50 border border-purple-100 text-center">
+                  <span className="text-[10px] uppercase font-bold text-purple-800">Net Equity</span>
+                  <div className="font-mono text-xl font-extrabold text-purple-700 mt-1">
+                    ${(selectedClient?.totalBalance || 411.20).toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* ========================================================================= */}
+      {/* 6. VIEW MT5 ACCOUNTS MODAL (Image 2)                                      */}
+      {/* ========================================================================= */}
       <Modal
         isOpen={isMt5ModalOpen}
         onClose={() => setIsMt5ModalOpen(false)}
-        title={selectedClient ? `Trading Accounts for ${selectedClient.name}` : 'MT5 Trading Accounts'}
-        subtitle={selectedClient ? `Client ID: ${selectedClient.id}` : ''}
-        maxWidth="lg"
+        title=""
+        maxWidth="2xl"
       >
-        {selectedClient && (
-          <div className="space-y-4">
-            {selectedClient.accounts && selectedClient.accounts.length > 0 ? (
-              <div className="space-y-3">
-                {selectedClient.accounts.map((acc) => (
-                  <div key={acc.id} className="p-4 rounded-2xl bg-slate-50/80 border border-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded-full bg-purple-600 text-white font-mono text-xs font-bold">
-                          {acc.platform}
-                        </span>
-                        <span className="font-mono font-extrabold text-base text-slate-900">
-                          #{acc.login}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-md bg-slate-200/70 text-slate-700 text-[10px] font-bold">
-                          {acc.type}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 font-sans">
-                        Server: <span className="font-semibold text-slate-700">{acc.server}</span> • Leverage: <span className="font-semibold text-slate-700">{acc.leverage}</span>
-                      </p>
-                    </div>
+        <div className="space-y-5">
+          {/* Modal Header: MT5 Accounts - {client.name} (Image 2) */}
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 className="font-serif text-2xl font-bold text-slate-900 tracking-tight">
+              MT5 Accounts - {selectedClient?.name || 'ref soumya'}
+            </h3>
+            <button
+              type="button"
+              onClick={() => setIsMt5ModalOpen(false)}
+              className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <span className="text-[10px] text-slate-400 uppercase font-semibold block">Balance</span>
-                        <span className="font-mono font-extrabold text-base text-emerald-600 block">
-                          ${acc.balance.toLocaleString()} {acc.currency}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsMt5ModalOpen(false);
-                          handleOpenManagePassword(selectedClient);
-                        }}
-                        className="px-3 py-1.5 rounded-xl border border-purple-200 bg-white hover:bg-purple-50 text-purple-700 text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95"
-                      >
-                        Reset Password
-                      </button>
-                    </div>
-                  </div>
-                ))}
+          {/* 3 Top Stat Cards (Image 2) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            {/* Card 1: Blue - Total Accounts */}
+            <div className="p-4 rounded-2xl bg-[#2563EB] text-white space-y-2 shadow-md">
+              <div className="flex items-center gap-2">
+                <Monitor className="w-4 h-4 text-blue-200" />
+                <span className="text-xs font-bold font-sans">Total Accounts</span>
               </div>
-            ) : (
-              <div className="p-8 text-center text-slate-400 text-sm">
-                No active MT5 trading accounts on file for this client.
+              <div className="text-3xl font-extrabold font-mono">
+                {selectedClient?.accounts?.length || 1}
               </div>
-            )}
+            </div>
 
-            <div className="pt-3 border-t border-slate-100 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsMt5ModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
-              >
-                Close
-              </button>
+            {/* Card 2: Green - Total Balance */}
+            <div className="p-4 rounded-2xl bg-[#00BA63] text-white space-y-2 shadow-md">
+              <div className="flex items-center gap-2">
+                <span className="text-base font-extrabold font-mono text-emerald-200">$</span>
+                <span className="text-xs font-bold font-sans">Total Balance</span>
+              </div>
+              <div className="text-3xl font-extrabold font-mono">
+                ${(selectedClient?.totalBalance || 411.20).toFixed(2)}
+              </div>
+            </div>
+
+            {/* Card 3: Purple/Pink Gradient - Total Equity */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#9333EA] to-[#E11D48] text-white space-y-2 shadow-md">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-purple-200" />
+                <span className="text-xs font-bold font-sans">Total Equity</span>
+              </div>
+              <div className="text-3xl font-extrabold font-mono">
+                ${(selectedClient?.totalBalance || 411.20).toFixed(2)}
+              </div>
             </div>
           </div>
-        )}
+
+          {/* Account Details Table (Image 2) */}
+          <div className="space-y-3 pt-2">
+            <h4 className="font-serif text-lg font-bold text-slate-900">
+              Account Details
+            </h4>
+
+            <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white shadow-2xs">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100">
+                  <tr>
+                    <th className="py-3 px-4 font-sans">Account Number</th>
+                    <th className="py-3 px-4 font-sans">Type</th>
+                    <th className="py-3 px-4 font-sans">Leverage</th>
+                    <th className="py-3 px-4 font-sans">Balance</th>
+                    <th className="py-3 px-4 font-sans">Equity</th>
+                    <th className="py-3 px-4 font-sans">P&amp;L</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-sans">
+                  {selectedClient?.accounts && selectedClient.accounts.length > 0 ? (
+                    selectedClient.accounts.map((acc) => (
+                      <tr key={acc.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3.5 px-4 font-mono font-medium text-slate-900">{acc.login}</td>
+                        <td className="py-3.5 px-4">
+                          <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px] uppercase font-mono">
+                            {acc.type || 'BASIC'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 font-sans text-slate-700">{acc.leverage.replace('1:', '')}</td>
+                        <td className="py-3.5 px-4 font-mono font-bold text-slate-900">${acc.balance.toFixed(2)}</td>
+                        <td className="py-3.5 px-4 font-mono font-bold text-slate-900">${acc.equity.toFixed(2)}</td>
+                        <td className="py-3.5 px-4 font-mono font-bold text-emerald-600">$0.00</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3.5 px-4 font-mono font-medium text-slate-900">260730279</td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px] uppercase font-mono">
+                          BASIC
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-sans text-slate-700">300</td>
+                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900">${(selectedClient?.totalBalance || 411.20).toFixed(2)}</td>
+                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900">${(selectedClient?.totalBalance || 411.20).toFixed(2)}</td>
+                      <td className="py-3.5 px-4 font-mono font-bold text-emerald-600">$0.00</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </Modal>
 
-      {/* 7. MANAGE PASSWORD MODAL */}
+      {/* ========================================================================= */}
+      {/* 7. MANAGE PASSWORD MODAL (Image 4)                                        */}
+      {/* ========================================================================= */}
       <Modal
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
-        title={selectedClient ? `Manage Password: ${selectedClient.name}` : 'Manage Password'}
-        subtitle="Set new credentials for platform or investor access"
+        title=""
         maxWidth="md"
       >
-        <form onSubmit={handlePasswordSubmit} className="space-y-4">
-          <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1.5">Password Type</label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setPasswordForm({ ...passwordForm, passwordType: 'master' })}
-                className={clsx(
-                  "py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer",
-                  passwordForm.passwordType === 'master'
-                    ? "bg-purple-600 text-white border-purple-600 shadow-2xs"
-                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                )}
-              >
-                Master Trading Password
-              </button>
-              <button
-                type="button"
-                onClick={() => setPasswordForm({ ...passwordForm, passwordType: 'investor' })}
-                className={clsx(
-                  "py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer",
-                  passwordForm.passwordType === 'investor'
-                    ? "bg-purple-600 text-white border-purple-600 shadow-2xs"
-                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                )}
-              >
-                Investor (Read-Only)
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">New Password</label>
-            <input
-              type="password"
-              required
-              value={passwordForm.newPassword}
-              onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-              placeholder="Enter new strong password"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-200/50"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">Confirm Password</label>
-            <input
-              type="password"
-              required
-              value={passwordForm.confirmPassword}
-              onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-              placeholder="Re-enter password"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-200/50"
-            />
-          </div>
-
-          <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
+        <div className="space-y-5">
+          {/* Header (Image 4) */}
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 className="font-serif text-2xl font-bold text-slate-900 tracking-tight">
+              Manage Password
+            </h3>
             <button
               type="button"
               onClick={() => setIsPasswordModalOpen(false)}
-              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+              className="text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
-            >
-              Update Password
+              <X className="w-5 h-5" />
             </button>
           </div>
-        </form>
+
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            {/* Current Password Field with Eye Toggle (Image 4) */}
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1.5 font-sans">
+                Current Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showCurrentPassword ? "text" : "password"}
+                  value={currentPasswordVal}
+                  onChange={(e) => setCurrentPasswordVal(e.target.value)}
+                  className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-200/50 font-sans"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                >
+                  {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* New Password Field (Image 4) */}
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1.5 font-sans">
+                New Password
+              </label>
+              <input
+                type="password"
+                placeholder="••••••"
+                value={newPasswordVal}
+                onChange={(e) => setNewPasswordVal(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-200/50 font-sans"
+              />
+            </div>
+
+            {/* Buttons (Image 4: Update Password purple gradient + Cancel gray) */}
+            <div className="pt-3 flex items-center gap-3">
+              <button
+                type="submit"
+                className="flex-1 py-2.5 px-5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#6366F1] hover:from-[#6D28D9] hover:to-[#4F46E5] text-white font-bold text-xs shadow-xs active:scale-95 transition-all cursor-pointer"
+              >
+                Update Password
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsPasswordModalOpen(false)}
+                className="flex-1 py-2.5 px-5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
       </Modal>
 
       {/* 8. ADD NEW CLIENT MODAL */}
