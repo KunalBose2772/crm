@@ -1824,24 +1824,52 @@ export const initialIBWithdrawals: IBWithdrawalRequest[] = [
   {
     id: 'ib_wdr_01',
     ibId: 'ib_01',
-    ibName: 'Apex FX Global',
-    ibEmail: 'partners@apexfx.com',
-    amount: 3500.00,
-    walletAddress: 'TYDzsYUEpvnYmQk4zGP9s263VSt59b74bK',
-    status: 'pending',
-    createdAt: '2026-03-12T06:45:00Z',
-    notes: 'Monthly commission payout request to Tron USDT'
+    ibName: 'Partner oaacw',
+    ibEmail: 'oaacw28813@minitts.net',
+    amount: 356.00,
+    paymentMethod: 'TRX',
+    walletAddress: 'mnopqr',
+    status: 'completed',
+    createdAt: '2026-07-27T17:28:00Z',
+    notes: 'Approved commission withdrawal via TRX'
   },
   {
     id: 'ib_wdr_02',
-    ibId: 'ib_03',
-    ibName: 'Emirates FX Prime',
-    ibEmail: 'mena@emiratesfx.ae',
-    amount: 8000.00,
-    bankDetails: 'Mashreq Bank UAE, IBAN: AE070331234567890123456',
+    ibId: 'ib_01',
+    ibName: 'Partner oaacw',
+    ibEmail: 'oaacw28813@minitts.net',
+    amount: 99.99,
+    paymentMethod: 'USDT',
+    walletAddress: 'qwerty',
     status: 'completed',
-    createdAt: '2026-03-08T11:20:00Z',
-    notes: 'Direct wire transfer approved by Chief Dealer'
+    createdAt: '2026-07-25T13:18:00Z',
+    notes: 'Approved commission withdrawal via USDT TRC20'
+  },
+  {
+    id: 'ib_wdr_03',
+    ibId: 'ib_02',
+    ibName: 'Partner shvug',
+    ibEmail: 'shvug75549@minitts.net',
+    amount: 20.00,
+    paymentMethod: 'Bank Transfer',
+    walletAddress: '-',
+    bankDetails: 'Standard Chartered Bank, IBAN: SCB99812401',
+    status: 'completed',
+    createdAt: '2026-07-21T11:44:00Z',
+    notes: 'Wire transfer processed successfully'
+  },
+  {
+    id: 'ib_wdr_04',
+    ibId: 'ib_01',
+    ibName: 'Partner oaacw',
+    ibEmail: 'oaacw28813@minitts.net',
+    amount: 7.00,
+    paymentMethod: 'Bank Transfer',
+    walletAddress: '-',
+    bankDetails: 'HDFC Bank, A/C: 501004928172',
+    status: 'completed',
+    createdAt: '2026-07-21T11:29:00Z',
+    notes: 'Local bank transfer verified and disbursed'
   }
 ];
 

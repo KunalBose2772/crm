@@ -152,6 +152,7 @@ export interface IBWithdrawalRequest {
   ibName: string;
   ibEmail: string;
   amount: number;
+  paymentMethod?: string;
   walletAddress?: string;
   bankDetails?: string;
   status: TransactionStatus;
