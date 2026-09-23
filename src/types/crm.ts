@@ -183,7 +183,7 @@ export interface RevenueAnalyticsConfig {
   depositsTrend: number;
   withdrawalsTrend: number;
   period?: 'today' | '7d' | '30d' | 'year';
-  chartType?: 'radial' | 'bar';
+  chartType?: 'radial' | 'bar' | 'line';
 }
 
 // API Configurable Data Model for Account Distribution

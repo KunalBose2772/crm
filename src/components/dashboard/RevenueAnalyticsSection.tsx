@@ -5,11 +5,9 @@ import {
   TrendingDown, 
   TrendingUp, 
   ChevronDown, 
-  Calendar,
-  Layers,
-  BarChart3,
   PieChart,
-  DollarSign
+  BarChart3,
+  LineChart as LineChartIcon
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { RevenueAnalyticsConfig } from '@/types/crm';
@@ -18,7 +16,7 @@ import { initialRevenueAnalytics } from '@/services/api/dashboardAnalytics';
 export interface RevenueAnalyticsSectionProps {
   data?: Partial<RevenueAnalyticsConfig>;
   onPeriodChange?: (period: 'today' | '7d' | '30d' | 'year') => void;
-  onChartViewChange?: (view: 'radial' | 'bar') => void;
+  onChartViewChange?: (view: 'radial' | 'bar' | 'line') => void;
   className?: string;
 }
 
@@ -28,7 +26,6 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
   onChartViewChange,
   className,
 }) => {
-  // Merge prop data with initial default configuration
   const config: RevenueAnalyticsConfig = {
     ...initialRevenueAnalytics,
     ...data,
@@ -37,13 +34,13 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
   const [timePeriod, setTimePeriod] = useState<'today' | '7d' | '30d' | 'year'>(
     config.period || '30d'
   );
-  const [chartView, setChartView] = useState<'radial' | 'bar'>(
+  const [chartView, setChartView] = useState<'radial' | 'bar' | 'line'>(
     config.chartType || 'radial'
   );
   const [periodDropdownOpen, setPeriodDropdownOpen] = useState(false);
   const [chartDropdownOpen, setChartDropdownOpen] = useState(false);
+  const [hoveredDataPoint, setHoveredDataPoint] = useState<{ label: string; deposits: number; withdrawals: number; revenue: number } | null>(null);
 
-  // Period display labels
   const periodLabels: Record<string, string> = {
     today: 'Today',
     '7d': 'Last 7 days',
@@ -57,7 +54,7 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
     onPeriodChange?.(p);
   };
 
-  const handleChartSelect = (v: 'radial' | 'bar') => {
+  const handleChartSelect = (v: 'radial' | 'bar' | 'line') => {
     setChartView(v);
     setChartDropdownOpen(false);
     onChartViewChange?.(v);
@@ -72,8 +69,16 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
     }).format(val);
   };
 
-  // High-End Radial Gauge Ring Component with Purple Brand Nuances
-  const RadialGauge: React.FC<{
+  // Realistic working dataset for Bar & Line Charts across periods
+  const weeklyData = [
+    { label: 'Week 1', deposits: 18000, withdrawals: 4500, revenue: 13500 },
+    { label: 'Week 2', deposits: 32000, withdrawals: 8200, revenue: 23800 },
+    { label: 'Week 3', deposits: 24000, withdrawals: 6100, revenue: 17900 },
+    { label: 'Week 4', deposits: 39000, withdrawals: 11000, revenue: 28000 },
+  ];
+
+  // Compact Radial Gauge Ring Component
+  const CompactRadialGauge: React.FC<{
     value: string;
     sublabel: string;
     sublabelColor: string;
@@ -92,25 +97,25 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
     endColor,
     trackColor = '#f1f5f9' 
   }) => {
-    const size = 148;
-    const strokeWidth = 9;
+    const size = 110;
+    const strokeWidth = 8;
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
-    // Cap visual arc between 12% and 100% for aesthetic completeness
     const displayPercent = Math.max(12, Math.min(percentage, 100));
     const strokeDashoffset = circumference - (displayPercent / 100) * circumference;
 
     return (
-      <div className="relative flex items-center justify-center my-3.5">
-        <svg width={size} height={size} className="transform -rotate-90">
+      <div className="relative flex items-center justify-center my-1.5 sm:my-3">
+        <svg 
+          viewBox={`0 0 ${size} ${size}`} 
+          className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 transform -rotate-90"
+        >
           <defs>
             <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor={startColor} />
               <stop offset="100%" stopColor={endColor} />
             </linearGradient>
           </defs>
-
-          {/* Background track circle */}
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -119,8 +124,6 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
             stroke={trackColor}
             strokeWidth={strokeWidth}
           />
-
-          {/* Active Progress Arc with Gradient */}
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -131,16 +134,15 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            className="transition-all duration-1000 ease-out"
+            className="transition-all duration-700 ease-out"
           />
         </svg>
 
-        {/* Center Values */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="text-2xl sm:text-[26px] font-extrabold text-slate-900 font-mono tracking-tight leading-none">
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+          <span className="text-xs sm:text-base md:text-lg font-extrabold text-slate-900 font-mono tracking-tight leading-none">
             {value}
           </span>
-          <span className={clsx("text-xs font-semibold mt-1.5 font-sans tracking-wide", sublabelColor)}>
+          <span className={clsx("text-[9px] sm:text-[11px] font-semibold mt-0.5 font-sans", sublabelColor)}>
             {sublabel}
           </span>
         </div>
@@ -150,27 +152,27 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
 
   return (
     <div className={clsx(
-      "rounded-3xl border border-purple-100/90 bg-white p-5 sm:p-6 shadow-xs flex flex-col justify-between h-full relative overflow-hidden transition-all hover:border-purple-200",
+      "rounded-2xl sm:rounded-3xl border border-purple-100/90 bg-white p-3.5 sm:p-5 md:p-6 shadow-xs flex flex-col justify-between h-full relative overflow-hidden transition-all select-none",
       className
     )}>
       {/* Subtle Purple Ambient Glow */}
-      <div className="absolute -top-20 -left-20 w-56 h-56 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-20 -left-20 w-52 h-52 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* 1. Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-purple-50 relative z-10">
+      <div className="flex items-center justify-between gap-2 pb-3 sm:pb-4 border-b border-purple-50 relative z-10">
         <div>
-          <h2 className="text-2xl sm:text-[26px] font-bold tracking-tight font-heading bg-gradient-to-r from-purple-800 via-indigo-700 to-purple-900 bg-clip-text text-transparent">
+          <h2 className="text-lg sm:text-2xl font-bold tracking-tight font-heading bg-gradient-to-r from-purple-800 via-indigo-700 to-purple-900 bg-clip-text text-transparent">
             Revenue Analytics
           </h2>
-          <p className="text-xs text-slate-500 font-sans mt-0.5">
+          <p className="text-[10px] sm:text-xs text-slate-400 font-sans">
             Real-time financial performance overview
           </p>
         </div>
 
         {/* Dropdown Filters */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           
-          {/* Chart View Toggle */}
+          {/* Chart View Dropdown */}
           <div className="relative">
             <button
               type="button"
@@ -178,14 +180,18 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
                 setChartDropdownOpen(!chartDropdownOpen);
                 setPeriodDropdownOpen(false);
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-purple-150 bg-white hover:bg-purple-50/60 hover:border-purple-300 text-xs font-semibold text-slate-700 transition-all cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-purple-150 bg-white hover:bg-purple-50/60 text-[11px] sm:text-xs font-semibold text-slate-700 transition-all cursor-pointer shadow-2xs"
             >
-              <span>{chartView === 'radial' ? 'Radial Chart' : 'Bar Chart'}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-purple-500" />
+              <span>
+                {chartView === 'radial' && 'Radial Chart'}
+                {chartView === 'bar' && 'Bar Chart'}
+                {chartView === 'line' && 'Line Chart'}
+              </span>
+              <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-600" />
             </button>
 
             {chartDropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-36 rounded-2xl bg-white border border-purple-100 shadow-xl p-1.5 z-30 animate-in fade-in zoom-in-95">
+              <div className="absolute right-0 mt-1 w-36 rounded-2xl bg-white border border-purple-100 shadow-xl p-1 z-40 animate-in fade-in zoom-in-95">
                 <button
                   type="button"
                   onClick={() => handleChartSelect('radial')}
@@ -208,6 +214,17 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
                   <BarChart3 className="w-3.5 h-3.5 text-purple-600" />
                   Bar Chart
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handleChartSelect('line')}
+                  className={clsx(
+                    'w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-xl transition-colors cursor-pointer font-medium',
+                    chartView === 'line' ? 'bg-purple-50 text-purple-800 font-bold' : 'text-slate-600 hover:bg-slate-50'
+                  )}
+                >
+                  <LineChartIcon className="w-3.5 h-3.5 text-purple-600" />
+                  Line Chart
+                </button>
               </div>
             )}
           </div>
@@ -220,14 +237,14 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
                 setPeriodDropdownOpen(!periodDropdownOpen);
                 setChartDropdownOpen(false);
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-purple-150 bg-white hover:bg-purple-50/60 hover:border-purple-300 text-xs font-semibold text-slate-700 transition-all cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-purple-150 bg-white hover:bg-purple-50/60 text-[11px] sm:text-xs font-semibold text-slate-700 transition-all cursor-pointer shadow-2xs"
             >
               <span>{periodLabels[timePeriod]}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-purple-500" />
+              <ChevronDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-600" />
             </button>
 
             {periodDropdownOpen && (
-              <div className="absolute right-0 mt-1.5 w-36 rounded-2xl bg-white border border-purple-100 shadow-xl p-1.5 z-30 animate-in fade-in zoom-in-95">
+              <div className="absolute right-0 mt-1 w-36 rounded-2xl bg-white border border-purple-100 shadow-xl p-1 z-40 animate-in fade-in zoom-in-95">
                 {(['today', '7d', '30d', 'year'] as const).map(p => (
                   <button
                     key={p}
@@ -248,195 +265,436 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
         </div>
       </div>
 
-      {/* 2. Top Row: 3 Highlight Metric Cards with Royal Purple CRM Consistency */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 my-5 relative z-10">
+      {/* 2. Top Row: 3 Side-by-Side Highlight Cards (Compact & Mobile-Optimized) */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3.5 my-3 sm:my-4 relative z-10">
         
         {/* Card 1: NET REVENUE */}
-        <div className="p-4 rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50/40 to-white shadow-2xs flex flex-col justify-between hover:border-sky-200 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold text-[#0284c7] uppercase tracking-wider font-heading">
+        <div className="p-2 sm:p-3.5 rounded-xl sm:rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50/40 to-white shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[9px] sm:text-[11px] font-extrabold text-[#0284c7] uppercase tracking-wider font-heading truncate">
               Net Revenue
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200 text-[10px] font-bold font-mono">
-              {config.netRevenueChange > 0 ? `+${config.netRevenueChange}%` : `${config.netRevenueChange}%`}
+            <span className="px-1.5 py-0.2 rounded-full bg-rose-50 text-rose-600 border border-rose-200 text-[8px] sm:text-[10px] font-bold font-mono shrink-0">
+              {config.netRevenueChange}%
             </span>
           </div>
-          <div className="my-2">
-            <p className="text-2xl sm:text-3xl font-extrabold text-[#0284c7] font-mono tabular-nums leading-none">
+          <div className="my-1 sm:my-2">
+            <p className="text-sm sm:text-xl md:text-2xl font-extrabold text-[#0284c7] font-mono tabular-nums leading-none truncate">
               {formatCurrency(config.netRevenue)}
             </p>
           </div>
-          <div className="flex items-center gap-1 text-[11px] text-rose-500 font-sans">
-            <TrendingDown className="w-3.5 h-3.5 shrink-0" />
-            <span>Decrease from last period</span>
+          <div className="flex items-center gap-0.5 sm:gap-1 text-[8px] sm:text-[11px] text-rose-500 font-sans truncate">
+            <TrendingDown className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 shrink-0" />
+            <span className="truncate">Decrease</span>
           </div>
         </div>
 
         {/* Card 2: IB COMMISSION */}
-        <div className="p-4 rounded-2xl border border-amber-100 bg-gradient-to-b from-amber-50/40 to-white shadow-2xs flex flex-col justify-between hover:border-amber-200 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold text-amber-700 uppercase tracking-wider font-heading">
+        <div className="p-2 sm:p-3.5 rounded-xl sm:rounded-2xl border border-amber-100 bg-gradient-to-b from-amber-50/40 to-white shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[9px] sm:text-[11px] font-extrabold text-amber-700 uppercase tracking-wider font-heading truncate">
               IB Commission
             </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-amber-100/70 text-amber-800 border border-amber-200 text-[10px] font-bold font-sans">
+            <span className="px-1.5 py-0.2 rounded-full bg-amber-100/70 text-amber-800 border border-amber-200 text-[8px] sm:text-[10px] font-bold font-sans shrink-0">
               Total
             </span>
           </div>
-          <div className="my-2">
-            <p className="text-2xl sm:text-3xl font-extrabold text-amber-600 font-mono tabular-nums leading-none">
+          <div className="my-1 sm:my-2">
+            <p className="text-sm sm:text-xl md:text-2xl font-extrabold text-amber-600 font-mono tabular-nums leading-none truncate">
               {formatCurrency(config.ibCommission)}
             </p>
           </div>
-          <p className="text-[11px] text-slate-400 font-sans">
-            Commission earnings for the period
+          <p className="text-[8px] sm:text-[11px] text-slate-400 font-sans truncate">
+            Earnings
           </p>
         </div>
 
         {/* Card 3: IB TRADING VOLUME */}
-        <div className="p-4 rounded-2xl border border-purple-200 bg-gradient-to-b from-purple-100/30 via-purple-50/20 to-white shadow-2xs flex flex-col justify-between hover:border-purple-300 transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-extrabold text-purple-800 uppercase tracking-wider font-heading">
-              IB Trading Volume
+        <div className="p-2 sm:p-3.5 rounded-xl sm:rounded-2xl border border-purple-200 bg-gradient-to-b from-purple-100/30 via-purple-50/20 to-white shadow-2xs flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[9px] sm:text-[11px] font-extrabold text-purple-800 uppercase tracking-wider font-heading truncate">
+              IB Volume
             </span>
-            <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-bold font-sans">
+            <span className="px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800 border border-purple-200 text-[8px] sm:text-[10px] font-bold font-sans shrink-0">
               Total
             </span>
           </div>
-          <div className="my-2">
-            <p className="text-2xl sm:text-3xl font-extrabold text-purple-700 font-mono tabular-nums leading-none truncate">
+          <div className="my-1 sm:my-2">
+            <p className="text-sm sm:text-xl md:text-2xl font-extrabold text-purple-700 font-mono tabular-nums leading-none truncate">
               {formatCurrency(config.ibTradingVolume, 3)}
             </p>
           </div>
-          <p className="text-[11px] text-slate-500 font-sans">
-            Total trading volume for the period
+          <p className="text-[8px] sm:text-[11px] text-slate-500 font-sans truncate">
+            Trading volume
           </p>
         </div>
       </div>
 
-      {/* 3. Bottom Row: 3 Radial Gauge Cards */}
-      {chartView === 'radial' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1 relative z-10">
+      {/* 3. The 3 Distinct Chart Views */}
+
+      {/* CHART 1: RADIAL CHART (Compact 3 Cards Side-by-Side) */}
+      {chartView === 'radial' && (
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-3.5 pt-1 relative z-10">
           
-          {/* Gauge 1: Deposits */}
-          <div className="p-4 sm:p-5 rounded-3xl border border-slate-100 bg-white hover:border-emerald-200 hover:shadow-xs transition-all flex flex-col justify-between">
+          {/* Card 1: Deposits */}
+          <div className="p-2 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100 bg-white hover:border-emerald-200 transition-all flex flex-col justify-between text-center sm:text-left">
             <div>
-              <h4 className="text-base font-bold text-slate-900 font-heading">Deposits</h4>
-              <p className="text-[11px] text-slate-400 font-sans">Overview for {periodLabels[timePeriod]}</p>
+              <h4 className="text-xs sm:text-base font-bold text-slate-900 font-heading">Deposits</h4>
+              <p className="text-[8px] sm:text-[11px] text-slate-400 font-sans hidden sm:block">
+                Overview for {periodLabels[timePeriod]}
+              </p>
             </div>
 
-            <RadialGauge
+            <CompactRadialGauge
               value={formatCurrency(config.depositsAmount)}
               sublabel="Total"
               sublabelColor="text-emerald-600"
               percentage={config.depositsAmount > 0 ? 70 : 15}
-              gradientId="grad-deposits"
+              gradientId="grad-dep-compact"
               startColor="#10b981"
               endColor="#059669"
-              trackColor="#f1f5f9"
             />
 
-            <div className="pt-2 border-t border-slate-100 text-left">
-              <div className="flex items-center gap-1 text-xs font-bold text-rose-500 font-sans">
-                <span>Trending down by {Math.abs(config.depositsTrend)}%</span>
-                <TrendingDown className="w-3.5 h-3.5" />
+            <div className="pt-1.5 border-t border-slate-100">
+              <div className="flex items-center justify-center sm:justify-start gap-0.5 text-[8px] sm:text-xs font-bold text-rose-500 font-sans">
+                <span className="truncate">Down {Math.abs(config.depositsTrend)}%</span>
+                <TrendingDown className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 shrink-0" />
               </div>
-              <p className="text-[11px] text-slate-400 font-sans mt-0.5">
+              <p className="text-[9px] text-slate-400 font-sans mt-0.5 hidden sm:block">
                 Deposit performance
               </p>
             </div>
           </div>
 
-          {/* Gauge 2: Withdrawals */}
-          <div className="p-4 sm:p-5 rounded-3xl border border-slate-100 bg-white hover:border-rose-200 hover:shadow-xs transition-all flex flex-col justify-between">
+          {/* Card 2: Withdrawals */}
+          <div className="p-2 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100 bg-white hover:border-rose-200 transition-all flex flex-col justify-between text-center sm:text-left">
             <div>
-              <h4 className="text-base font-bold text-slate-900 font-heading">Withdrawals</h4>
-              <p className="text-[11px] text-slate-400 font-sans">Overview for {periodLabels[timePeriod]}</p>
+              <h4 className="text-xs sm:text-base font-bold text-slate-900 font-heading">Withdrawals</h4>
+              <p className="text-[8px] sm:text-[11px] text-slate-400 font-sans hidden sm:block">
+                Overview for {periodLabels[timePeriod]}
+              </p>
             </div>
 
-            <RadialGauge
+            <CompactRadialGauge
               value={formatCurrency(config.withdrawalsAmount)}
               sublabel="Total"
               sublabelColor="text-rose-500"
               percentage={config.withdrawalsAmount > 0 ? 40 : 12}
-              gradientId="grad-withdrawals"
+              gradientId="grad-wdr-compact"
               startColor="#f43f5e"
               endColor="#e11d48"
-              trackColor="#f1f5f9"
             />
 
-            <div className="pt-2 border-t border-slate-100 text-left">
-              <div className="flex items-center gap-1 text-xs font-bold text-emerald-600 font-sans">
-                <span>Trending down by {Math.abs(config.withdrawalsTrend)}%</span>
-                <TrendingDown className="w-3.5 h-3.5" />
+            <div className="pt-1.5 border-t border-slate-100">
+              <div className="flex items-center justify-center sm:justify-start gap-0.5 text-[8px] sm:text-xs font-bold text-emerald-600 font-sans">
+                <span className="truncate">Down {Math.abs(config.withdrawalsTrend)}%</span>
+                <TrendingDown className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 shrink-0" />
               </div>
-              <p className="text-[11px] text-slate-400 font-sans mt-0.5">
+              <p className="text-[9px] text-slate-400 font-sans mt-0.5 hidden sm:block">
                 Withdrawal trends
               </p>
             </div>
           </div>
 
-          {/* Gauge 3: Net Revenue (Royal Purple/Blue Accent) */}
-          <div className="p-4 sm:p-5 rounded-3xl border border-slate-100 bg-white hover:border-purple-200 hover:shadow-xs transition-all flex flex-col justify-between">
+          {/* Card 3: Net Revenue */}
+          <div className="p-2 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-100 bg-white hover:border-purple-200 transition-all flex flex-col justify-between text-center sm:text-left">
             <div>
-              <h4 className="text-base font-bold text-slate-900 font-heading">Net Revenue</h4>
-              <p className="text-[11px] text-slate-400 font-sans">Overview for {periodLabels[timePeriod]}</p>
+              <h4 className="text-xs sm:text-base font-bold text-slate-900 font-heading">Net Revenue</h4>
+              <p className="text-[8px] sm:text-[11px] text-slate-400 font-sans hidden sm:block">
+                Overview for {periodLabels[timePeriod]}
+              </p>
             </div>
 
-            <RadialGauge
+            <CompactRadialGauge
               value={formatCurrency(config.netRevenue)}
               sublabel="Total"
               sublabelColor="text-purple-600"
               percentage={config.netRevenue > 0 ? 55 : 10}
-              gradientId="grad-net-rev"
+              gradientId="grad-rev-compact"
               startColor="#8b5cf6"
               endColor="#6d28d9"
-              trackColor="#f1f5f9"
             />
 
-            <div className="pt-2 border-t border-slate-100 text-left">
-              <div className="flex items-center gap-1 text-xs font-bold text-rose-500 font-sans">
-                <span>Trending down by {Math.abs(config.netRevenueChange)}%</span>
-                <TrendingDown className="w-3.5 h-3.5" />
+            <div className="pt-1.5 border-t border-slate-100">
+              <div className="flex items-center justify-center sm:justify-start gap-0.5 text-[8px] sm:text-xs font-bold text-rose-500 font-sans">
+                <span className="truncate">Down {Math.abs(config.netRevenueChange)}%</span>
+                <TrendingDown className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 shrink-0" />
               </div>
-              <p className="text-[11px] text-slate-400 font-sans mt-0.5">
-                Net revenue for selected period
+              <p className="text-[9px] text-slate-400 font-sans mt-0.5 hidden sm:block">
+                Net revenue
               </p>
             </div>
           </div>
 
         </div>
-      ) : (
-        /* Alternative Interactive Bar Breakdown View */
-        <div className="p-6 rounded-3xl border border-purple-100 bg-purple-50/30 flex flex-col justify-center items-center my-auto min-h-[220px]">
-          <div className="w-full max-w-md space-y-4">
-            <div>
-              <div className="flex justify-between text-xs font-bold text-slate-700 mb-1 font-sans">
-                <span>Deposits</span>
-                <span className="font-mono text-emerald-600">{formatCurrency(config.depositsAmount)}</span>
-              </div>
-              <div className="h-3 w-full bg-slate-200/80 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full w-[15%]" />
-              </div>
-            </div>
+      )}
 
-            <div>
-              <div className="flex justify-between text-xs font-bold text-slate-700 mb-1 font-sans">
-                <span>Withdrawals</span>
-                <span className="font-mono text-rose-500">{formatCurrency(config.withdrawalsAmount)}</span>
-              </div>
-              <div className="h-3 w-full bg-slate-200/80 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-rose-500 to-pink-500 rounded-full w-[12%]" />
-              </div>
-            </div>
+      {/* CHART 2: BAR CHART (Exact Match with Reference Screenshot) */}
+      {chartView === 'bar' && (
+        <div className="rounded-2xl border border-slate-150 bg-white p-3 sm:p-5 shadow-2xs relative z-10 flex flex-col justify-between">
+          <div className="mb-2">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 font-heading">
+              Bar Chart
+            </h3>
+            <p className="text-[10px] sm:text-xs text-slate-400 font-sans">
+              Weekly breakdown - {periodLabels[timePeriod]}
+            </p>
+          </div>
 
-            <div>
-              <div className="flex justify-between text-xs font-bold text-slate-700 mb-1 font-sans">
-                <span>Net Revenue</span>
-                <span className="font-mono text-purple-700">{formatCurrency(config.netRevenue)}</span>
+          {/* SVG Grouped Bar Chart */}
+          <div className="relative w-full h-44 sm:h-52">
+            <svg viewBox="0 0 540 180" className="w-full h-full overflow-visible">
+              {/* Y-Axis Grid Lines & Labels */}
+              {[4, 3, 2, 1, 0].map((val, idx) => {
+                const y = 20 + idx * 32;
+                return (
+                  <g key={val}>
+                    <text x="12" y={y + 4} className="text-[10px] font-mono fill-slate-400" textAnchor="end">
+                      {val}
+                    </text>
+                    <line
+                      x1="22"
+                      y1={y}
+                      x2="530"
+                      y2={y}
+                      stroke="#f1f5f9"
+                      strokeDasharray="3 3"
+                      strokeWidth="1"
+                    />
+                  </g>
+                );
+              })}
+
+              {/* Grouped Bars per Week */}
+              {weeklyData.map((item, idx) => {
+                const groupX = 60 + idx * 115;
+                const maxVal = 40000;
+                const chartBottom = 148;
+                const maxBarH = 120;
+
+                const depH = (item.deposits / maxVal) * maxBarH;
+                const wdrH = (item.withdrawals / maxVal) * maxBarH;
+                const revH = (item.revenue / maxVal) * maxBarH;
+
+                return (
+                  <g 
+                    key={item.label}
+                    onMouseEnter={() => setHoveredDataPoint(item)}
+                    onMouseLeave={() => setHoveredDataPoint(null)}
+                    className="cursor-pointer group"
+                  >
+                    {/* Deposits Bar (Green) */}
+                    <rect
+                      x={groupX}
+                      y={chartBottom - depH}
+                      width="14"
+                      height={depH}
+                      rx="3"
+                      fill="#10b981"
+                      className="transition-all duration-300 group-hover:opacity-90 group-hover:scale-y-105 origin-bottom"
+                    />
+
+                    {/* Withdrawals Bar (Pink/Red) */}
+                    <rect
+                      x={groupX + 18}
+                      y={chartBottom - wdrH}
+                      width="14"
+                      height={wdrH}
+                      rx="3"
+                      fill="#f43f5e"
+                      className="transition-all duration-300 group-hover:opacity-90 group-hover:scale-y-105 origin-bottom"
+                    />
+
+                    {/* Revenue Bar (Blue/Purple) */}
+                    <rect
+                      x={groupX + 36}
+                      y={chartBottom - revH}
+                      width="14"
+                      height={revH}
+                      rx="3"
+                      fill="#6366f1"
+                      className="transition-all duration-300 group-hover:opacity-90 group-hover:scale-y-105 origin-bottom"
+                    />
+
+                    {/* X-Axis Week Label */}
+                    <text
+                      x={groupX + 25}
+                      y={chartBottom + 16}
+                      textAnchor="middle"
+                      className="text-[10px] font-sans font-medium fill-slate-500"
+                    >
+                      {item.label}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* X-Axis Baseline */}
+              <line x1="22" y1="148" x2="530" y2="148" stroke="#cbd5e1" strokeWidth="1" />
+            </svg>
+
+            {/* Hover Tooltip */}
+            {hoveredDataPoint && (
+              <div className="absolute top-2 right-4 bg-slate-900/90 text-white px-3 py-1.5 rounded-xl shadow-lg backdrop-blur-xs text-xs font-mono z-20 animate-in fade-in">
+                <span className="font-bold text-slate-300 mr-2">{hoveredDataPoint.label}:</span>
+                <span className="text-emerald-400 mr-2">Dep: {formatCurrency(hoveredDataPoint.deposits)}</span>
+                <span className="text-rose-400 mr-2">Wdr: {formatCurrency(hoveredDataPoint.withdrawals)}</span>
+                <span className="text-indigo-400">Rev: {formatCurrency(hoveredDataPoint.revenue)}</span>
               </div>
-              <div className="h-3 w-full bg-slate-200/80 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full w-[10%]" />
+            )}
+          </div>
+
+          {/* Bottom Legend Matching Reference Screenshot */}
+          <div className="flex items-center justify-center gap-5 pt-3 border-t border-slate-100">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+              <span className="w-3.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>deposits</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+              <span className="w-3.5 h-1.5 rounded-full bg-rose-500" />
+              <span>withdrawals</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+              <span className="w-3.5 h-1.5 rounded-full bg-indigo-500" />
+              <span>revenue</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CHART 3: LINE CHART (Interactive Multi-Line Splines) */}
+      {chartView === 'line' && (
+        <div className="rounded-2xl border border-slate-150 bg-white p-3 sm:p-5 shadow-2xs relative z-10 flex flex-col justify-between">
+          <div className="mb-2">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 font-heading">
+              Line Chart
+            </h3>
+            <p className="text-[10px] sm:text-xs text-slate-400 font-sans">
+              Trend progression - {periodLabels[timePeriod]}
+            </p>
+          </div>
+
+          {/* SVG Spline Line Chart */}
+          <div className="relative w-full h-44 sm:h-52">
+            <svg viewBox="0 0 540 180" className="w-full h-full overflow-visible">
+              <defs>
+                <linearGradient id="area-dep" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="area-rev" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#6366f1" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+
+              {/* Grid Lines */}
+              {[4, 3, 2, 1, 0].map((val, idx) => {
+                const y = 20 + idx * 32;
+                return (
+                  <g key={val}>
+                    <text x="12" y={y + 4} className="text-[10px] font-mono fill-slate-400" textAnchor="end">
+                      {val}
+                    </text>
+                    <line
+                      x1="22"
+                      y1={y}
+                      x2="530"
+                      y2={y}
+                      stroke="#f1f5f9"
+                      strokeDasharray="3 3"
+                      strokeWidth="1"
+                    />
+                  </g>
+                );
+              })}
+
+              {/* Splines with smooth bezier curves */}
+              {/* Deposits Area & Line */}
+              <path
+                d="M 60,94 C 150,52 260,76 350,50 C 420,30 480,24 500,22 L 500,148 L 60,148 Z"
+                fill="url(#area-dep)"
+              />
+              <path
+                d="M 60,94 C 150,52 260,76 350,50 C 420,30 480,24 500,22"
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+
+              {/* Revenue Area & Line */}
+              <path
+                d="M 60,108 C 150,76 260,94 350,64 C 420,44 480,36 500,34 L 500,148 L 60,148 Z"
+                fill="url(#area-rev)"
+              />
+              <path
+                d="M 60,108 C 150,76 260,94 350,64 C 420,44 480,36 500,34"
+                fill="none"
+                stroke="#6366f1"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+
+              {/* Withdrawals Line */}
+              <path
+                d="M 60,134 C 150,123 260,130 350,115 C 420,105 480,95 500,92"
+                fill="none"
+                stroke="#f43f5e"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+
+              {/* Data Nodes */}
+              {[
+                { x: 60, dep: 94, wdr: 134, rev: 108, item: weeklyData[0] },
+                { x: 200, dep: 60, wdr: 125, rev: 80, item: weeklyData[1] },
+                { x: 350, dep: 74, wdr: 120, rev: 88, item: weeklyData[2] },
+                { x: 500, dep: 22, wdr: 92, rev: 34, item: weeklyData[3] },
+              ].map((pt, i) => (
+                <g 
+                  key={i}
+                  onMouseEnter={() => setHoveredDataPoint(pt.item)}
+                  onMouseLeave={() => setHoveredDataPoint(null)}
+                  className="cursor-pointer"
+                >
+                  <circle cx={pt.x} cy={pt.dep} r="4" fill="#10b981" stroke="#fff" strokeWidth="2" />
+                  <circle cx={pt.x} cy={pt.rev} r="4" fill="#6366f1" stroke="#fff" strokeWidth="2" />
+                  <circle cx={pt.x} cy={pt.wdr} r="4" fill="#f43f5e" stroke="#fff" strokeWidth="2" />
+                  <text x={pt.x} y="164" textAnchor="middle" className="text-[10px] font-sans font-medium fill-slate-500">
+                    W{i + 1}
+                  </text>
+                </g>
+              ))}
+
+              {/* X-Axis Baseline */}
+              <line x1="22" y1="148" x2="530" y2="148" stroke="#cbd5e1" strokeWidth="1" />
+            </svg>
+
+            {/* Hover Tooltip */}
+            {hoveredDataPoint && (
+              <div className="absolute top-2 right-4 bg-slate-900/90 text-white px-3 py-1.5 rounded-xl shadow-lg backdrop-blur-xs text-xs font-mono z-20 animate-in fade-in">
+                <span className="font-bold text-slate-300 mr-2">{hoveredDataPoint.label}:</span>
+                <span className="text-emerald-400 mr-2">Dep: {formatCurrency(hoveredDataPoint.deposits)}</span>
+                <span className="text-rose-400 mr-2">Wdr: {formatCurrency(hoveredDataPoint.withdrawals)}</span>
+                <span className="text-indigo-400">Rev: {formatCurrency(hoveredDataPoint.revenue)}</span>
               </div>
+            )}
+          </div>
+
+          {/* Bottom Legend */}
+          <div className="flex items-center justify-center gap-5 pt-3 border-t border-slate-100">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+              <span className="w-3.5 h-1.5 rounded-full bg-emerald-500" />
+              <span>deposits</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+              <span className="w-3.5 h-1.5 rounded-full bg-rose-500" />
+              <span>withdrawals</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+              <span className="w-3.5 h-1.5 rounded-full bg-indigo-500" />
+              <span>revenue</span>
             </div>
           </div>
         </div>

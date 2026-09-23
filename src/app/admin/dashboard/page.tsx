@@ -56,32 +56,32 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="space-y-6 sm:space-y-7">
+    <div className="space-y-4 sm:space-y-6">
       {/* 1. Welcome Back Banner (Admin Overview) */}
       <WelcomeBanner />
 
       {/* 2. Trading Overview Container with 6 Live KPI Cards */}
-      <div className="rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
+      <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-3.5 sm:p-5 md:p-6 shadow-xs space-y-3 sm:space-y-5">
         {/* Section Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-slate-100">
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-heading">
+        <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight font-heading">
               Trading Overview
             </h2>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold font-sans">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] sm:text-xs font-bold font-sans">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Live Data
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium font-sans">
+          <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-400 font-medium font-sans">
             <TrendingUp className="w-3.5 h-3.5 text-slate-400" />
-            <span>Real-time data</span>
+            <span className="hidden sm:inline">Real-time data</span>
           </div>
         </div>
 
-        {/* 6 Multi-Colored Live KPI Cards Grid with Focus-Blur Interaction */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3.5 sm:gap-4">
+        {/* 6 Multi-Colored Live KPI Cards: Side-by-Side (2 cols on mobile, 3 on tablet, 6 on desktop) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3.5 md:gap-4">
           {/* Card 1: Total Clients */}
           <LiveKPICard
             id="clients"
@@ -168,24 +168,24 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* 3. Action Callouts for Pending Verification & Approvals */}
+      {/* 3. Action Callouts for Pending Verification & Approvals (Compact on mobile) */}
       {(pendingKyc.length > 0 || pendingDeposits.length > 0 || pendingWithdrawals.length > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-4">
           {pendingKyc.length > 0 && (
-            <div className="p-4 sm:p-5 rounded-3xl bg-purple-50/80 border border-purple-200/80 flex items-center justify-between shadow-xs">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-purple-600 text-white shadow-xs shrink-0">
-                  <UserCheck className="w-5 h-5" />
+            <div className="p-3 sm:p-4.5 rounded-2xl sm:rounded-3xl bg-purple-50/80 border border-purple-200/80 flex items-center justify-between shadow-2xs">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-purple-600 text-white shadow-xs shrink-0">
+                  <UserCheck className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900 font-heading">
+                <div className="min-w-0">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 font-heading truncate">
                     {pendingKyc.length} Pending KYC Submission{pendingKyc.length > 1 ? 's' : ''}
                   </h4>
-                  <p className="text-xs text-slate-500 font-sans">Awaiting identity document approval</p>
+                  <p className="text-[10px] sm:text-xs text-slate-500 font-sans truncate">Awaiting identity approval</p>
                 </div>
               </div>
               <Link href="/admin/kyc-verification" className="shrink-0 ml-2">
-                <Button size="sm" variant="primary" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
+                <Button size="sm" variant="primary" rightIcon={<ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}>
                   Review
                 </Button>
               </Link>
@@ -193,20 +193,20 @@ export default function AdminDashboardPage() {
           )}
 
           {pendingDeposits.length > 0 && (
-            <div className="p-4 sm:p-5 rounded-3xl bg-emerald-50/80 border border-emerald-200/80 flex items-center justify-between shadow-xs">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-emerald-600 text-white shadow-xs shrink-0">
-                  <ArrowDownToLine className="w-5 h-5" />
+            <div className="p-3 sm:p-4.5 rounded-2xl sm:rounded-3xl bg-emerald-50/80 border border-emerald-200/80 flex items-center justify-between shadow-2xs">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-emerald-600 text-white shadow-xs shrink-0">
+                  <ArrowDownToLine className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900 font-heading">
+                <div className="min-w-0">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 font-heading truncate">
                     {pendingDeposits.length} Deposit Request{pendingDeposits.length > 1 ? 's' : ''}
                   </h4>
-                  <p className="text-xs text-slate-500 font-sans">Require gateway / hash verification</p>
+                  <p className="text-[10px] sm:text-xs text-slate-500 font-sans truncate">Require gateway check</p>
                 </div>
               </div>
               <Link href="/admin/deposits" className="shrink-0 ml-2">
-                <Button size="sm" variant="success" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
+                <Button size="sm" variant="success" rightIcon={<ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}>
                   Approve
                 </Button>
               </Link>
@@ -214,20 +214,20 @@ export default function AdminDashboardPage() {
           )}
 
           {pendingWithdrawals.length > 0 && (
-            <div className="p-4 sm:p-5 rounded-3xl bg-rose-50/80 border border-rose-200/80 flex items-center justify-between shadow-xs">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-rose-600 text-white shadow-xs shrink-0">
-                  <ArrowUpFromLine className="w-5 h-5" />
+            <div className="p-3 sm:p-4.5 rounded-2xl sm:rounded-3xl bg-rose-50/80 border border-rose-200/80 flex items-center justify-between shadow-2xs">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-rose-600 text-white shadow-xs shrink-0">
+                  <ArrowUpFromLine className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900 font-heading">
+                <div className="min-w-0">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 font-heading truncate">
                     {pendingWithdrawals.length} Withdrawal Request{pendingWithdrawals.length > 1 ? 's' : ''}
                   </h4>
-                  <p className="text-xs text-slate-500 font-sans">Requires treasury payout processing</p>
+                  <p className="text-[10px] sm:text-xs text-slate-500 font-sans truncate">Requires treasury payout</p>
                 </div>
               </div>
               <Link href="/admin/withdrawals" className="shrink-0 ml-2">
-                <Button size="sm" variant="danger" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
+                <Button size="sm" variant="danger" rightIcon={<ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}>
                   Process
                 </Button>
               </Link>
@@ -237,7 +237,7 @@ export default function AdminDashboardPage() {
       )}
 
       {/* 4. Financial Performance Analytics & Account Distribution (API Configurable) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-stretch">
         {/* Left Column: Revenue Analytics with Gauges & Time Period Controls */}
         <div className="lg:col-span-7 xl:col-span-8 flex flex-col">
           <RevenueAnalyticsSection />

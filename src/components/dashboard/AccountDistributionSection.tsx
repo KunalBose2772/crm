@@ -99,42 +99,42 @@ export const AccountDistributionSection: React.FC<AccountDistributionSectionProp
 
   return (
     <div className={clsx(
-      "rounded-3xl border border-purple-100/90 bg-white p-5 sm:p-6 shadow-xs flex flex-col justify-between h-full relative overflow-hidden transition-all hover:border-purple-200 select-none",
+      "rounded-2xl sm:rounded-3xl border border-purple-100/90 bg-white p-3.5 sm:p-5 md:p-6 shadow-xs flex flex-col justify-between h-full relative overflow-hidden transition-all hover:border-purple-200 select-none",
       className
     )}>
       {/* Ambient Purple Background Flare */}
-      <div className="absolute -top-20 -right-20 w-56 h-56 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-20 -right-20 w-52 h-52 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* 1. Header with Consistent Purple Branding */}
-      <div className="flex items-start justify-between pb-3.5 border-b border-purple-50 relative z-10">
+      <div className="flex items-start justify-between pb-2.5 sm:pb-3.5 border-b border-purple-50 relative z-10">
         <div>
-          <div className="flex items-center gap-1.5 mb-1">
+          <div className="flex items-center gap-1.5 mb-0.5">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-pulse" />
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-700 font-heading">
+            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-purple-700 font-heading">
               Allocation Suite
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight font-heading leading-tight bg-gradient-to-r from-purple-900 via-purple-800 to-indigo-800 bg-clip-text text-transparent">
+          <h2 className="text-lg sm:text-2xl font-extrabold tracking-tight font-heading leading-tight bg-gradient-to-r from-purple-900 via-purple-800 to-indigo-800 bg-clip-text text-transparent">
             Account Distribution
           </h2>
-          <p className="text-xs text-slate-400 font-sans mt-0.5">
+          <p className="text-[10px] sm:text-xs text-slate-400 font-sans mt-0.5">
             {config.periodLabel || 'September 2026'} • Active Trader Segments
           </p>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           {/* Chart View Toggle (Donut vs Radial) */}
           <button
             type="button"
             onClick={() => setChartMode(chartMode === 'donut' ? 'radial' : 'donut')}
             title={chartMode === 'donut' ? 'Switch to Radial Arcs' : 'Switch to Donut Ring'}
-            className="p-2 rounded-xl border border-purple-150 bg-white hover:bg-purple-50 text-purple-700 transition-all cursor-pointer shadow-2xs group"
+            className="p-1.5 sm:p-2 rounded-xl border border-purple-150 bg-white hover:bg-purple-50 text-purple-700 transition-all cursor-pointer shadow-2xs group"
           >
             {chartMode === 'donut' ? (
-              <Disc className="w-4 h-4 text-purple-600 group-hover:scale-110 transition-transform" />
+              <Disc className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600 group-hover:scale-110 transition-transform" />
             ) : (
-              <PieIcon className="w-4 h-4 text-purple-600 group-hover:scale-110 transition-transform" />
+              <PieIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600 group-hover:scale-110 transition-transform" />
             )}
           </button>
 
@@ -144,10 +144,10 @@ export const AccountDistributionSection: React.FC<AccountDistributionSectionProp
             onClick={handleRefreshClick}
             disabled={isRefreshing}
             title="Synchronize account distribution"
-            className="p-2 rounded-xl border border-purple-150 bg-purple-50/60 hover:bg-purple-100 text-purple-700 transition-all cursor-pointer shadow-2xs group active:scale-95 disabled:opacity-50"
+            className="p-1.5 sm:p-2 rounded-xl border border-purple-150 bg-purple-50/60 hover:bg-purple-100 text-purple-700 transition-all cursor-pointer shadow-2xs group active:scale-95 disabled:opacity-50"
           >
             <RotateCw className={clsx(
-              "w-4 h-4 text-purple-700 group-hover:rotate-180 transition-transform duration-500",
+              "w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-700 group-hover:rotate-180 transition-transform duration-500",
               isRefreshing && "animate-spin"
             )} />
           </button>
@@ -155,13 +155,13 @@ export const AccountDistributionSection: React.FC<AccountDistributionSectionProp
       </div>
 
       {/* 2. Interactive Modern Chart Centerpiece */}
-      <div className="relative flex items-center justify-center py-4 my-auto">
+      <div className="relative flex items-center justify-center py-2 sm:py-4 my-auto">
         {chartMode === 'donut' ? (
           /* MODERN DONUT CHART VIEW */
           <div className="relative">
             <svg 
               viewBox="0 0 220 220" 
-              className="w-52 h-52 sm:w-56 sm:h-56 transform -rotate-90 filter drop-shadow-xs"
+              className="w-40 h-40 sm:w-48 sm:h-48 md:w-56 md:h-56 transform -rotate-90 filter drop-shadow-xs"
             >
               <defs>
                 {categories.map((cat) => {
@@ -300,8 +300,8 @@ export const AccountDistributionSection: React.FC<AccountDistributionSectionProp
         )}
       </div>
 
-      {/* 3. Perfectly Aligned Enterprise Category Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 my-3 relative z-10">
+      {/* 3. Perfectly Aligned Enterprise Category Cards (3 Columns for compact layout) */}
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 my-2 sm:my-3 relative z-10">
         {categories.map((cat) => {
           const isHovered = hoveredCategoryId === cat.id;
           const sharePct = ((cat.count / totalAccounts) * 100).toFixed(1);
@@ -313,34 +313,34 @@ export const AccountDistributionSection: React.FC<AccountDistributionSectionProp
               onMouseLeave={() => setHoveredCategoryId(null)}
               onClick={() => setHoveredCategoryId(hoveredCategoryId === cat.id ? null : cat.id)}
               className={clsx(
-                "p-2.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between",
+                "p-2 sm:p-2.5 rounded-xl sm:rounded-2xl border transition-all cursor-pointer flex flex-col justify-between",
                 isHovered
-                  ? "bg-purple-50/70 border-purple-300 shadow-xs scale-102"
+                  ? "bg-purple-50/80 border-purple-300 shadow-xs scale-102"
                   : "bg-slate-50/70 border-slate-100 hover:bg-slate-100/80 hover:border-slate-200"
               )}
             >
               {/* Header: Dot + Name and Count */}
               <div className="flex items-center justify-between gap-1">
-                <div className="flex items-center gap-1.5 min-w-0">
+                <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
                   <span 
-                    className="w-2.5 h-2.5 rounded-full shrink-0 transition-transform" 
+                    className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shrink-0 transition-transform" 
                     style={{ 
                       backgroundColor: cat.color,
                       transform: isHovered ? 'scale(1.3)' : 'scale(1)'
                     }} 
                   />
-                  <span className="text-xs font-bold text-slate-800 truncate font-heading tracking-tight">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-800 truncate font-heading tracking-tight">
                     {cat.name}
                   </span>
                 </div>
-                <span className="font-mono text-xs font-bold text-slate-900 shrink-0 tabular-nums">
+                <span className="font-mono text-[10px] sm:text-xs font-bold text-slate-900 shrink-0 tabular-nums">
                   {cat.count}
                 </span>
               </div>
 
               {/* Progress Mini Bar */}
-              <div className="mt-2 flex items-center justify-between gap-2">
-                <div className="h-1.5 flex-1 bg-slate-200/70 rounded-full overflow-hidden">
+              <div className="mt-1.5 flex items-center justify-between gap-1 sm:gap-2">
+                <div className="h-1 sm:h-1.5 flex-1 bg-slate-200/70 rounded-full overflow-hidden">
                   <div 
                     className="h-full rounded-full transition-all duration-500"
                     style={{ 
@@ -349,7 +349,7 @@ export const AccountDistributionSection: React.FC<AccountDistributionSectionProp
                     }}
                   />
                 </div>
-                <span className="text-[10px] font-semibold text-slate-500 font-mono tabular-nums shrink-0">
+                <span className="text-[8px] sm:text-[10px] font-semibold text-slate-500 font-mono tabular-nums shrink-0">
                   {sharePct}%
                 </span>
               </div>
@@ -359,35 +359,35 @@ export const AccountDistributionSection: React.FC<AccountDistributionSectionProp
       </div>
 
       {/* 4. Bottom 2 Summary Metric Cards (Amber & Royal Purple CRM Accents) */}
-      <div className="grid grid-cols-2 gap-3 pt-2 relative z-10">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-1.5 relative z-10">
         
         {/* Card 1: Account Types (Amber Gold Accent) */}
-        <div className="p-3.5 sm:p-4 rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/80 to-amber-100/40 flex items-center justify-between shadow-2xs hover:border-amber-300 transition-all">
+        <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/80 to-amber-100/40 flex items-center justify-between shadow-2xs hover:border-amber-300 transition-all">
           <div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-amber-700 font-mono tabular-nums leading-none">
+            <p className="text-xl sm:text-2xl md:text-3xl font-extrabold text-amber-700 font-mono tabular-nums leading-none">
               {totalAccountTypes}
             </p>
-            <span className="text-xs font-bold text-amber-800 font-sans block mt-1.5">
+            <span className="text-[10px] sm:text-xs font-bold text-amber-800 font-sans block mt-1">
               Account Types
             </span>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-amber-200/70 text-amber-800 flex items-center justify-center shrink-0">
-            <Layers className="w-5 h-5" />
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-200/70 text-amber-800 flex items-center justify-center shrink-0">
+            <Layers className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
           </div>
         </div>
 
         {/* Card 2: Total Accounts (Royal Purple CRM Accent) */}
-        <div className="p-3.5 sm:p-4 rounded-2xl border border-purple-200/80 bg-gradient-to-br from-purple-50/90 to-purple-100/40 flex items-center justify-between shadow-2xs hover:border-purple-300 transition-all">
+        <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border border-purple-200/80 bg-gradient-to-br from-purple-50/90 to-purple-100/40 flex items-center justify-between shadow-2xs hover:border-purple-300 transition-all">
           <div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-purple-900 font-mono tabular-nums leading-none">
+            <p className="text-xl sm:text-2xl md:text-3xl font-extrabold text-purple-900 font-mono tabular-nums leading-none">
               {totalAccounts}
             </p>
-            <span className="text-xs font-bold text-purple-900 font-sans block mt-1.5">
+            <span className="text-[10px] sm:text-xs font-bold text-purple-900 font-sans block mt-1">
               Total Accounts
             </span>
           </div>
-          <div className="w-9 h-9 rounded-xl bg-purple-200/70 text-purple-800 flex items-center justify-center shrink-0">
-            <Users className="w-5 h-5" />
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-200/70 text-purple-800 flex items-center justify-center shrink-0">
+            <Users className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
           </div>
         </div>
 

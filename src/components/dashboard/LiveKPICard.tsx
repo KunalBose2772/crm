@@ -203,13 +203,13 @@ export const LiveKPICard: React.FC<LiveKPICardProps> = ({
       onMouseEnter={() => onHover && onHover(id)}
       onMouseLeave={() => onHover && onHover(null)}
       className={clsx(
-        'relative overflow-hidden rounded-3xl p-4 sm:p-4.5 border select-none',
+        'relative overflow-hidden rounded-2xl sm:rounded-3xl p-3 sm:p-4 border select-none',
         styles.cardBg,
         styles.borderColor,
         // Smooth transitions for focus-blur effect
         'transition-all duration-300 ease-out will-change-transform',
         // Hovered card grows and pops forward
-        isThisHovered && 'scale-[1.05] z-30 shadow-xl ring-2 ring-purple-500/30 opacity-100 blur-none',
+        isThisHovered && 'scale-[1.04] z-30 shadow-xl ring-2 ring-purple-500/30 opacity-100 blur-none',
         // Other cards softly blur and dim
         isOtherHovered && 'opacity-45 blur-[2px] scale-[0.97] z-10 pointer-events-none',
         // Neutral default state
@@ -217,7 +217,7 @@ export const LiveKPICard: React.FC<LiveKPICardProps> = ({
       )}
     >
       {/* Background Interactive SVG Line Graph with Area Fill */}
-      <div className="absolute inset-x-0 bottom-0 h-24 overflow-hidden pointer-events-none opacity-45 transition-opacity duration-300">
+      <div className="absolute inset-x-0 bottom-0 h-20 sm:h-24 overflow-hidden pointer-events-none opacity-45 transition-opacity duration-300">
         <svg
           viewBox="0 0 200 50"
           preserveAspectRatio="none"
@@ -262,7 +262,7 @@ export const LiveKPICard: React.FC<LiveKPICardProps> = ({
           <circle
             cx={curve.endX}
             cy={curve.endY}
-            r={isFluctuating || isThisHovered ? '8' : '5'}
+            r={isFluctuating || isThisHovered ? '7' : '4.5'}
             fill={styles.liveDotColor}
             opacity={isFluctuating || isThisHovered ? '0.45' : '0.2'}
             className={isFluctuating ? 'animate-ping' : ''}
@@ -271,10 +271,10 @@ export const LiveKPICard: React.FC<LiveKPICardProps> = ({
       </div>
 
       {/* Top row: Elevated glowing icon + trend pill */}
-      <div className="flex items-start justify-between gap-2 relative z-10">
+      <div className="flex items-start justify-between gap-1 sm:gap-2 relative z-10">
         <div
           className={clsx(
-            'w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 shrink-0',
+            'w-7 h-7 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-300 shrink-0 [&>svg]:w-3.5 [&>svg]:h-3.5 sm:[&>svg]:w-4.5 sm:[&>svg]:h-4.5',
             styles.iconBg,
             isThisHovered && 'scale-110'
           )}
@@ -288,7 +288,7 @@ export const LiveKPICard: React.FC<LiveKPICardProps> = ({
           )}
           <div
             className={clsx(
-              'px-2 py-0.5 rounded-full border text-[11px] font-bold tracking-tight shadow-2xs font-mono tabular-nums whitespace-nowrap transition-transform duration-200',
+              'px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-full border text-[9px] sm:text-[11px] font-bold tracking-tight shadow-2xs font-mono tabular-nums whitespace-nowrap transition-transform duration-200',
               styles.pillBg,
               styles.pillText,
               isFluctuating && 'scale-105'
@@ -300,11 +300,11 @@ export const LiveKPICard: React.FC<LiveKPICardProps> = ({
       </div>
 
       {/* Value with left vertical accent bar */}
-      <div className="mt-4 flex items-center gap-2 relative z-10">
-        <div className={clsx('w-1 h-7 rounded-full shrink-0', styles.accentBar)} />
+      <div className="mt-2.5 sm:mt-3.5 flex items-center gap-1.5 sm:gap-2 relative z-10">
+        <div className={clsx('w-1 h-5 sm:h-6 rounded-full shrink-0', styles.accentBar)} />
         <h3
           className={clsx(
-            'text-2xl sm:text-[26px] font-extrabold tracking-tight font-heading truncate transition-all duration-200',
+            'text-base sm:text-xl md:text-2xl font-extrabold tracking-tight font-heading truncate transition-all duration-200',
             styles.valueText,
             isFluctuating && 'opacity-90'
           )}
@@ -314,18 +314,18 @@ export const LiveKPICard: React.FC<LiveKPICardProps> = ({
       </div>
 
       {/* Label Title */}
-      <p className={clsx('text-xs font-bold mt-1 font-heading relative z-10', styles.titleText)}>
+      <p className={clsx('text-[10px] sm:text-xs font-bold mt-0.5 sm:mt-1 font-heading relative z-10 truncate', styles.titleText)}>
         {title}
       </p>
 
-      {/* Footer status text - Clean, with STP and 99% removed */}
+      {/* Footer status text - Clean */}
       <div
         className={clsx(
-          'mt-5 pt-2.5 border-t border-black/5 flex items-center gap-1.5 text-[11px] font-medium font-sans relative z-10',
+          'mt-2.5 sm:mt-4 pt-1.5 sm:pt-2 border-t border-black/5 flex items-center gap-1 text-[9px] sm:text-[11px] font-medium font-sans relative z-10 truncate',
           styles.footerText
         )}
       >
-        <Clock className="w-3.5 h-3.5 shrink-0 opacity-70" />
+        <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 opacity-70" />
         <span className="truncate">{footerText}</span>
       </div>
     </div>
