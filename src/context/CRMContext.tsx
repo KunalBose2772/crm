@@ -31,12 +31,26 @@ interface Toast {
   message?: string;
 }
 
+export interface AdminUser {
+  name: string;
+  email: string;
+  role: string;
+  avatar?: string;
+}
+
 interface ImpersonationState {
   isActive: boolean;
   client?: Client;
 }
 
 interface CRMContextType {
+  // Authentication
+  isAuthenticated: boolean;
+  authLoading: boolean;
+  adminUser: AdminUser | null;
+  login: (email: string, password: string, role?: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => void;
+
   clients: Client[];
   kycRecords: KYCRecord[];
   deposits: DepositRequest[];
@@ -105,6 +119,108 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [impersonation, setImpersonation] = useState<ImpersonationState>({ isActive: false });
   const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
+
+  // Check stored session on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('nd1_crm_auth');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.email) {
+          setIsAuthenticated(true);
+          setAdminUser(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setAuthLoading(false);
+    }
+  }, []);
+
+  const HARDCODED_ACCOUNTS = [
+    {
+      email: 'admintest@gmail.com',
+      pass: 'Test123',
+      name: 'Administrator',
+      role: 'admin',
+      avatar: 'AD',
+    },
+    {
+      email: 'superadmin@nd1crm.com',
+      pass: 'SuperAdmin2026!',
+      name: 'Master SuperAdmin',
+      role: 'superadmin',
+      avatar: 'SA',
+    },
+    {
+      email: 'telecaller@nd1crm.com',
+      pass: 'SalesDesk123!',
+      name: 'Senior Telecaller',
+      role: 'telecaller',
+      avatar: 'TC',
+    },
+    {
+      email: 'partner@nd1crm.com',
+      pass: 'PartnerPass123!',
+      name: 'VIP IB Partner',
+      role: 'partner',
+      avatar: 'IB',
+    },
+  ];
+
+  const login = async (
+    emailInput: string,
+    passwordInput: string,
+    role = 'admin'
+  ): Promise<{ success: boolean; error?: string }> => {
+    const cleanEmail = (emailInput || '').trim().toLowerCase();
+    const cleanPassword = (passwordInput || '').trim();
+
+    // Check credentials against hardcoded accounts
+    const match = HARDCODED_ACCOUNTS.find(
+      acc => acc.email.toLowerCase() === cleanEmail && acc.pass === cleanPassword
+    );
+
+    if (match) {
+      const user: AdminUser = {
+        name: match.name,
+        email: match.email,
+        role: match.role || role || 'admin',
+        avatar: match.avatar,
+      };
+      try {
+        localStorage.setItem('nd1_crm_auth', JSON.stringify(user));
+      } catch {
+        // ignore
+      }
+      setIsAuthenticated(true);
+      setAdminUser(user);
+      showToast('success', 'Authentication Successful', `Welcome, ${user.name}`);
+      return { success: true };
+    }
+
+    return {
+      success: false,
+      error: 'Invalid credentials. Please verify your email and password.',
+    };
+  };
+
+  const logout = () => {
+    try {
+      localStorage.removeItem('nd1_crm_auth');
+    } catch {
+      // ignore
+    }
+    setIsAuthenticated(false);
+    setAdminUser(null);
+    showToast('info', 'Signed Out', 'You have been successfully signed out.');
+  };
 
   // Ensure dark class is removed on mount
   useEffect(() => {
@@ -446,6 +562,11 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   return (
     <CRMContext.Provider value={{
+      isAuthenticated,
+      authLoading,
+      adminUser,
+      login,
+      logout,
       clients,
       kycRecords,
       deposits,

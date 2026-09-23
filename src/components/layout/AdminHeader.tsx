@@ -14,7 +14,7 @@ import { useCRM } from '@/context/CRMContext';
 export const AdminHeader: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const { kycRecords, deposits, withdrawals, setMobileSidebarOpen } = useCRM();
+  const { kycRecords, deposits, withdrawals, setMobileSidebarOpen, logout } = useCRM();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
@@ -153,6 +153,7 @@ export const AdminHeader: React.FC = () => {
                 <button
                   onClick={() => {
                     setShowProfileMenu(false);
+                    logout();
                     router.push('/login');
                   }}
                   className="w-full text-left px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-full flex items-center gap-2 transition-colors cursor-pointer"
