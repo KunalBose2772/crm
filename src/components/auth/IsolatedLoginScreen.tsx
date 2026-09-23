@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
 
-export const IsolatedLoginScreen: React.FC = () => {
+const LoginContent: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get('redirect') || '/admin/dashboard';
@@ -280,5 +280,13 @@ export const IsolatedLoginScreen: React.FC = () => {
         </div>
       )}
     </div>
+  );
+};
+
+export const IsolatedLoginScreen: React.FC = () => {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <LoginContent />
+    </Suspense>
   );
 };
