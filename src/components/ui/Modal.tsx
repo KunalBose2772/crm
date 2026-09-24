@@ -47,7 +47,7 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto p-2 sm:p-4 flex items-start sm:items-center justify-center">
       {/* Backdrop */}
       <div 
         className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" 
@@ -57,24 +57,24 @@ export const Modal: React.FC<ModalProps> = ({
       {/* Modal Dialog */}
       <div
         className={clsx(
-          'relative w-full rounded-3xl bg-white border border-slate-200/90 shadow-xl z-10 overflow-hidden transform transition-all duration-200 animate-in fade-in zoom-in-95',
+          'relative w-full my-auto rounded-2xl sm:rounded-3xl bg-white border border-slate-200/90 shadow-2xl z-10 overflow-hidden transform transition-all duration-200 animate-in fade-in zoom-in-95 flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[85vh]',
           maxWidthStyles[maxWidth]
         )}
       >
-        <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/70">
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 font-heading">{title}</h3>
-            {subtitle && <p className="text-xs text-slate-500 mt-0.5 font-sans">{subtitle}</p>}
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 bg-slate-50/90 sticky top-0 z-10 shrink-0">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 font-heading truncate">{title}</h3>
+            {subtitle && <p className="text-xs text-slate-500 mt-0.5 font-sans truncate">{subtitle}</p>}
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6 max-h-[80vh] overflow-y-auto custom-scrollbar font-sans">
+        <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar font-sans flex-1">
           {children}
         </div>
       </div>

@@ -59,10 +59,40 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in select-none">
-      <div className="relative w-full max-w-4xl bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 font-sans flex flex-col md:flex-row min-h-[520px]">
-        {/* LEFT COLUMN: GUIDED DRAWER (Matching Screenshot 1 exactly) */}
-        <div className="w-full md:w-72 bg-slate-50/90 border-b md:border-b-0 md:border-r border-slate-200/80 p-5 sm:p-6 flex flex-col justify-between shrink-0">
+    <div className="fixed inset-0 z-50 overflow-y-auto p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in select-none flex items-start sm:items-center justify-center">
+      <div className="relative w-full max-w-4xl my-auto bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 font-sans flex flex-col md:flex-row max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+        
+        {/* MOBILE STICKY HEADER (Visible on < md screens so header & close button are NEVER cut off) */}
+        <div className="md:hidden p-3.5 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50/90 sticky top-0 z-20 shrink-0">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-extrabold uppercase tracking-wider font-heading">
+                Step {step} of 3
+              </span>
+              <span className="text-xs font-bold text-slate-800 truncate font-heading">
+                {step === 1 && 'Select account'}
+                {step === 2 && 'Set amount & route'}
+                {step === 3 && 'Confirm destination'}
+              </span>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-1 mt-1.5 overflow-hidden">
+              <div
+                className="bg-blue-600 h-1 rounded-full transition-all duration-300"
+                style={{ width: `${(step / 3) * 100}%` }}
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* LEFT COLUMN: GUIDED DRAWER (Desktop Only, hidden on mobile) */}
+        <div className="hidden md:flex w-72 bg-slate-50/90 border-r border-slate-200/80 p-5 sm:p-6 flex-col justify-between shrink-0 overflow-y-auto custom-scrollbar">
           <div className="space-y-6">
             {/* Top Brand Tag */}
             <div>
@@ -157,10 +187,10 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClos
         </div>
 
         {/* RIGHT COLUMN: MAIN CONTENT */}
-        <div className="flex-1 p-5 sm:p-7 flex flex-col justify-between">
+        <div className="flex-1 p-4 sm:p-7 flex flex-col justify-between overflow-y-auto custom-scrollbar">
           <div>
-            {/* Header with Close Button */}
-            <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+            {/* Desktop Header with Close Button (Hidden on mobile) */}
+            <div className="hidden md:flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
               <div>
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider font-heading">
                   Fund Withdrawal
@@ -176,7 +206,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClos
               <button
                 type="button"
                 onClick={handleClose}
-                className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>

@@ -84,18 +84,18 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({ isOpen, onCl
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in select-none">
-      <div className="relative w-full max-w-4xl bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 font-sans">
-        {/* Header Bar */}
-        <div className="p-4 sm:p-6 border-b border-slate-100 flex items-start justify-between gap-4 bg-slate-50/50">
-          <div>
+    <div className="fixed inset-0 z-50 overflow-y-auto p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in select-none flex items-start sm:items-center justify-center">
+      <div className="relative w-full max-w-4xl my-auto bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 font-sans flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
+        {/* Header Bar - Sticky Top so it is never hidden */}
+        <div className="p-3.5 sm:p-6 border-b border-slate-100 flex items-start justify-between gap-3 bg-slate-50/90 sticky top-0 z-10 shrink-0">
+          <div className="min-w-0 flex-1">
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-extrabold uppercase tracking-wider font-heading">
               {step === 1 ? 'Step 1 of 2' : 'Step 2 of 2'}
             </span>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-heading mt-1 flex items-center gap-2">
+            <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight font-heading mt-1 flex items-center gap-2 truncate">
               {step === 1 ? 'Open New Trading Account' : 'Account Configuration'}
             </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5 line-clamp-1 sm:line-clamp-none">
               {step === 1
                 ? 'Select the setup that matches your strategy and risk profile'
                 : 'Finalize leverage and platform details before launch'}
@@ -105,14 +105,14 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({ isOpen, onCl
           <button
             type="button"
             onClick={handleClose}
-            className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content Area */}
-        <div className="p-4 sm:p-6 sm:py-7">
+        {/* Content Area - Scrollable */}
+        <div className="p-3.5 sm:p-6 sm:py-7 flex-1 overflow-y-auto custom-scrollbar">
           {isSuccess ? (
             <div className="text-center py-6 space-y-4 max-w-md mx-auto animate-in fade-in">
               <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto shadow-xs">
