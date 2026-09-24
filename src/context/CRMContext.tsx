@@ -10,7 +10,8 @@ import {
   IBPartner, 
   IBWithdrawalRequest, 
   IBTierConfig, 
-  DashboardStats 
+  DashboardStats,
+  TradingAccount 
 } from '@/types/crm';
 import { 
   initialClients, 
@@ -107,6 +108,9 @@ interface CRMContextType {
   clientModal: 'open-account' | 'deposit' | 'withdrawal' | null;
   openClientModal: (modal: 'open-account' | 'deposit' | 'withdrawal') => void;
   closeClientModal: () => void;
+
+  // Trading Account actions
+  addTradingAccount: (account: TradingAccount) => void;
 }
 
 const CRMContext = createContext<CRMContextType | undefined>(undefined);
@@ -569,6 +573,38 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('error', 'IB Payout Rejected', `Partner commission payout #${id} rejected.`);
   };
 
+  const addTradingAccount = (newAcc: TradingAccount) => {
+    if (impersonation.isActive && impersonation.client) {
+      const clientId = impersonation.client.id;
+      setClients(prev => prev.map(c => {
+        if (c.id === clientId) {
+          return {
+            ...c,
+            accounts: [newAcc, ...(c.accounts || [])],
+          };
+        }
+        return c;
+      }));
+      setImpersonation(prev => ({
+        ...prev,
+        client: prev.client ? {
+          ...prev.client,
+          accounts: [newAcc, ...(prev.client.accounts || [])],
+        } : undefined,
+      }));
+    } else {
+      setClients(prev => {
+        if (prev.length === 0) return prev;
+        const first = prev[0];
+        const updated = {
+          ...first,
+          accounts: [newAcc, ...(first.accounts || [])],
+        };
+        return [updated, ...prev.slice(1)];
+      });
+    }
+  };
+
   return (
     <CRMContext.Provider value={{
       isAuthenticated,
@@ -609,6 +645,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       clientModal,
       openClientModal,
       closeClientModal,
+      addTradingAccount,
     }}>
       {children}
     </CRMContext.Provider>

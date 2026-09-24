@@ -7,7 +7,7 @@ export interface TradingAccount {
   id: string;
   login: number;
   platform: 'MT4' | 'MT5' | 'cTrader';
-  type: 'Standard' | 'ECN' | 'Pro' | 'Islamic';
+  type: 'Standard' | 'ECN' | 'Pro' | 'Islamic' | 'BASIC' | 'STANDARD' | 'VVIP' | string;
   currency: string;
   balance: number;
   equity: number;
@@ -16,6 +16,9 @@ export interface TradingAccount {
   leverage: string;
   server: string;
   createdAt: string;
+  group?: string;
+  mainPassword?: string;
+  investorPassword?: string;
 }
 
 export interface Client {

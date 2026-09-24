@@ -13,109 +13,155 @@ import {
   Monitor, 
   Scale, 
   Zap, 
-  DollarSign, 
   Check, 
   Copy,
   Users,
   TrendingUp,
   Award,
-  Shield,
-  BarChart3,
-  Headphones,
-  CheckCheck
+  CheckCheck,
+  Loader2,
+  Key,
+  Server
 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
 import { ClientPageHeader } from '@/components/layout/ClientPageHeader';
+import { MT5_ACCOUNT_MAPPING, MT5_CONFIG, MT5AccountType } from '@/config/mt5';
 import { clsx } from 'clsx';
 
 export default function ClientOpenAccountPage() {
   const router = useRouter();
-  const { impersonation, showToast } = useCRM();
+  const { impersonation, showToast, addTradingAccount } = useCRM();
 
-  const clientName = impersonation.client?.name || 'test nikita';
+  const clientName = impersonation.client?.name || 'Nikita Client';
 
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedAccount, setSelectedAccount] = useState<'BASIC' | 'STANDARD' | 'VVIP'>('STANDARD');
   const [leverage, setLeverage] = useState('1:300');
+  const [isCreating, setIsCreating] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [newLogin, setNewLogin] = useState<number | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [createdGroup, setCreatedGroup] = useState('');
+  const [createdServer, setCreatedServer] = useState(MT5_CONFIG.serverName);
+  const [createdPasswords, setCreatedPasswords] = useState<{ main?: string; investor?: string }>({});
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const accountTypes = [
     {
       id: 'BASIC' as const,
-      name: 'BASIC',
+      name: MT5_ACCOUNT_MAPPING.BASIC.name,
+      group: MT5_ACCOUNT_MAPPING.BASIC.group,
       icon: <Users className="w-5 h-5 text-emerald-600" />,
-      tag: 'Starter Account',
-      deposit: '$5.00 – $2,500',
-      description: 'Engineered for new market entrants with negative balance protection',
-      features: [
-        'Zero commission per lot',
-        'Standard tight spreads',
-        'Direct email & desk support',
-        'Real-time risk telemetry',
-        'Instant server onboarding',
-      ],
+      tag: MT5_ACCOUNT_MAPPING.BASIC.tag,
+      deposit: MT5_ACCOUNT_MAPPING.BASIC.deposit,
+      description: MT5_ACCOUNT_MAPPING.BASIC.description,
+      features: MT5_ACCOUNT_MAPPING.BASIC.features,
       highlightsCount: 5,
-      server: 'MT5 Live',
+      server: MT5_CONFIG.serverName,
       leverageOptions: 'Up to 1:300',
     },
     {
       id: 'STANDARD' as const,
-      name: 'STANDARD',
+      name: MT5_ACCOUNT_MAPPING.STANDARD.name,
+      group: MT5_ACCOUNT_MAPPING.STANDARD.group,
       icon: <TrendingUp className="w-5 h-5 text-blue-600" />,
-      tag: 'Professional Account',
-      deposit: '$3,000 – $4,000',
-      description: 'Optimized for high-volume active traders requiring sub-millisecond execution',
-      features: [
-        'Tighter spreads from 0.8 pips',
-        'Sub-millisecond execution routing',
-        'Dedicated trading account manager',
-        'Full Expert Advisor (EA) access',
-        'Live market liquidity feeds',
-      ],
+      tag: MT5_ACCOUNT_MAPPING.STANDARD.tag,
+      deposit: MT5_ACCOUNT_MAPPING.STANDARD.deposit,
+      description: MT5_ACCOUNT_MAPPING.STANDARD.description,
+      features: MT5_ACCOUNT_MAPPING.STANDARD.features,
       highlightsCount: 5,
-      server: 'MT5 Live',
+      server: MT5_CONFIG.serverName,
       leverageOptions: 'Up to 1:500',
     },
     {
       id: 'VVIP' as const,
-      name: 'VVIP',
+      name: MT5_ACCOUNT_MAPPING.VVIP.name,
+      group: MT5_ACCOUNT_MAPPING.VVIP.group,
       icon: <Award className="w-5 h-5 text-indigo-600" />,
-      tag: 'Partner / IB Account',
-      deposit: '$5,000 – $10,000',
-      description: 'Exclusive tier with institutional multi-level rebates and white-glove service',
-      features: [
-        'Multi-tier commission rebates',
-        'Live partner network analytics',
-        'Institutional order execution',
-        'Comprehensive audit reporting',
-        'Priority withdrawal processing',
-      ],
+      tag: MT5_ACCOUNT_MAPPING.VVIP.tag,
+      deposit: MT5_ACCOUNT_MAPPING.VVIP.deposit,
+      description: MT5_ACCOUNT_MAPPING.VVIP.description,
+      features: MT5_ACCOUNT_MAPPING.VVIP.features,
       highlightsCount: 5,
-      server: 'MT5 Live',
+      server: MT5_CONFIG.serverName,
       leverageOptions: 'Up to 1:200',
     },
   ];
 
   const handleSelectAccount = (id: 'BASIC' | 'STANDARD' | 'VVIP') => {
     setSelectedAccount(id);
+    setLeverage(MT5_ACCOUNT_MAPPING[id].defaultLeverage);
     setStep(2);
   };
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const login = Math.floor(200000000 + Math.random() * 900000000);
-    setNewLogin(login);
-    setIsSuccess(true);
-    showToast('success', 'Account Provisioned', `New MT5 ${selectedAccount} Account #${login} generated successfully.`);
+    setIsCreating(true);
+
+    try {
+      const res = await fetch('/api/mt5/accounts/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName,
+          email: impersonation.client?.email || `${clientName.toLowerCase().replace(/\s+/g, '')}@testcrm.co.in`,
+          accountType: selectedAccount,
+          leverage,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success && data.account) {
+        const loginNum = parseInt(data.account.login, 10);
+        setNewLogin(loginNum);
+        setCreatedGroup(data.account.group);
+        setCreatedServer(data.account.server || MT5_CONFIG.serverName);
+        setCreatedPasswords({
+          main: data.account.mainPassword,
+          investor: data.account.investorPassword,
+        });
+
+        // Add to client's account ledger
+        addTradingAccount({
+          id: `acc_${data.account.login}`,
+          login: loginNum,
+          platform: 'MT5',
+          type: selectedAccount,
+          currency: 'USD',
+          balance: 0,
+          equity: 0,
+          freeMargin: 0,
+          marginLevel: 0,
+          leverage: leverage,
+          server: data.account.server || MT5_CONFIG.serverName,
+          group: data.account.group,
+          mainPassword: data.account.mainPassword,
+          investorPassword: data.account.investorPassword,
+          createdAt: new Date().toISOString(),
+        });
+
+        setIsSuccess(true);
+        showToast(
+          'success',
+          'Live Account Provisioned',
+          `New MT5 ${selectedAccount} Account #${loginNum} generated in ${data.account.group}.`
+        );
+      } else {
+        throw new Error(data.error || 'Server error provisioning account');
+      }
+    } catch (err: any) {
+      console.error('Account creation error:', err);
+      showToast('error', 'Provisioning Failed', err.message || 'Could not connect to MT5 server.');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
-  const handleCopy = (text: string) => {
+  const handleCopy = (field: string, text: string) => {
     navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    showToast('info', 'Copied', 'Account login copied to clipboard.');
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+    showToast('info', 'Copied', `${field} copied to clipboard.`);
   };
 
   return (
@@ -133,36 +179,95 @@ export default function ClientOpenAccountPage() {
             value: step === 1 ? 'Step 1: Select' : 'Step 2: Configure',
             icon: <Scale className="w-3.5 h-3.5 text-emerald-300" />
           },
+          {
+            label: 'Server',
+            value: MT5_CONFIG.serverName,
+            icon: <Server className="w-3.5 h-3.5 text-blue-200" />
+          }
         ]}
       />
 
       {isSuccess ? (
         /* SUCCESS PROVISIONED STATE */
-        <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-10 shadow-xs text-center space-y-5 max-w-xl mx-auto animate-in fade-in">
+        <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-10 shadow-xs text-center space-y-6 max-w-xl mx-auto animate-in fade-in">
           <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto shadow-xs">
             <CheckCircle2 className="w-8 h-8" />
           </div>
           <div>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-extrabold uppercase tracking-wider font-heading mb-1.5">
+              Live MT5 Account Active
+            </span>
             <h2 className="text-2xl font-extrabold text-slate-900 font-heading tracking-tight">Account Provisioned</h2>
-            <p className="text-xs text-slate-500 mt-1">Your new live MT5 account has been registered on Ocean Markets infrastructure.</p>
+            <p className="text-xs text-slate-500 mt-1">Your new live MT5 account has been registered on {createdServer}.</p>
           </div>
 
-          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-2">
-            <p className="text-[10px] font-mono uppercase text-slate-400 font-bold">New Account Login</p>
-            <div className="flex items-center justify-center gap-2">
-              <span className="font-mono text-3xl font-extrabold text-blue-700">#{newLogin}</span>
-              <button
-                type="button"
-                onClick={() => handleCopy(newLogin?.toString() || '')}
-                className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-blue-600 shadow-2xs transition-colors cursor-pointer"
-                title="Copy Login"
-              >
-                {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-              </button>
+          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-3.5">
+            <div>
+              <p className="text-[10px] font-mono uppercase text-slate-400 font-bold">New Account Login</p>
+              <div className="flex items-center justify-between mt-0.5">
+                <span className="font-mono text-3xl font-extrabold text-blue-700">#{newLogin}</span>
+                <button
+                  type="button"
+                  onClick={() => handleCopy('Account Login', newLogin?.toString() || '')}
+                  className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-blue-600 shadow-2xs transition-colors cursor-pointer flex items-center gap-1 text-xs font-semibold"
+                  title="Copy Login"
+                >
+                  {copiedField === 'Account Login' ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedField === 'Account Login' ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
             </div>
-            <p className="text-xs text-slate-600 font-mono">
-              Type: {selectedAccount} • Leverage: {leverage} • Server: Ocean Markets Ltd.
-            </p>
+
+            {/* Credentials Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-200/80">
+              <div className="p-2.5 rounded-xl bg-white border border-slate-200">
+                <span className="text-[9px] font-mono uppercase text-slate-400 font-bold block">Trading Password</span>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="font-mono text-xs font-bold text-slate-900">{createdPasswords.main || '••••••••'}</span>
+                  {createdPasswords.main && (
+                    <button
+                      type="button"
+                      onClick={() => handleCopy('Password', createdPasswords.main!)}
+                      className="p-1 text-slate-400 hover:text-blue-600"
+                    >
+                      {copiedField === 'Password' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-white border border-slate-200">
+                <span className="text-[9px] font-mono uppercase text-slate-400 font-bold block">Investor Password</span>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="font-mono text-xs font-bold text-slate-900">{createdPasswords.investor || '••••••••'}</span>
+                  {createdPasswords.investor && (
+                    <button
+                      type="button"
+                      onClick={() => handleCopy('Investor Password', createdPasswords.investor!)}
+                      className="p-1 text-slate-400 hover:text-blue-600"
+                    >
+                      {copiedField === 'Investor Password' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Specifications Summary */}
+            <div className="pt-2 border-t border-slate-200/80 grid grid-cols-3 gap-2 text-[11px] text-slate-600 font-mono">
+              <div>
+                <span className="text-[9px] uppercase text-slate-400 block font-sans">Type</span>
+                <span className="font-bold text-slate-800">{selectedAccount}</span>
+              </div>
+              <div>
+                <span className="text-[9px] uppercase text-slate-400 block font-sans">Group</span>
+                <span className="font-bold text-slate-800">{createdGroup || MT5_ACCOUNT_MAPPING[selectedAccount].group}</span>
+              </div>
+              <div>
+                <span className="text-[9px] uppercase text-slate-400 block font-sans">Leverage</span>
+                <span className="font-bold text-blue-600">{leverage}</span>
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-center gap-3 pt-2">
@@ -205,16 +310,16 @@ export default function ClientOpenAccountPage() {
             <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-slate-50/70 p-5 sm:p-6 shadow-xs flex flex-col justify-between">
               <div className="flex items-center gap-2 text-xs font-bold text-blue-700 uppercase tracking-wider font-heading">
                 <ShieldCheck className="w-4 h-4" />
-                <span>Active setup</span>
+                <span>Active Server</span>
               </div>
               <div>
-                <p className="text-3xl font-extrabold text-slate-900 font-mono mt-2">3</p>
-                <p className="text-xs text-slate-500 mt-0.5">account types available for this client profile.</p>
+                <p className="text-xl font-extrabold text-slate-900 font-mono mt-2 truncate">{MT5_CONFIG.serverName}</p>
+                <p className="text-xs text-slate-500 mt-0.5">3 active tier groups configured on server.</p>
               </div>
             </div>
           </div>
 
-          {/* 3 Main Account Cards (Professional Lucide Icons, No Cheap Emojis) */}
+          {/* 3 Main Account Cards */}
           <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-7 shadow-xs space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-3 border-b border-slate-100">
               <div>
@@ -302,13 +407,13 @@ export default function ClientOpenAccountPage() {
                         </div>
                       </div>
 
-                      {/* Server & Status Grid */}
+                      {/* Server & Group Grid */}
                       <div className="grid grid-cols-2 gap-2 text-center text-xs">
                         <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70">
                           <span className="text-[10px] font-bold uppercase text-slate-400 font-heading block">
-                            Trading Server
+                            MT5 Group
                           </span>
-                          <span className="font-bold font-mono text-slate-800 mt-0.5 block">{acc.server}</span>
+                          <span className="font-bold font-mono text-slate-800 mt-0.5 block truncate">{acc.group}</span>
                         </div>
                         <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70">
                           <span className="text-[10px] font-bold uppercase text-slate-400 font-heading block">
@@ -362,6 +467,9 @@ export default function ClientOpenAccountPage() {
                     </span>
                     <span className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-[11px] font-extrabold font-mono tracking-wide">
                       {selectedAccount}
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      ({MT5_ACCOUNT_MAPPING[selectedAccount].group})
                     </span>
                   </div>
                   <p className="text-xs text-slate-600 font-medium mt-0.5">
@@ -449,8 +557,8 @@ export default function ClientOpenAccountPage() {
                   <span className="font-extrabold text-slate-900 font-heading">{selectedAccount}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] uppercase text-slate-400 font-mono block">Platform</span>
-                  <span className="font-extrabold text-slate-900 font-mono">MT5</span>
+                  <span className="text-[10px] uppercase text-slate-400 font-mono block">Group</span>
+                  <span className="font-extrabold text-slate-900 font-mono">{MT5_ACCOUNT_MAPPING[selectedAccount].group}</span>
                 </div>
                 <div>
                   <span className="text-[10px] uppercase text-slate-400 font-mono block">Leverage</span>
@@ -458,7 +566,7 @@ export default function ClientOpenAccountPage() {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase text-slate-400 font-mono block">Server</span>
-                  <span className="font-extrabold text-slate-800 font-mono">Ocean Markets</span>
+                  <span className="font-extrabold text-slate-800 font-mono">{MT5_CONFIG.serverName}</span>
                 </div>
               </div>
             </div>
@@ -468,7 +576,8 @@ export default function ClientOpenAccountPage() {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                disabled={isCreating}
+                className="px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 <span>Back</span>
@@ -476,10 +585,20 @@ export default function ClientOpenAccountPage() {
 
               <button
                 type="submit"
-                className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                disabled={isCreating}
+                className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
-                <span>Create Trading Account</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                {isCreating ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Provisioning on MT5...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Create Trading Account</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                )}
               </button>
             </div>
           </form>

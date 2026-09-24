@@ -1,0 +1,245 @@
+import https from 'https';
+import crypto from 'crypto';
+import { MT5_CONFIG } from '@/config/mt5';
+
+export interface MT5CreateAccountParams {
+  name: string;
+  email: string;
+  group: string;
+  leverage?: number | string;
+  mainPassword?: string;
+  investorPassword?: string;
+  phone?: string;
+  country?: string;
+}
+
+export interface MT5AccountResponse {
+  login: string;
+  name: string;
+  group: string;
+  leverage: string;
+  currency: string;
+  balance: number;
+  equity: number;
+  freeMargin: number;
+  margin: number;
+  server: string;
+  mainPassword?: string;
+  investorPassword?: string;
+}
+
+class MT5ClientService {
+  /**
+   * Executes a command on MT5 WebAPI within an isolated authenticated session
+   */
+  private async executeSession<T = any>(
+    callback: (reqHelper: (path: string) => Promise<any>) => Promise<T>
+  ): Promise<T> {
+    const agent = new https.Agent({
+      rejectUnauthorized: false,
+      keepAlive: true,
+      maxSockets: 1,
+    });
+
+    const reqHelper = (path: string): Promise<any> => {
+      return new Promise((resolve, reject) => {
+        const req = https.request(
+          {
+            hostname: MT5_CONFIG.serverHost,
+            port: MT5_CONFIG.serverPort,
+            path,
+            method: 'GET',
+            agent,
+            headers: {
+              Connection: 'keep-alive',
+            },
+            timeout: 12000,
+          },
+          (res) => {
+            let data = '';
+            res.on('data', (chunk) => (data += chunk));
+            res.on('end', () => {
+              try {
+                resolve(JSON.parse(data));
+              } catch {
+                resolve(data);
+              }
+            });
+          }
+        );
+
+        req.on('timeout', () => {
+          req.destroy();
+          reject(new Error('MT5 WebAPI connection timeout'));
+        });
+
+        req.on('error', reject);
+        req.end();
+      });
+    };
+
+    try {
+      const login = MT5_CONFIG.managerLogin;
+      const password = MT5_CONFIG.apiPassword;
+
+      // 1. /api/auth/start
+      const startRes = await reqHelper(
+        `/api/auth/start?version=3000&agent=WebCRM&login=${login}&type=manager`
+      );
+
+      if (!startRes || !startRes.srv_rand) {
+        throw new Error(`MT5 Auth Start failed: ${JSON.stringify(startRes)}`);
+      }
+
+      const srvRandBuf = Buffer.from(startRes.srv_rand, 'hex');
+
+      // 2. /api/auth/answer
+      // Hash formula: md5(md5(md5(pwd_utf16le) + 'WebAPI') + srv_rand_bytes)
+      const p1 = crypto.createHash('md5').update(Buffer.from(password, 'utf16le')).digest();
+      const p2 = crypto.createHash('md5').update(p1).update('WebAPI').digest();
+      const srvRandAnswer = crypto.createHash('md5').update(p2).update(srvRandBuf).digest('hex');
+      const cliRand = crypto.randomBytes(16).toString('hex');
+
+      const ansRes = await reqHelper(
+        `/api/auth/answer?srv_rand_answer=${srvRandAnswer}&cli_rand=${cliRand}`
+      );
+
+      if (!ansRes || ansRes.retcode !== '0 Done') {
+        throw new Error(`MT5 Auth Answer rejected: ${JSON.stringify(ansRes)}`);
+      }
+
+      // 3. Execute payload
+      return await callback(reqHelper);
+    } finally {
+      agent.destroy();
+    }
+  }
+
+  /**
+   * Generates a secure random MT5 password
+   */
+  private generatePassword(length = 10): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  /**
+   * Creates a new live trading account on MT5
+   */
+  public async createAccount(params: MT5CreateAccountParams): Promise<MT5AccountResponse> {
+    const mainPass = params.mainPassword || this.generatePassword(10);
+    const investorPass = params.investorPassword || this.generatePassword(10);
+    const leverageNum = typeof params.leverage === 'string'
+      ? parseInt(params.leverage.replace('1:', ''), 10) || 100
+      : params.leverage || 100;
+
+    return await this.executeSession(async (req) => {
+      const query = new URLSearchParams({
+        pass_main: mainPass,
+        pass_investor: investorPass,
+        name: params.name || 'CRM Client',
+        group: params.group,
+        email: params.email || '',
+        leverage: leverageNum.toString(),
+        country: params.country || 'India',
+        phone: params.phone || '',
+      });
+
+      const addRes = await req(`/api/user/add?${query.toString()}`);
+
+      if (!addRes || addRes.retcode !== '0 Done' || !addRes.answer?.Login) {
+        throw new Error(`Failed to create account on MT5: ${addRes?.retcode || JSON.stringify(addRes)}`);
+      }
+
+      const login = String(addRes.answer.Login);
+
+      return {
+        login,
+        name: params.name,
+        group: params.group,
+        leverage: `1:${leverageNum}`,
+        currency: 'USD',
+        balance: 0,
+        equity: 0,
+        freeMargin: 0,
+        margin: 0,
+        server: MT5_CONFIG.serverName,
+        mainPassword: mainPass,
+        investorPassword: investorPass,
+      };
+    });
+  }
+
+  /**
+   * Fetches real-time live trading account balance and details
+   */
+  public async getAccount(login: string | number): Promise<MT5AccountResponse> {
+    return await this.executeSession(async (req) => {
+      const [userRes, accRes] = await Promise.all([
+        req(`/api/user/get?login=${login}`),
+        req(`/api/user/account/get?login=${login}`),
+      ]);
+
+      if (!userRes || userRes.retcode !== '0 Done') {
+        throw new Error(`Account not found on MT5: ${login}`);
+      }
+
+      const u = userRes.answer || {};
+      const a = accRes?.answer || {};
+
+      return {
+        login: String(login),
+        name: u.Name || '',
+        group: u.Group || '',
+        leverage: `1:${u.Leverage || 100}`,
+        currency: 'USD',
+        balance: parseFloat(a.Balance || u.Balance || '0'),
+        equity: parseFloat(a.Equity || u.Balance || '0'),
+        freeMargin: parseFloat(a.MarginFree || '0'),
+        margin: parseFloat(a.Margin || '0'),
+        server: MT5_CONFIG.serverName,
+      };
+    });
+  }
+
+  /**
+   * Executes a live balance deposit or withdrawal on MT5
+   */
+  public async balanceOperation(
+    login: string | number,
+    amount: number,
+    comment = 'CRM Balance Operation'
+  ): Promise<{ ticket: string; balance: number }> {
+    return await this.executeSession(async (req) => {
+      const query = new URLSearchParams({
+        login: String(login),
+        type: '2',
+        balance: amount.toFixed(2),
+        comment,
+      });
+
+      const res = await req(`/api/trade/balance?${query.toString()}`);
+
+      if (!res || res.retcode !== '0 Done') {
+        throw new Error(`MT5 balance operation failed: ${res?.retcode || JSON.stringify(res)}`);
+      }
+
+      const ticket = String(res.answer?.ticket || '');
+
+      // Query updated balance
+      const accRes = await req(`/api/user/account/get?login=${login}`);
+      const updatedBalance = parseFloat(accRes?.answer?.Balance || '0');
+
+      return {
+        ticket,
+        balance: updatedBalance,
+      };
+    });
+  }
+}
+
+export const mt5Client = new MT5ClientService();
