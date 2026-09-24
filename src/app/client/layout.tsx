@@ -75,7 +75,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     {
       title: 'Growth & Network',
       items: [
-        { label: 'Partners Zone', href: '/client/partners', icon: Users },
+        { label: 'Partners Zone', href: '/client/partner/dashboard', icon: Users },
         { label: 'Trading Platforms', href: '/client/platforms', icon: Monitor },
         { label: 'Refer a Friend', href: '/client/referrals', icon: Gift },
       ],
@@ -149,7 +149,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   (item.href === '/client/account-list' && pathname === '/client/accounts') ||
                   (item.href === '/client/trading-contest' && pathname === '/client/stats') ||
                   (item.href === '/client/transfer-history' && pathname === '/client/history') ||
-                  (item.href === '/client/partners' && pathname === '/client/partner/create');
+                  (item.href === '/client/partner/dashboard' && (pathname === '/client/partners' || pathname === '/client/partner/create'));
                 const Icon = item.icon;
                 return (
                   <Link
