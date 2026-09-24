@@ -54,31 +54,36 @@ export const AdminHeader: React.FC = () => {
     withdrawals.filter(w => w.status === 'pending').length;
 
   return (
-    <header className="h-16 border-b border-slate-200/90 bg-white/95 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-20 shadow-2xs">
+    <header className="h-16 border-b border-slate-200/90 bg-white/95 px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20 shadow-2xs w-full max-w-full">
       {/* Title & Hamburger */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-initial">
         <button
           onClick={() => setMobileSidebarOpen(true)}
-          className="lg:hidden p-2 rounded-full text-slate-600 hover:text-purple-700 hover:bg-purple-50 transition-colors cursor-pointer border border-slate-200/80"
+          className="lg:hidden p-2 rounded-full text-slate-600 hover:text-purple-700 hover:bg-purple-50 transition-colors cursor-pointer border border-slate-200/80 shrink-0"
           title="Open Menu"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="min-w-0">
-          <h1 className="text-xs sm:text-base font-bold text-slate-900 truncate max-w-[130px] sm:max-w-xs md:max-w-none font-heading">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xs sm:text-base font-bold text-slate-900 truncate font-heading">
             {getPageTitle()}
           </h1>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="flex-1 max-w-lg mx-2 sm:mx-4">
+      {/* Desktop Search Bar (hidden on mobile, visible on md+) */}
+      <div className="hidden md:block flex-1 max-w-md lg:max-w-lg mx-4">
         <HeaderSearchBar />
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        {/* Mobile Search Icon Trigger Button */}
+        <div className="md:hidden">
+          <HeaderSearchBar isMobileTriggerOnly />
+        </div>
+
         {/* Client Panel Button (Always opens in new tab) */}
         <a
           href="/client/dashboard"
@@ -139,13 +144,13 @@ export const AdminHeader: React.FC = () => {
         <div className="relative">
           <button
             onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full border border-slate-200/80 bg-white hover:bg-purple-50/50 transition-colors cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 sm:gap-2 pl-1.5 sm:pl-2 pr-2 sm:pr-3 py-1.5 rounded-full border border-slate-200/80 bg-white hover:bg-purple-50/50 transition-colors cursor-pointer shadow-2xs"
           >
-            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-xs font-bold text-white shadow-2xs">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-xs font-bold text-white shadow-2xs shrink-0">
               A
             </div>
             <span className="text-xs font-semibold text-slate-800 hidden sm:inline font-sans">Admin</span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
           </button>
 
           {showProfileMenu && (

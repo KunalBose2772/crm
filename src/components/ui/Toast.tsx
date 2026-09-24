@@ -11,13 +11,13 @@ export const ToastContainer: React.FC = () => {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+    <div className="fixed bottom-4 sm:bottom-5 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-auto sm:right-5 z-50 flex flex-col items-center sm:items-end gap-2 w-[calc(100%-2rem)] max-w-sm sm:w-auto pointer-events-none">
       {toasts.map(toast => {
         return (
           <div
             key={toast.id}
             className={clsx(
-              'pointer-events-auto p-4 rounded-xl border shadow-xl flex items-start gap-3 backdrop-blur-xl transition-all duration-200 animate-in slide-in-from-bottom-3',
+              'pointer-events-auto w-full p-3.5 sm:p-4 rounded-2xl border shadow-2xl flex items-start gap-3 backdrop-blur-xl transition-all duration-200 animate-in slide-in-from-bottom-3',
               toast.type === 'success' && 'bg-slate-900/95 border-emerald-500/30 text-emerald-400',
               toast.type === 'warning' && 'bg-slate-900/95 border-amber-500/30 text-amber-400',
               toast.type === 'error' && 'bg-slate-900/95 border-rose-500/30 text-rose-400',

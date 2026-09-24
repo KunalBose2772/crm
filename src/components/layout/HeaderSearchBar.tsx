@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
 import { StatusBadge } from '@/components/ui/Badge';
+import { clsx } from 'clsx';
 
 export type SearchCategory = 'all' | 'pages' | 'clients' | 'finance' | 'kyc' | 'partners';
 
@@ -46,7 +47,11 @@ interface SearchResultItem {
   icon: React.ReactNode;
 }
 
-export const HeaderSearchBar: React.FC = () => {
+export interface HeaderSearchBarProps {
+  isMobileTriggerOnly?: boolean;
+}
+
+export const HeaderSearchBar: React.FC<HeaderSearchBarProps> = ({ isMobileTriggerOnly = false }) => {
   const router = useRouter();
   const {
     clients,
@@ -575,7 +580,7 @@ export const HeaderSearchBar: React.FC = () => {
   }, [searchResults]);
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-xl">
+    <div ref={containerRef} className={clsx('relative', isMobileTriggerOnly ? 'shrink-0' : 'w-full max-w-xl')}>
       {/* Mobile Backdrop */}
       {isOpen && (
         <div
@@ -584,65 +589,80 @@ export const HeaderSearchBar: React.FC = () => {
         />
       )}
 
-      {/* Search Input Container */}
-      <div className="relative flex items-center w-full">
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            if (!isOpen) setIsOpen(true);
+      {/* Trigger: If isMobileTriggerOnly, render a compact circular icon button */}
+      {isMobileTriggerOnly ? (
+        <button
+          type="button"
+          onClick={() => {
+            setIsOpen(true);
+            setTimeout(() => inputRef.current?.focus(), 80);
           }}
-          onFocus={() => setIsOpen(true)}
-          onKeyDown={handleKeyDown}
-          title={`Search CRM (${isMac ? '⌘K' : 'Ctrl+K'})`}
-          placeholder="Search CRM..."
-          className="w-full h-10 pl-4 pr-16 sm:pr-20 rounded-full border border-slate-200/90 bg-slate-50/70 hover:bg-white hover:border-purple-300 focus:bg-white focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/15 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 transition-all shadow-2xs"
-        />
+          className="p-2 rounded-full border border-slate-200/80 bg-white hover:bg-purple-50/50 text-slate-600 hover:text-purple-700 transition-colors cursor-pointer shadow-2xs flex items-center justify-center shrink-0"
+          title="Search CRM"
+        >
+          <Search className="w-4 h-4 text-slate-600" />
+        </button>
+      ) : (
+        /* Standard Search Input Container */
+        <div className="relative flex items-center w-full">
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              if (!isOpen) setIsOpen(true);
+            }}
+            onFocus={() => setIsOpen(true)}
+            onKeyDown={handleKeyDown}
+            title={`Search CRM (${isMac ? '⌘K' : 'Ctrl+K'})`}
+            placeholder="Search CRM..."
+            className="w-full h-10 pl-4 pr-16 sm:pr-20 rounded-full border border-slate-200/90 bg-slate-50/70 hover:bg-white hover:border-purple-300 focus:bg-white focus:outline-none focus:border-purple-600 focus:ring-2 focus:ring-purple-600/15 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 transition-all shadow-2xs"
+          />
 
-        {/* Right side controls: Clear (X) and Butter Purple Search Button */}
-        <div className="absolute right-1 sm:right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1 sm:gap-1.5">
-          {query && (
+          {/* Right side controls: Clear (X) and Butter Purple Search Button */}
+          <div className="absolute right-1 sm:right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1 sm:gap-1.5">
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery('');
+                  inputRef.current?.focus();
+                }}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors cursor-pointer"
+                title="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* Butter Purple Search Button */}
             <button
               type="button"
               onClick={() => {
-                setQuery('');
-                inputRef.current?.focus();
+                if (!isOpen) {
+                  setIsOpen(true);
+                  setTimeout(() => inputRef.current?.focus(), 50);
+                } else if (query.trim() && flatList.length > 0) {
+                  handleSelectResult(flatList[highlightedIndex] || flatList[0]);
+                } else {
+                  setIsOpen(false);
+                }
               }}
-              className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors cursor-pointer"
-              title="Clear search"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-purple-600 via-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 active:scale-95 text-white flex items-center justify-center transition-all shadow-sm shadow-purple-600/30 cursor-pointer shrink-0 group/btn"
+              title={`Search CRM (${isMac ? '⌘K' : 'Ctrl+K'})`}
             >
-              <X className="w-3.5 h-3.5" />
+              <Search className="w-3.5 h-3.5 text-white group-hover/btn:scale-110 transition-transform" />
             </button>
-          )}
-
-          {/* Butter Purple Search Button */}
-          <button
-            type="button"
-            onClick={() => {
-              if (!isOpen) {
-                setIsOpen(true);
-                setTimeout(() => inputRef.current?.focus(), 50);
-              } else if (query.trim() && flatList.length > 0) {
-                handleSelectResult(flatList[highlightedIndex] || flatList[0]);
-              } else {
-                setIsOpen(false);
-              }
-            }}
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-r from-purple-600 via-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 active:scale-95 text-white flex items-center justify-center transition-all shadow-sm shadow-purple-600/30 cursor-pointer shrink-0 group/btn"
-            title={`Search CRM (${isMac ? '⌘K' : 'Ctrl+K'})`}
-          >
-            <Search className="w-3.5 h-3.5 text-white group-hover/btn:scale-110 transition-transform" />
-          </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Results Dropdown Popover */}
       {isOpen && (
         <div className="no-scrollbar fixed inset-x-2.5 top-14 sm:top-full sm:absolute sm:inset-x-auto sm:left-0 sm:right-0 md:left-1/2 md:-translate-x-1/2 sm:mt-2 w-auto sm:w-full md:w-[600px] lg:w-[640px] max-w-[calc(100vw-20px)] sm:max-w-none bg-white/98 backdrop-blur-md rounded-2xl border border-slate-200 shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col max-h-[82vh] sm:max-h-[500px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {/* Mobile Full-Width Search Input */}
-          <div className="p-2.5 border-b border-slate-100 bg-white sm:hidden flex items-center gap-2">
+          <div className={clsx("p-2.5 border-b border-slate-100 bg-white flex items-center gap-2", !isMobileTriggerOnly && "sm:hidden")}>
             <div className="relative flex-1 flex items-center">
               <input
                 type="text"

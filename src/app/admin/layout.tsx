@@ -41,16 +41,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fc] text-slate-900 flex flex-row">
+    <div className="min-h-screen bg-[#f8f9fc] text-slate-900 flex flex-row w-full max-w-full overflow-x-clip">
       {/* Persistent Admin Sidebar */}
       <AdminSidebar />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full overflow-x-clip">
         <AdminHeader />
         <ImpersonationBanner />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+        <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full min-w-0">
           {children}
         </main>
       </div>
