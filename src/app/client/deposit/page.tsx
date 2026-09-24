@@ -2,8 +2,18 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { 
+  ArrowDownToLine, 
+  CheckCircle2, 
+  ShieldCheck, 
+  CreditCard, 
+  Landmark, 
+  Zap, 
+  DollarSign, 
+  ArrowRight 
+} from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
+import { ClientPageHeader } from '@/components/layout/ClientPageHeader';
 
 export default function ClientDepositPage() {
   const { showToast } = useCRM();
@@ -18,82 +28,101 @@ export default function ClientDepositPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <Link href="/client/dashboard" className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-1.5 mb-1">
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
-        </Link>
-        <h1 className="font-serif text-3xl font-bold text-slate-900 tracking-tight">Deposit Funds</h1>
-        <p className="text-xs text-slate-500 mt-1">Instant funding via Crypto, Bank Wire, or Card</p>
-      </div>
+    <div className="space-y-6 font-sans select-none max-w-7xl mx-auto pb-12">
+      {/* 1. ROYAL BLUE PAGE HEADER */}
+      <ClientPageHeader
+        badge="Financial Operations"
+        badgeIcon={<ArrowDownToLine className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-300" />}
+        title="Deposit Funds"
+        subtitle="Instant funding across Bank Wire, Crypto (USDT), or UPI with real-time settlement."
+        chips={[
+          { label: 'Security', value: '256-bit Encrypted', icon: <ShieldCheck className="w-3.5 h-3.5 text-blue-200" /> },
+          { label: 'Processing Fee', value: '$0.00 (Zero Fee)', icon: <Zap className="w-3.5 h-3.5 text-emerald-300" /> },
+        ]}
+      />
 
-      <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
+      <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs max-w-2xl mx-auto">
         {isSuccess ? (
           <div className="p-6 text-center space-y-3">
             <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-6 h-6" />
             </div>
-            <h3 className="font-serif text-xl font-bold text-slate-900">Deposit Initiated</h3>
+            <h3 className="text-xl font-extrabold text-slate-900 font-heading">Deposit Initiated</h3>
             <p className="text-xs text-slate-500">
               Your transfer for ${amount} has been queued. Funds will reflect in MT5 once confirmed.
             </p>
-            <button
-              type="button"
-              onClick={() => setIsSuccess(false)}
-              className="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-xs"
-            >
-              Make Another Deposit
-            </button>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setIsSuccess(false)}
+                className="px-5 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-xs cursor-pointer"
+              >
+                Make Another Deposit
+              </button>
+            </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="text-xs font-mono uppercase text-slate-500 font-bold block mb-1.5">
-                Payment Method
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 font-heading block mb-2">
+                Payment Channel
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 {[
-                  { id: 'USDT_TRC20', label: 'USDT (TRC-20)' },
-                  { id: 'USDT_ERC20', label: 'USDT (ERC-20)' },
-                  { id: 'Bank_Wire', label: 'Bank Wire' },
-                  { id: 'Credit_Card', label: 'Credit Card' },
+                  { id: 'USDT_TRC20', label: 'USDT (TRC-20)', sub: 'Instant network settlement' },
+                  { id: 'USDT_ERC20', label: 'USDT (ERC-20)', sub: 'Ethereum blockchain' },
+                  { id: 'Bank_Wire', label: 'Bank Wire', sub: 'Traditional wire transfer' },
+                  { id: 'UPI_QR', label: 'UPI / QR', sub: 'Instant local payout' },
                 ].map((m) => (
                   <button
                     key={m.id}
                     type="button"
                     onClick={() => setMethod(m.id)}
-                    className={`p-3 rounded-xl border text-xs font-bold text-left transition-all ${
+                    className={`p-3.5 rounded-xl border text-xs text-left transition-all cursor-pointer ${
                       method === m.id
-                        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-2xs'
+                        ? 'border-blue-600 bg-blue-50/50 text-blue-900 shadow-2xs ring-1 ring-blue-500/20'
                         : 'border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100'
                     }`}
                   >
-                    {m.label}
+                    <span className="font-extrabold font-heading block">{m.label}</span>
+                    <span className="text-[10px] text-slate-500 font-sans block mt-0.5">{m.sub}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             <div>
-              <label className="text-xs font-mono uppercase text-slate-500 font-bold block mb-1.5">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 font-heading block mb-1.5">
                 Deposit Amount ($ USD)
               </label>
-              <input
-                type="number"
-                min="50"
-                step="10"
-                required
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-50/60 border border-slate-200 rounded-xl font-mono text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="500"
+                  className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-sm font-bold font-mono focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 font-heading block mb-1.5">
+                Target Trading Account
+              </label>
+              <div className="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+                <span className="font-mono text-sm font-bold text-slate-900">#98989898989 • Standard</span>
+                <span className="text-xs font-mono text-slate-500">Balance: $5,937.47</span>
+              </div>
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-xs active:scale-95 cursor-pointer"
+              className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-xs active:scale-95 cursor-pointer flex items-center justify-center gap-2"
             >
-              Confirm Deposit
+              <span>Continue to Payment</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
         )}

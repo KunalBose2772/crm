@@ -11,7 +11,8 @@ import {
   CheckCircle2, 
   DollarSign, 
   Wallet,
-  AlertCircle
+  AlertCircle,
+  Check
 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
 import { clsx } from 'clsx';
@@ -130,7 +131,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClos
                             : 'bg-slate-200 text-slate-500'
                         )}
                       >
-                        {isCompleted ? '✓' : s.num}
+                        {isCompleted ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : s.num}
                       </div>
                       <span
                         className={clsx(

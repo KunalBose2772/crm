@@ -93,7 +93,7 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({ isOpen, onCl
               {step === 1 ? 'Step 1 of 2' : 'Step 2 of 2'}
             </span>
             <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight font-heading mt-1 flex items-center gap-2">
-              {step === 1 ? '🚀 Open New Trading Account' : '⚙️ Account Configuration'}
+              {step === 1 ? 'Open New Trading Account' : 'Account Configuration'}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               {step === 1

@@ -134,7 +134,7 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
                             : 'bg-slate-200 text-slate-500'
                         )}
                       >
-                        {isCompleted ? '✓' : s.num}
+                        {isCompleted ? <Check className="w-3.5 h-3.5 stroke-[2.5]" /> : s.num}
                       </div>
                       <span
                         className={clsx(

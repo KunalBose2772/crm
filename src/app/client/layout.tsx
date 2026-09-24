@@ -23,6 +23,7 @@ import {
   ChevronRight,
   Menu,
   TrendingUp,
+  Trophy,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { OpenAccountModal } from '@/components/modals/OpenAccountModal';
@@ -58,8 +59,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       items: [
         { label: 'Dashboard', href: '/client/dashboard', icon: LayoutDashboard },
         { label: 'Open New Account', href: '/client/open-account', icon: PlusCircle },
-        { label: 'My Trading Accounts', href: '/client/accounts', icon: Briefcase },
-        { label: 'Trading Stats', href: '/client/stats', icon: BarChart3 },
+        { label: 'Trading Accounts', href: '/client/account-list', icon: Briefcase },
+        { label: 'Trading Contest', href: '/client/trading-contest', icon: Trophy },
       ],
     },
     {
@@ -142,7 +143,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 </div>
               )}
               {section.items.map((item) => {
-                const isActive = pathname === item.href || (item.href === '/client/dashboard' && pathname === '/client');
+                const isActive = 
+                  pathname === item.href || 
+                  (item.href === '/client/dashboard' && pathname === '/client') ||
+                  (item.href === '/client/account-list' && pathname === '/client/accounts') ||
+                  (item.href === '/client/trading-contest' && pathname === '/client/stats');
                 const Icon = item.icon;
                 return (
                   <Link
