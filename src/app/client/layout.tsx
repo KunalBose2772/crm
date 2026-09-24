@@ -77,7 +77,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       items: [
         { label: 'Partners Zone', href: '/client/partner/dashboard', icon: Users },
         { label: 'Trading Platforms', href: '/client/platforms', icon: Monitor },
-        { label: 'Refer a Friend', href: '/client/referrals', icon: Gift },
+        { label: 'Refer a Friend', href: '/client/refer', icon: Gift },
       ],
     },
   ];
@@ -149,6 +149,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   (item.href === '/client/account-list' && pathname === '/client/accounts') ||
                   (item.href === '/client/trading-contest' && pathname === '/client/stats') ||
                   (item.href === '/client/transfer-history' && pathname === '/client/history') ||
+                  (item.href === '/client/refer' && pathname === '/client/referrals') ||
                   (item.href === '/client/partner/dashboard' && (
                     pathname === '/client/partners' || 
                     pathname === '/client/partner/dashboard' ||
