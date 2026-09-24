@@ -97,6 +97,7 @@ export default function ClientDashboardPage() {
   // Live clock
   const [timeString, setTimeString] = useState('');
   const [dateString, setDateString] = useState('');
+  const [shortDateString, setShortDateString] = useState('');
 
   useEffect(() => {
     const updateDateTime = () => {
@@ -112,6 +113,14 @@ export default function ClientDashboardPage() {
         now.toLocaleDateString('en-US', {
           weekday: 'long',
           month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      );
+      setShortDateString(
+        now.toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
           day: 'numeric',
           year: 'numeric',
         })
@@ -277,31 +286,32 @@ export default function ClientDashboardPage() {
               Review balances, activity, and funding in one clean view.
             </p>
 
-            {/* Live Date & Time pill */}
-            <div className="pt-1.5 sm:pt-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs border border-white/20 text-xs font-semibold text-blue-100 shadow-2xs font-sans">
-                <Clock className="w-3.5 h-3.5 text-blue-200" />
-                <span className="font-mono tabular-nums">{timeString || '11:15 AM'}</span>
-                <span className="text-blue-300/60">•</span>
-                <span>{dateString || 'Thursday, September 24, 2026'}</span>
+            {/* Live Date & Time pill - Fits perfectly on one single line on mobile */}
+            <div className="pt-1 sm:pt-1.5 max-w-full overflow-hidden">
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs border border-white/20 text-[11px] sm:text-xs font-semibold text-blue-100 shadow-2xs font-sans whitespace-nowrap max-w-full">
+                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-200 shrink-0" />
+                <span className="font-mono tabular-nums whitespace-nowrap shrink-0">{timeString || '01:41 PM'}</span>
+                <span className="text-blue-300/60 shrink-0">•</span>
+                <span className="hidden sm:inline whitespace-nowrap">{dateString || 'Thursday, September 24, 2026'}</span>
+                <span className="sm:hidden whitespace-nowrap">{shortDateString || 'Thu, Sep 24, 2026'}</span>
               </div>
             </div>
           </div>
 
-          {/* Quick Infrastructure Badges */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 shrink-0 self-start sm:w-auto">
-            <div className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur-xs p-3 min-w-[160px]">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-blue-200 font-heading">Server</p>
-              <p className="mt-1 flex items-center gap-1.5 text-xs font-bold text-white">
-                <Server className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+          {/* Quick Infrastructure Badges - Diminished Side-by-Side on Mobile */}
+          <div className="grid grid-cols-2 gap-2 sm:gap-2.5 w-full sm:w-auto shrink-0 self-start">
+            <div className="rounded-xl sm:rounded-2xl border border-white/15 bg-white/10 backdrop-blur-xs p-2.5 sm:p-3 min-w-0 sm:min-w-[150px]">
+              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-blue-200 font-heading truncate">Server</p>
+              <p className="mt-1 flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold text-white min-w-0">
+                <Server className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-300 shrink-0" />
                 <span className="truncate">Ocean Markets Ltd.</span>
               </p>
             </div>
-            <div className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur-xs p-3 min-w-[140px]">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-blue-200 font-heading">Cash Flow</p>
-              <p className="mt-1 flex items-center gap-1.5 text-xs font-bold text-white font-mono">
+            <div className="rounded-xl sm:rounded-2xl border border-white/15 bg-white/10 backdrop-blur-xs p-2.5 sm:p-3 min-w-0 sm:min-w-[140px]">
+              <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-blue-200 font-heading truncate">Cash Flow</p>
+              <p className="mt-1 flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs font-bold text-white font-mono min-w-0">
                 <span>$0.00</span>
-                <span className="text-[10px] font-normal text-blue-200">• 0 actions</span>
+                <span className="text-[9px] sm:text-[10px] font-normal text-blue-200 truncate">• 0 actions</span>
               </p>
             </div>
           </div>
