@@ -149,7 +149,13 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                   (item.href === '/client/account-list' && pathname === '/client/accounts') ||
                   (item.href === '/client/trading-contest' && pathname === '/client/stats') ||
                   (item.href === '/client/transfer-history' && pathname === '/client/history') ||
-                  (item.href === '/client/partner/dashboard' && (pathname === '/client/partners' || pathname === '/client/partner/create'));
+                  (item.href === '/client/partner/dashboard' && (
+                    pathname === '/client/partners' || 
+                    pathname === '/client/partner/dashboard' ||
+                    pathname === '/client/partner/create' ||
+                    pathname === '/client/partner/commission' ||
+                    pathname === '/client/partner/withdrawal'
+                  ));
                 const Icon = item.icon;
                 return (
                   <Link
