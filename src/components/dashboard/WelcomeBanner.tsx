@@ -25,9 +25,10 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
   const { showToast } = useCRM();
   const [timeString, setTimeString] = useState('');
   const [dateString, setDateString] = useState('');
+  const [shortDateString, setShortDateString] = useState('');
   const [isRotating, setIsRotating] = useState(false);
 
-  // Live ticking clock & dynamic date formatted exactly as: "02:35 PM • Wednesday, September 23"
+  // Live ticking clock & dynamic date
   useEffect(() => {
     const updateDateTime = () => {
       const now = new Date();
@@ -41,8 +42,14 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
         month: 'long',
         day: 'numeric',
       });
+      const shortDate = now.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      });
       setTimeString(time);
       setDateString(date);
+      setShortDateString(shortDate);
     };
 
     updateDateTime();
@@ -72,7 +79,23 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
       <div className="absolute -top-16 -right-16 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-16 -left-16 w-52 h-52 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 relative z-10">
+      {/* Top Right Refresh Icon Button */}
+      <button
+        type="button"
+        onClick={handleRefresh}
+        className="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 z-20 flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/15 hover:bg-white/25 active:bg-white/30 backdrop-blur-xs border border-white/25 text-purple-100 hover:text-white transition-all duration-150 shadow-2xs cursor-pointer active:scale-95 group"
+        title="Refresh real-time data"
+        aria-label="Refresh real-time data"
+      >
+        <RotateCw
+          className={clsx(
+            "w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-100 group-hover:text-white transition-transform duration-700",
+            isRotating && "animate-spin text-white"
+          )}
+        />
+      </button>
+
+      <div className="relative z-10 pr-10 sm:pr-12">
         <div className="space-y-1.5 sm:space-y-2 max-w-2xl">
           {/* Top Pill Tag */}
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-xs border border-white/20 text-[10px] font-extrabold uppercase tracking-wider text-purple-100 shadow-2xs font-heading">
@@ -90,35 +113,18 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
             {subtitle}
           </p>
 
-          {/* Live Date & Time pill */}
+          {/* Live Date & Time pill - Fits perfectly on one line */}
           {showDateTime && (
-            <div className="pt-1.5 sm:pt-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs border border-white/20 text-xs font-semibold text-purple-100 shadow-2xs font-sans">
-                <Clock className="w-3.5 h-3.5 text-purple-200" />
-                <span className="font-mono tabular-nums">{timeString || '02:35 PM'}</span>
-                <span className="text-purple-300/60">•</span>
-                <span>{dateString || 'Wednesday, September 23'}</span>
+            <div className="pt-1 sm:pt-1.5 max-w-full overflow-hidden">
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs border border-white/20 text-[11px] sm:text-xs font-semibold text-purple-100 shadow-2xs font-sans whitespace-nowrap max-w-full">
+                <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-200 shrink-0" />
+                <span className="font-mono tabular-nums whitespace-nowrap shrink-0">{timeString || '02:35 PM'}</span>
+                <span className="text-purple-300/60 shrink-0">•</span>
+                <span className="hidden sm:inline whitespace-nowrap">{dateString || 'Wednesday, September 23'}</span>
+                <span className="sm:hidden whitespace-nowrap">{shortDateString || 'Wed, Sep 23'}</span>
               </div>
             </div>
           )}
-        </div>
-
-        {/* Refresh Button on the top right */}
-        <div className="shrink-0 self-start sm:self-auto pt-1 sm:pt-0">
-          <button
-            type="button"
-            onClick={handleRefresh}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 sm:py-2 rounded-full bg-white/15 hover:bg-white/25 active:bg-white/30 backdrop-blur-xs border border-white/25 text-xs font-bold text-white transition-all duration-150 shadow-2xs cursor-pointer active:scale-95"
-            title="Refresh real-time data"
-          >
-            <RotateCw
-              className={clsx(
-                "w-3.5 h-3.5 text-purple-100 transition-transform duration-700",
-                isRotating && "animate-spin text-white"
-              )}
-            />
-            <span>Refresh</span>
-          </button>
         </div>
       </div>
     </div>
