@@ -25,11 +25,14 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { OpenAccountModal } from '@/components/modals/OpenAccountModal';
+import { DepositModal } from '@/components/modals/DepositModal';
+import { WithdrawalModal } from '@/components/modals/WithdrawalModal';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { impersonation, stopImpersonation } = useCRM();
+  const { impersonation, stopImpersonation, clientModal, openClientModal, closeClientModal } = useCRM();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -265,7 +268,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               {/* Gold "Open Account" button */}
               <button
                 type="button"
-                onClick={() => router.push('/client/open-account')}
+                onClick={() => openClientModal('open-account')}
                 className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95 whitespace-nowrap"
               >
                 Open Account
@@ -274,7 +277,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               {/* Green "Deposit" button */}
               <button
                 type="button"
-                onClick={() => router.push('/client/deposit')}
+                onClick={() => openClientModal('deposit')}
                 className="px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
               >
                 <span className="font-extrabold">+</span>
@@ -284,7 +287,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
               {/* Royal Blue "Withdraw" button */}
               <button
                 type="button"
-                onClick={() => router.push('/client/withdrawal')}
+                onClick={() => openClientModal('withdrawal')}
                 className="hidden md:flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-semibold shadow-2xs transition-all cursor-pointer active:scale-95 whitespace-nowrap"
               >
                 <ArrowUpFromLine className="w-3.5 h-3.5 text-blue-600" />
@@ -315,6 +318,20 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           </main>
         </div>
       </div>
+
+      {/* Global Client Modals (Open Account, Deposit, Withdraw) */}
+      <OpenAccountModal
+        isOpen={clientModal === 'open-account'}
+        onClose={closeClientModal}
+      />
+      <DepositModal
+        isOpen={clientModal === 'deposit'}
+        onClose={closeClientModal}
+      />
+      <WithdrawalModal
+        isOpen={clientModal === 'withdrawal'}
+        onClose={closeClientModal}
+      />
     </div>
   );
 }

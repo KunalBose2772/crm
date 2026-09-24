@@ -1,45 +1,73 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCRM } from '@/context/CRMContext';
 import {
-  AlertTriangle,
   Shield,
   Server,
-  Layers,
+  Wallet,
+  Sparkles,
   ArrowUpRight,
   ArrowDownRight,
-  Copy,
+  ArrowDownLeft,
+  Layers,
+  Zap,
+  Radio,
+  SlidersHorizontal,
+  CalendarDays,
+  ChevronDown,
+  TrendingUp,
+  CircleArrowUp,
+  CircleArrowDown,
+  Repeat,
+  CalendarRange,
+  ChartColumn,
+  ChartLine,
+  RotateCw,
+  BadgeDollarSign,
+  Activity,
+  WalletCards,
+  BadgeCheck,
+  CheckCircle2,
+  DollarSign,
+  ReceiptText,
+  Landmark,
+  ChevronLeft,
   ChevronRight,
-  CreditCard,
-  PlusCircle,
-  ExternalLink,
+  ChartCandlestick,
+  Calendar,
+  Orbit,
+  LogOut,
+  TriangleAlert,
+  Clock,
+  CircleDot,
+  Check
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function ClientDashboardPage() {
   const router = useRouter();
-  const { impersonation, stopImpersonation, showToast } = useCRM();
+  const { impersonation, stopImpersonation, showToast, openClientModal } = useCRM();
 
-  // Active client data or fallback client matching Image 3 (test nikita / ref soumya)
+  // Active client data matching test nikita from live CRM
   const client = impersonation.client || {
-    id: 'CL-8891',
+    id: 'cli_02',
     name: 'test nikita',
-    email: '68l0pklxpu@8btiwd.com',
-    phone: '+1 555 0192',
-    country: 'United Kingdom',
-    city: 'London',
-    registeredAt: '2026-03-12',
+    email: '68i0plcvpu@bltiwd.com',
+    phone: '+964 770 1234567',
+    country: 'Iraq',
+    city: 'Baghdad',
+    registeredAt: '2026-08-01T12:00:00Z',
     status: 'verified' as const,
-    totalDeposit: 0,
+    totalDeposit: 560000,
     totalWithdrawal: 0,
-    netDeposit: 0,
+    netDeposit: 560000,
     totalBalance: 5937.47,
     accounts: [
       {
-        id: 'acc-mt5-1',
-        login: 260730279,
+        id: 'acc_02_1',
+        login: 98989898989,
         platform: 'MT5' as const,
         type: 'Standard' as const,
         currency: 'USD',
@@ -47,404 +75,1290 @@ export default function ClientDashboardPage() {
         equity: 5937.47,
         freeMargin: 5937.47,
         marginLevel: 100,
-        leverage: '1:300',
-        server: 'OceanMarkets-Live',
-        createdAt: '2026-03-15',
+        leverage: '100',
+        server: 'Ocean Markets Ltd.',
+        createdAt: '2026-07-31T10:57:00Z',
       },
     ],
   };
 
-  const clientFirstName = client.name ? client.name.split(' ')[0] : 'Trader';
-  const totalBalance = client.totalBalance || (client.accounts && client.accounts[0]?.balance) || 5937.47;
+  const clientFirstName = client.name ? client.name.split(' ')[0] : 'test';
+  const totalBalance = client.totalBalance || 5937.47;
   const accountsCount = client.accounts ? client.accounts.length : 1;
+
+  // Chart and Filter States
+  const [chartViewMode, setChartViewMode] = useState<'bar' | 'area' | 'line'>('bar');
+  const [timeRange, setTimeRange] = useState<'30d' | '7d' | 'today'>('30d');
+  const [rangeDropdownOpen, setRangeDropdownOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
+  const [hoveredDataIndex, setHoveredDataIndex] = useState<number | null>(null);
+
+  // Live clock
+  const [timeString, setTimeString] = useState('');
+  const [dateString, setDateString] = useState('');
+
+  useEffect(() => {
+    const updateDateTime = () => {
+      const now = new Date();
+      setTimeString(
+        now.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        })
+      );
+      setDateString(
+        now.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      );
+    };
+
+    updateDateTime();
+    const interval = setInterval(updateDateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleStopImpersonation = () => {
     stopImpersonation();
     router.push('/admin/client-page');
   };
 
+  const handleRefreshData = () => {
+    setIsRefreshing(true);
+    setTimeout(() => {
+      setIsRefreshing(false);
+      showToast('success', 'Data Synchronized', 'Dashboard metrics and trading feeds updated.');
+    }, 600);
+  };
+
+  // Datasets based on selected time range
+  const datasets = {
+    '30d': [
+      { label: 'Day 01', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: 'Day 05', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: 'Day 10', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: 'Day 15', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: 'Day 20', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: 'Day 25', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: 'Day 30', deposits: 560000, withdrawals: 0, ops: 1 },
+    ],
+    '7d': [
+      { label: 'Fri', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: 'Sat', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: 'Sun', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: 'Mon', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: 'Tue', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: 'Wed', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: 'Today', deposits: 0, withdrawals: 0, ops: 0 },
+    ],
+    today: [
+      { label: '00:00', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: '04:00', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: '08:00', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: '12:00', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: '16:00', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: '20:00', deposits: 0, withdrawals: 0, ops: 0 },
+      { label: 'Now', deposits: 0, withdrawals: 0, ops: 0 },
+    ],
+  };
+
+  const currentData = datasets[timeRange];
+
+  // SVG Chart Geometry Calculations (Canvas: 560 x 180, Base Y: 150, Top Y: 25)
+  const chartWidth = 560;
+  const chartHeight = 180;
+  const chartBaseY = 148;
+  const chartTopY = 28;
+  const maxAvailableH = chartBaseY - chartTopY; // 120px
+
+  const xStep = (chartWidth - 80) / (currentData.length - 1);
+  const xCoords = currentData.map((_, i) => 40 + i * xStep);
+
+  // Normalization logic: max value 600,000 for deposits
+  const maxDepositVal = 600000;
+  const depYCoords = currentData.map((d) => {
+    if (d.deposits <= 0) return chartBaseY;
+    const h = (d.deposits / maxDepositVal) * maxAvailableH;
+    return chartBaseY - h;
+  });
+
+  const opsYCoords = currentData.map((d) => {
+    if (d.ops <= 0) return chartBaseY;
+    return chartBaseY - 60; // 50% height for 1 transaction
+  });
+
+  const wdrYCoords = currentData.map((d) => {
+    if (d.withdrawals <= 0) return chartBaseY;
+    const h = (d.withdrawals / maxDepositVal) * maxAvailableH;
+    return chartBaseY - h;
+  });
+
+  // Helper function to build smooth cubic Bezier spline
+  const generateSpline = (coords: number[]) => {
+    if (coords.length === 0) return '';
+    let path = `M ${xCoords[0]},${coords[0]}`;
+    for (let i = 0; i < coords.length - 1; i++) {
+      const x0 = xCoords[i];
+      const y0 = coords[i];
+      const x1 = xCoords[i + 1];
+      const y1 = coords[i + 1];
+      const cx1 = x0 + (x1 - x0) * 0.5;
+      const cy1 = y0;
+      const cx2 = x0 + (x1 - x0) * 0.5;
+      const cy2 = y1;
+      path += ` C ${cx1},${cy1} ${cx2},${cy2} ${x1},${y1}`;
+    }
+    return path;
+  };
+
+  const depLinePath = generateSpline(depYCoords);
+  const opsLinePath = generateSpline(opsYCoords);
+  const wdrLinePath = generateSpline(wdrYCoords);
+
+  const depAreaPath = `${depLinePath} L ${xCoords[xCoords.length - 1]},${chartBaseY} L ${xCoords[0]},${chartBaseY} Z`;
+  const opsAreaPath = `${opsLinePath} L ${xCoords[xCoords.length - 1]},${chartBaseY} L ${xCoords[0]},${chartBaseY} Z`;
+
+  const hoveredItem = hoveredDataIndex !== null ? currentData[hoveredDataIndex] : null;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 font-sans select-none pb-12">
       {/* 1. IMPERSONATION WARNING BANNER */}
       {impersonation.isActive && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-[#FFF8E7] border border-[#FDE68A] text-[#78350F] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs animate-in fade-in duration-300">
-          <div className="flex items-start sm:items-center gap-3">
-            <div className="p-2 rounded-xl bg-[#FEF3C7] text-[#D97706] shrink-0">
-              <AlertTriangle className="w-5 h-5" />
+        <div className="rounded-2xl sm:rounded-3xl border border-amber-200 bg-amber-50 p-3.5 sm:p-4 shadow-xs">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center space-x-3">
+              <div className="bg-amber-100 rounded-full p-2 text-amber-700 shrink-0">
+                <TriangleAlert className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-amber-900">
+                  You are currently impersonating <strong>{client.name}</strong>
+                </p>
+                <p className="text-xs text-amber-700">Any actions you take will be performed as this user</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-bold text-[#92400E]">
-                You are currently impersonating <span className="underline">{client.name}</span>
-              </p>
-              <p className="text-xs text-[#B45309] mt-0.5">
-                Any actions you take will be performed as this user
-              </p>
-            </div>
+            <button
+              onClick={handleStopImpersonation}
+              className="flex items-center gap-2 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl transition-colors text-xs font-bold shadow-xs cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Stop Impersonating</span>
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={handleStopImpersonation}
-            className="px-4 py-2 rounded-xl bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer active:scale-95 shrink-0 self-start sm:self-auto"
-          >
-            <span>[→ Stop impersonating]</span>
-          </button>
         </div>
       )}
 
-      {/* 2. HERO GREETING BANNER - Royal Blue Theme */}
-      <div className="relative rounded-3xl bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] text-white p-6 sm:p-8 overflow-hidden shadow-lg border border-blue-600/30">
-        {/* Subtle decorative glow */}
-        <div className="absolute -right-20 -top-20 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute left-1/3 bottom-0 w-80 h-40 bg-indigo-400/20 rounded-full blur-2xl pointer-events-none" />
+      {/* 2. WELCOME BANNER (ROYAL BLUE THEME MATCHING ADMIN WELCOME BANNER) */}
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border border-blue-400/30 bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] p-4 sm:p-5 md:p-6 shadow-md text-white">
+        {/* Subtle Ambient Glow */}
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-52 h-52 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-          {/* Left Greeting & Details */}
-          <div className="lg:col-span-8 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white">
-              <Shield className="w-3.5 h-3.5 text-emerald-300" />
-              <span>Secured client workspace</span>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
+          <div className="space-y-1.5 sm:space-y-2 max-w-2xl">
+            {/* Top Pill Tag */}
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-xs border border-white/20 text-[10px] font-extrabold uppercase tracking-wider text-blue-100 shadow-2xs font-heading">
+              <Shield className="w-3 h-3 text-emerald-300" />
+              <span>Secured Client Workspace</span>
             </div>
 
-            <div>
-              <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-blue-200 font-bold block">
-                CLIENT DASHBOARD
-              </span>
-              <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight mt-1">
-                Good afternoon, {clientFirstName}.
-              </h1>
-            </div>
+            {/* Heading */}
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-white tracking-tight font-heading">
+              Good morning, {clientFirstName}.
+            </h1>
 
-            <div className="space-y-1">
-              <span className="text-[11px] font-mono uppercase tracking-widest text-blue-200/90 font-bold block">
-                ACCOUNT OVERVIEW
-              </span>
-              <p className="text-xs sm:text-sm text-blue-100 max-w-xl">
-                Review balances, activity, and funding in one clean view.
-              </p>
-            </div>
+            {/* Description */}
+            <p className="text-xs sm:text-sm text-blue-100/90 font-sans leading-relaxed">
+              Review balances, activity, and funding in one clean view.
+            </p>
 
-            {/* Meta Badges */}
-            <div className="pt-2 flex flex-wrap items-center gap-2.5 sm:gap-3">
-              <div className="px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-xs flex items-center gap-2">
-                <span className="text-[10px] font-mono uppercase text-blue-200 font-bold">TODAY</span>
-                <span className="text-white font-medium">Wednesday, September 23, 2026</span>
-              </div>
-              <div className="px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-xs flex items-center gap-2">
-                <span className="text-[10px] font-mono uppercase text-blue-200 font-bold">FOCUS</span>
-                <span className="text-white font-medium">Balances and recent activity</span>
+            {/* Live Date & Time pill */}
+            <div className="pt-1.5 sm:pt-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs border border-white/20 text-xs font-semibold text-blue-100 shadow-2xs font-sans">
+                <Clock className="w-3.5 h-3.5 text-blue-200" />
+                <span className="font-mono tabular-nums">{timeString || '11:15 AM'}</span>
+                <span className="text-blue-300/60">•</span>
+                <span>{dateString || 'Thursday, September 24, 2026'}</span>
               </div>
             </div>
           </div>
 
-          {/* Right Sub-card (Ocean Markets Ltd Server & Cashflow) */}
-          <div className="lg:col-span-4 bg-white/15 backdrop-blur-md border border-white/20 rounded-2xl p-5 space-y-4 shadow-inner text-white">
-            <div className="space-y-1.5 pb-4 border-b border-white/20">
-              <span className="text-[9px] font-mono uppercase tracking-widest text-blue-200 font-bold block">
-                SERVER NAME
-              </span>
-              <div className="flex items-center gap-2 text-white font-serif font-bold text-sm sm:text-base">
-                <Server className="w-4 h-4 text-amber-300 shrink-0" />
-                <span>Ocean Markets Ltd.</span>
-              </div>
-              <p className="text-[11px] text-blue-100 leading-tight">
-                Connected trading infrastructure from backend settings
+          {/* Quick Infrastructure Badges */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 shrink-0 self-start sm:w-auto">
+            <div className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur-xs p-3 min-w-[160px]">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-blue-200 font-heading">Server</p>
+              <p className="mt-1 flex items-center gap-1.5 text-xs font-bold text-white">
+                <Server className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                <span className="truncate">Ocean Markets Ltd.</span>
               </p>
             </div>
+            <div className="rounded-2xl border border-white/15 bg-white/10 backdrop-blur-xs p-3 min-w-[140px]">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-blue-200 font-heading">Cash Flow</p>
+              <p className="mt-1 flex items-center gap-1.5 text-xs font-bold text-white font-mono">
+                <span>$0.00</span>
+                <span className="text-[10px] font-normal text-blue-200">• 0 actions</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <div className="space-y-1">
-              <span className="text-[9px] font-mono uppercase tracking-widest text-blue-200 font-bold block">
-                CASH FLOW
+      {/* 3. CAPITAL SNAPSHOT (LIVE KPI CARDS - ADMIN STYLING) */}
+      <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-3.5 sm:p-5 md:p-6 shadow-xs space-y-3 sm:space-y-5">
+        {/* Section Header */}
+        <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight font-heading">
+              Capital Snapshot
+            </h2>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] sm:text-xs font-bold font-sans">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              Live Capital
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-400 font-medium font-sans">
+            <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
+            <span className="hidden sm:inline">Real-time overview</span>
+          </div>
+        </div>
+
+        {/* 4 Multi-Colored Live KPI Cards (Matching Admin LiveKPICard Exact Aesthetic) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+          {/* Card 1: Total Deposits (Mint theme) */}
+          <div
+            onMouseEnter={() => setHoveredCardId('c_dep')}
+            onMouseLeave={() => setHoveredCardId(null)}
+            className={clsx(
+              'relative overflow-hidden rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border select-none transition-all duration-300',
+              'bg-gradient-to-b from-[#ccfbf1] via-[#d1fae5] to-[#a7f3d0] border-emerald-200/90',
+              hoveredCardId === 'c_dep' ? 'scale-[1.03] shadow-md z-20' : 'shadow-xs hover:shadow-md'
+            )}
+          >
+            <div className="flex items-center justify-between relative z-10">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#064e3b] font-heading">
+                Total Deposits
               </span>
-              <div className="text-xl sm:text-2xl font-mono font-extrabold text-white">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#059669] text-white shadow-xs flex items-center justify-center shrink-0">
+                <DollarSign className="w-4 h-4 stroke-[2.5]" />
+              </div>
+            </div>
+            <div className="mt-3 relative z-10">
+              <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#064e3b] font-mono tabular-nums leading-none">
                 $0.00
+              </h3>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-emerald-300/40 flex items-center justify-between text-[10px] sm:text-xs relative z-10 text-emerald-950/70 font-medium">
+              <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-white/80 text-emerald-800 text-[10px] border border-emerald-200/80">
+                +100%
+              </span>
+              <span>Growth • Signal 01</span>
+            </div>
+          </div>
+
+          {/* Card 2: Total Equity (Periwinkle / Blue theme) */}
+          <div
+            onMouseEnter={() => setHoveredCardId('c_eq')}
+            onMouseLeave={() => setHoveredCardId(null)}
+            className={clsx(
+              'relative overflow-hidden rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border select-none transition-all duration-300',
+              'bg-gradient-to-b from-[#e0e7ff] via-[#eef2ff] to-[#ddd6fe] border-indigo-200/90',
+              hoveredCardId === 'c_eq' ? 'scale-[1.03] shadow-md z-20' : 'shadow-xs hover:shadow-md'
+            )}
+          >
+            <div className="flex items-center justify-between relative z-10">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#1e1b4b] font-heading">
+                Total Equity
+              </span>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#4f46e5] text-white shadow-xs flex items-center justify-center shrink-0">
+                <Activity className="w-4 h-4 stroke-[2.5]" />
               </div>
-              <p className="text-[11px] text-blue-100">
-                0 funding actions tracked
+            </div>
+            <div className="mt-3 relative z-10">
+              <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#312e81] font-mono tabular-nums leading-none">
+                ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </h3>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-indigo-300/40 flex items-center justify-between text-[10px] sm:text-xs relative z-10 text-indigo-950/70 font-medium">
+              <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-white/80 text-indigo-800 text-[10px] border border-indigo-200/80">
+                Net: $0.00
+              </span>
+              <span>Growth • Signal 02</span>
+            </div>
+          </div>
+
+          {/* Card 3: Total Withdrawals (Rose theme) */}
+          <div
+            onMouseEnter={() => setHoveredCardId('c_wd')}
+            onMouseLeave={() => setHoveredCardId(null)}
+            className={clsx(
+              'relative overflow-hidden rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border select-none transition-all duration-300',
+              'bg-gradient-to-b from-[#ffe4e6] via-[#fff1f2] to-[#fecdd3] border-rose-200/90',
+              hoveredCardId === 'c_wd' ? 'scale-[1.03] shadow-md z-20' : 'shadow-xs hover:shadow-md'
+            )}
+          >
+            <div className="flex items-center justify-between relative z-10">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#881337] font-heading">
+                Total Withdrawals
+              </span>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#e11d48] text-white shadow-xs flex items-center justify-center shrink-0">
+                <ArrowDownRight className="w-4 h-4 stroke-[2.5]" />
+              </div>
+            </div>
+            <div className="mt-3 relative z-10">
+              <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#881337] font-mono tabular-nums leading-none">
+                $0.00
+              </h3>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-rose-300/40 flex items-center justify-between text-[10px] sm:text-xs relative z-10 text-rose-950/70 font-medium">
+              <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-white/80 text-rose-800 text-[10px] border border-rose-200/80">
+                -3.1%
+              </span>
+              <span>Decline • Signal 03</span>
+            </div>
+          </div>
+
+          {/* Card 4: MT5 Accounts (Cyan theme) */}
+          <div
+            onMouseEnter={() => setHoveredCardId('c_acc')}
+            onMouseLeave={() => setHoveredCardId(null)}
+            className={clsx(
+              'relative overflow-hidden rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 border select-none transition-all duration-300',
+              'bg-gradient-to-b from-[#e0f2fe] via-[#f0f9ff] to-[#bae6fd] border-sky-200/90',
+              hoveredCardId === 'c_acc' ? 'scale-[1.03] shadow-md z-20' : 'shadow-xs hover:shadow-md'
+            )}
+          >
+            <div className="flex items-center justify-between relative z-10">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#0c4a6e] font-heading">
+                MT5 Accounts
+              </span>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#0284c7] text-white shadow-xs flex items-center justify-center shrink-0">
+                <WalletCards className="w-4 h-4 stroke-[2.5]" />
+              </div>
+            </div>
+            <div className="mt-3 relative z-10">
+              <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#0c4a6e] font-mono tabular-nums leading-none">
+                {accountsCount}
+              </h3>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-sky-300/40 flex items-center justify-between text-[10px] sm:text-xs relative z-10 text-sky-950/70 font-medium">
+              <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-white/80 text-sky-800 text-[10px] border border-sky-200/80">
+                Balance: $5.94K
+              </span>
+              <span>Growth • Signal 04</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. TODAY'S PERFORMANCE (ROYAL BLUE CARDS - MATCHING ADMIN TodaysPerformanceSection) */}
+      <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-3.5 sm:p-5 md:p-6 shadow-xs space-y-3 sm:space-y-5">
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight font-heading">
+              Today's Performance
+            </h2>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] sm:text-xs font-bold font-sans">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              Live Feed
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold font-sans">
+              <CalendarDays className="w-3.5 h-3.5 text-blue-600" />
+              <span>Today</span>
+            </span>
+          </div>
+        </div>
+
+        {/* 4 Royal Blue Performance Cards (Matching Admin RoyalPurpleKPICard exactly with blue gradient) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {/* Card 1: Deposits */}
+          <div className="relative group overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] p-4 sm:p-5 text-white border border-blue-400/25 shadow-xs hover:shadow-md transition-all duration-200">
+            <div className="flex items-start justify-between relative z-10 gap-2">
+              <span className="text-[10px] sm:text-xs font-bold text-blue-100 uppercase tracking-wider font-heading leading-tight">
+                Deposits
+              </span>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-[#1d4ed8] shadow-xs flex items-center justify-center shrink-0">
+                <CircleArrowUp className="w-5 h-5 stroke-[2.2]" />
+              </div>
+            </div>
+            <div className="mt-3 relative z-10">
+              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-mono tabular-nums leading-none">
+                $0.00
+              </h3>
+            </div>
+            <div className="mt-3.5 pt-3 border-t border-blue-400/30 flex items-center justify-between text-xs relative z-10">
+              <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px]">
+                <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
+                0%
+              </span>
+              <span className="text-blue-100/80 font-mono text-[11px]">Weight: 6%</span>
+            </div>
+          </div>
+
+          {/* Card 2: Withdrawals */}
+          <div className="relative group overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] p-4 sm:p-5 text-white border border-blue-400/25 shadow-xs hover:shadow-md transition-all duration-200">
+            <div className="flex items-start justify-between relative z-10 gap-2">
+              <span className="text-[10px] sm:text-xs font-bold text-blue-100 uppercase tracking-wider font-heading leading-tight">
+                Withdrawals
+              </span>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-[#1d4ed8] shadow-xs flex items-center justify-center shrink-0">
+                <CircleArrowDown className="w-5 h-5 stroke-[2.2]" />
+              </div>
+            </div>
+            <div className="mt-3 relative z-10">
+              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-mono tabular-nums leading-none">
+                $0.00
+              </h3>
+            </div>
+            <div className="mt-3.5 pt-3 border-t border-blue-400/30 flex items-center justify-between text-xs relative z-10">
+              <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px]">
+                <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
+                0%
+              </span>
+              <span className="text-blue-100/80 font-mono text-[11px]">Weight: 6%</span>
+            </div>
+          </div>
+
+          {/* Card 3: Transactions */}
+          <div className="relative group overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] p-4 sm:p-5 text-white border border-blue-400/25 shadow-xs hover:shadow-md transition-all duration-200">
+            <div className="flex items-start justify-between relative z-10 gap-2">
+              <span className="text-[10px] sm:text-xs font-bold text-blue-100 uppercase tracking-wider font-heading leading-tight">
+                Transactions
+              </span>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-[#1d4ed8] shadow-xs flex items-center justify-center shrink-0">
+                <Repeat className="w-5 h-5 stroke-[2.2]" />
+              </div>
+            </div>
+            <div className="mt-3 relative z-10">
+              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-mono tabular-nums leading-none">
+                0
+              </h3>
+            </div>
+            <div className="mt-3.5 pt-3 border-t border-blue-400/30 flex items-center justify-between text-xs relative z-10">
+              <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px]">
+                <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
+                0%
+              </span>
+              <span className="text-blue-100/80 font-mono text-[11px]">Weight: 6%</span>
+            </div>
+          </div>
+
+          {/* Card 4: Net Flow */}
+          <div className="relative group overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] p-4 sm:p-5 text-white border border-blue-400/25 shadow-xs hover:shadow-md transition-all duration-200">
+            <div className="flex items-start justify-between relative z-10 gap-2">
+              <span className="text-[10px] sm:text-xs font-bold text-blue-100 uppercase tracking-wider font-heading leading-tight">
+                Net Flow
+              </span>
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-[#1d4ed8] shadow-xs flex items-center justify-center shrink-0">
+                <Wallet className="w-5 h-5 stroke-[2.2]" />
+              </div>
+            </div>
+            <div className="mt-3 relative z-10">
+              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-mono tabular-nums leading-none">
+                $0.00
+              </h3>
+            </div>
+            <div className="mt-3.5 pt-3 border-t border-blue-400/30 flex items-center justify-between text-xs relative z-10">
+              <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px]">
+                <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
+                0%
+              </span>
+              <span className="text-blue-100/80 font-mono text-[11px]">Weight: 6%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. ACCOUNT ACTIVITY (WORKING SVG BAR, AREA & LINE CHARTS - MATCHING ADMIN REVENUE ANALYTICS) */}
+      <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-3.5 sm:p-5 md:p-6 shadow-xs space-y-4">
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight font-heading">
+              Account Activity
+            </h2>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] sm:text-xs font-bold font-sans">
+              <Activity className="w-3.5 h-3.5 text-blue-600" />
+              Activity Center
+            </span>
+          </div>
+
+          {/* Controls: Time Period Dropdown + Chart Mode Buttons + Refresh */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Time Period Selector Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setRangeDropdownOpen(!rangeDropdownOpen)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-bold text-slate-700 cursor-pointer shadow-2xs transition-all"
+              >
+                <CalendarRange className="w-3.5 h-3.5 text-blue-600" />
+                <span>
+                  {timeRange === '30d' && 'Last 30 days'}
+                  {timeRange === '7d' && 'Last 7 days'}
+                  {timeRange === 'today' && 'Today'}
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+
+              {rangeDropdownOpen && (
+                <div className="absolute right-0 top-full mt-1.5 w-36 rounded-xl bg-white border border-slate-200 shadow-xl p-1 z-30 animate-in fade-in">
+                  {(['30d', '7d', 'today'] as const).map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => {
+                        setTimeRange(r);
+                        setRangeDropdownOpen(false);
+                      }}
+                      className={clsx(
+                        'w-full flex items-center justify-between px-3 py-1.5 text-xs rounded-lg transition-colors cursor-pointer font-medium',
+                        timeRange === r ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-600 hover:bg-slate-50'
+                      )}
+                    >
+                      <span>
+                        {r === '30d' && 'Last 30 days'}
+                        {r === '7d' && 'Last 7 days'}
+                        {r === 'today' && 'Today'}
+                      </span>
+                      {timeRange === r && <Check className="w-3 h-3 text-blue-600" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Chart Mode Toggle Buttons (Bar | Area | Line) */}
+            <div className="flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200/80 text-xs">
+              <button
+                type="button"
+                onClick={() => setChartViewMode('bar')}
+                className={clsx(
+                  'px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5',
+                  chartViewMode === 'bar' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                )}
+              >
+                <ChartColumn className="w-3.5 h-3.5" />
+                <span>Bar</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartViewMode('area')}
+                className={clsx(
+                  'px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5',
+                  chartViewMode === 'area' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                )}
+              >
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>Area</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartViewMode('line')}
+                className={clsx(
+                  'px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5',
+                  chartViewMode === 'line' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                )}
+              >
+                <ChartLine className="w-3.5 h-3.5" />
+                <span>Line</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleRefreshData}
+              disabled={isRefreshing}
+              className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-blue-700 transition-colors cursor-pointer shadow-2xs"
+              title="Refresh Activity"
+            >
+              <RotateCw className={clsx('w-4 h-4', isRefreshing && 'animate-spin text-blue-600')} />
+            </button>
+          </div>
+        </div>
+
+        {/* Grid: Summary Metrics Aside + True Working Interactive SVG Chart Canvas */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-start">
+          {/* Metrics Aside */}
+          <div className="space-y-3 lg:col-span-1">
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 space-y-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Peak Day</p>
+              <p className="text-base font-extrabold text-slate-800">
+                {timeRange === '30d' ? 'Day 30' : timeRange === '7d' ? 'Wed' : '12:00'}
+              </p>
+              <p className="text-xs text-slate-500 font-mono">
+                {timeRange === '30d' ? '$560,000 moved' : '$0 moved that day'}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Streams</p>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-slate-600">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                    Deposits
+                  </span>
+                  <span className="font-bold text-slate-800 font-mono">
+                    {timeRange === '30d' ? '$560,000' : '$0'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-slate-600">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+                    Withdrawals
+                  </span>
+                  <span className="font-bold text-slate-800 font-mono">$0</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-slate-600">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+                    Transactions
+                  </span>
+                  <span className="font-bold text-slate-800 font-mono">
+                    {timeRange === '30d' ? '1' : '0'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Working SVG Chart Canvas with Bar, Area & Line Renderers */}
+          <div className="lg:col-span-3 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-4 sm:p-5 flex flex-col justify-between min-h-[280px] relative">
+            {/* Top Legend and Hover Info */}
+            <div className="flex items-center justify-between gap-4 text-xs font-semibold text-slate-600 mb-3 pb-2 border-b border-slate-200/60">
+              <div className="flex items-center gap-4">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  Deposits
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  Withdrawals
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                  Transactions
+                </span>
+              </div>
+
+              {/* Dynamic Hover Tooltip Badge */}
+              {hoveredItem && (
+                <div className="hidden sm:inline-flex items-center gap-2 px-2.5 py-0.5 rounded-lg bg-slate-900 text-white text-[11px] font-mono animate-in fade-in">
+                  <span className="font-bold text-slate-300">{hoveredItem.label}:</span>
+                  <span className="text-emerald-400">Dep: ${hoveredItem.deposits.toLocaleString()}</span>
+                  <span className="text-amber-300">Wdr: ${hoveredItem.withdrawals.toLocaleString()}</span>
+                  <span className="text-blue-400">Ops: {hoveredItem.ops}</span>
+                </div>
+              )}
+            </div>
+
+            {/* SVG Interactive Canvas */}
+            <div className="relative w-full h-52 sm:h-56">
+              <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-full overflow-visible">
+                <defs>
+                  {/* Area Gradient for Deposits */}
+                  <linearGradient id="client-dep-area" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.32" />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                  </linearGradient>
+
+                  {/* Area Gradient for Transactions */}
+                  <linearGradient id="client-ops-area" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2563eb" stopOpacity="0.28" />
+                    <stop offset="100%" stopColor="#2563eb" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+
+                {/* Y-Axis Grid Lines & Reference Scale ($600K, $450K, $300K, $150K, $0) */}
+                {[
+                  { y: 28, label: '$600K' },
+                  { y: 58, label: '$450K' },
+                  { y: 88, label: '$300K' },
+                  { y: 118, label: '$150K' },
+                  { y: chartBaseY, label: '$0' },
+                ].map((grid, idx) => (
+                  <g key={idx}>
+                    <text
+                      x="32"
+                      y={grid.y + 3}
+                      className="text-[9px] font-mono fill-slate-400"
+                      textAnchor="end"
+                    >
+                      {grid.label}
+                    </text>
+                    <line
+                      x1="40"
+                      y1={grid.y}
+                      x2={chartWidth - 20}
+                      y2={grid.y}
+                      stroke="#e2e8f0"
+                      strokeDasharray="3 3"
+                      strokeWidth="1"
+                    />
+                  </g>
+                ))}
+
+                {/* 1. BAR CHART VIEW */}
+                {chartViewMode === 'bar' && (
+                  <g>
+                    {currentData.map((item, i) => {
+                      const x = xCoords[i];
+                      const depH = chartBaseY - depYCoords[i];
+                      const opsH = chartBaseY - opsYCoords[i];
+                      const isHovered = hoveredDataIndex === i;
+
+                      return (
+                        <g
+                          key={i}
+                          onMouseEnter={() => setHoveredDataIndex(i)}
+                          onMouseLeave={() => setHoveredDataIndex(null)}
+                          className="cursor-pointer group"
+                        >
+                          {/* Hover Column highlight */}
+                          {isHovered && (
+                            <rect
+                              x={x - 22}
+                              y={chartTopY - 8}
+                              width="44"
+                              height={chartBaseY - chartTopY + 12}
+                              fill="#3b82f6"
+                              fillOpacity="0.06"
+                              rx="6"
+                            />
+                          )}
+
+                          {/* Deposit Bar (Emerald) */}
+                          <rect
+                            x={x - 14}
+                            y={depYCoords[i] === chartBaseY ? chartBaseY - 4 : depYCoords[i]}
+                            width="10"
+                            height={depYCoords[i] === chartBaseY ? 4 : depH}
+                            rx="3"
+                            fill="#10b981"
+                            className="transition-all duration-300 group-hover:fill-emerald-600"
+                          />
+
+                          {/* Withdrawal Bar (Amber) */}
+                          <rect
+                            x={x - 2}
+                            y={chartBaseY - 4}
+                            width="10"
+                            height="4"
+                            rx="3"
+                            fill="#f59e0b"
+                            className="transition-all duration-300 group-hover:fill-amber-600"
+                          />
+
+                          {/* Operations Bar (Blue) */}
+                          <rect
+                            x={x + 10}
+                            y={opsYCoords[i] === chartBaseY ? chartBaseY - 4 : opsYCoords[i]}
+                            width="10"
+                            height={opsYCoords[i] === chartBaseY ? 4 : opsH}
+                            rx="3"
+                            fill="#2563eb"
+                            className="transition-all duration-300 group-hover:fill-blue-700"
+                          />
+                        </g>
+                      );
+                    })}
+                  </g>
+                )}
+
+                {/* 2. AREA CHART VIEW */}
+                {chartViewMode === 'area' && (
+                  <g>
+                    {/* Deposits Area Fill & Line */}
+                    <path d={depAreaPath} fill="url(#client-dep-area)" />
+                    <path
+                      d={depLinePath}
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+
+                    {/* Operations Area Fill & Line */}
+                    <path d={opsAreaPath} fill="url(#client-ops-area)" />
+                    <path
+                      d={opsLinePath}
+                      fill="none"
+                      stroke="#2563eb"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+
+                    {/* Data Node Dots */}
+                    {currentData.map((item, i) => (
+                      <g
+                        key={i}
+                        onMouseEnter={() => setHoveredDataIndex(i)}
+                        onMouseLeave={() => setHoveredDataIndex(null)}
+                        className="cursor-pointer"
+                      >
+                        <circle
+                          cx={xCoords[i]}
+                          cy={depYCoords[i]}
+                          r={hoveredDataIndex === i ? 6 : 4}
+                          fill="#10b981"
+                          stroke="#ffffff"
+                          strokeWidth="2"
+                          className="transition-all duration-200"
+                        />
+                        <circle
+                          cx={xCoords[i]}
+                          cy={opsYCoords[i]}
+                          r={hoveredDataIndex === i ? 6 : 4}
+                          fill="#2563eb"
+                          stroke="#ffffff"
+                          strokeWidth="2"
+                          className="transition-all duration-200"
+                        />
+                      </g>
+                    ))}
+                  </g>
+                )}
+
+                {/* 3. LINE CHART VIEW */}
+                {chartViewMode === 'line' && (
+                  <g>
+                    {/* Withdrawals flat baseline line */}
+                    <path
+                      d={wdrLinePath}
+                      fill="none"
+                      stroke="#f59e0b"
+                      strokeWidth="2"
+                      strokeDasharray="4 4"
+                      strokeLinecap="round"
+                    />
+
+                    {/* Deposits Spline Line */}
+                    <path
+                      d={depLinePath}
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* Transactions Spline Line */}
+                    <path
+                      d={opsLinePath}
+                      fill="none"
+                      stroke="#2563eb"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                    {/* Interactive Points on Line */}
+                    {currentData.map((item, i) => (
+                      <g
+                        key={i}
+                        onMouseEnter={() => setHoveredDataIndex(i)}
+                        onMouseLeave={() => setHoveredDataIndex(null)}
+                        className="cursor-pointer"
+                      >
+                        {/* Hover vertical guide line */}
+                        {hoveredDataIndex === i && (
+                          <line
+                            x1={xCoords[i]}
+                            y1={chartTopY}
+                            x2={xCoords[i]}
+                            y2={chartBaseY}
+                            stroke="#94a3b8"
+                            strokeDasharray="2 2"
+                            strokeWidth="1"
+                          />
+                        )}
+                        <circle
+                          cx={xCoords[i]}
+                          cy={depYCoords[i]}
+                          r={hoveredDataIndex === i ? 6 : 4}
+                          fill="#10b981"
+                          stroke="#ffffff"
+                          strokeWidth="2"
+                          className="transition-all duration-200"
+                        />
+                        <circle
+                          cx={xCoords[i]}
+                          cy={opsYCoords[i]}
+                          r={hoveredDataIndex === i ? 6 : 4}
+                          fill="#2563eb"
+                          stroke="#ffffff"
+                          strokeWidth="2"
+                          className="transition-all duration-200"
+                        />
+                      </g>
+                    ))}
+                  </g>
+                )}
+
+                {/* X-Axis Baseline & Tick Labels */}
+                <line x1="40" y1={chartBaseY} x2={chartWidth - 20} y2={chartBaseY} stroke="#cbd5e1" strokeWidth="1" />
+                {currentData.map((item, i) => (
+                  <text
+                    key={i}
+                    x={xCoords[i]}
+                    y={chartBaseY + 16}
+                    textAnchor="middle"
+                    className={clsx(
+                      'text-[10px] font-mono transition-colors',
+                      hoveredDataIndex === i ? 'fill-blue-600 font-bold' : 'fill-slate-500'
+                    )}
+                  >
+                    {item.label}
+                  </text>
+                ))}
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 6. CAPITAL DISTRIBUTION (GLOBAL PROGRESS) */}
+      <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-3.5 sm:p-5 md:p-6 shadow-xs space-y-4">
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight font-heading">
+              Capital Distribution
+            </h2>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] sm:text-xs font-bold font-sans">
+              <Layers className="w-3.5 h-3.5 text-blue-600" />
+              Global Progress
+            </span>
+          </div>
+
+          <div className="text-xs text-slate-500 font-mono">
+            Lead: <strong>98989898989 • BASIC</strong> (100%)
+          </div>
+        </div>
+
+        {/* 3 Metric Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Tracked Balance</p>
+              <p className="text-lg font-extrabold text-slate-900 font-mono mt-1">${totalBalance.toLocaleString()}</p>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center">
+              <BadgeDollarSign className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Average Account</p>
+              <p className="text-lg font-extrabold text-slate-900 font-mono mt-1">${totalBalance.toLocaleString()}</p>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-200 text-sky-600 flex items-center justify-center">
+              <Activity className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Account Status</p>
+              <p className="text-lg font-extrabold text-slate-900 mt-1">1 live / 0 idle</p>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
+              <WalletCards className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+
+        {/* Ranked Account Item */}
+        <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">
+                #1
+              </span>
+              <span className="font-bold text-slate-900 text-sm">98989898989 • BASIC</span>
+            </div>
+            <span className="font-mono font-bold text-slate-800 text-sm">${totalBalance.toLocaleString()}</span>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs text-slate-500 font-mono">
+              <span>Relative weight</span>
+              <span>100%</span>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full w-full" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 7. MARKET BOARD */}
+      <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-3.5 sm:p-5 md:p-6 shadow-xs space-y-4">
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight font-heading">
+              Market Board
+            </h2>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] sm:text-xs font-bold font-sans">
+              <ChartCandlestick className="w-3.5 h-3.5 text-blue-600" />
+              Market Pulse
+            </span>
+          </div>
+
+          <div className="text-xs text-slate-400 font-sans">All tracked symbols • Live feed</div>
+        </div>
+
+        {/* 4 Quick Stat Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Trades Scanned</p>
+            <p className="text-xl font-extrabold text-slate-900 font-mono mt-1">0</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Open Positions</p>
+            <p className="text-xl font-extrabold text-slate-900 font-mono mt-1">0</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Net Profit</p>
+            <p className="text-xl font-extrabold text-slate-900 font-mono mt-1">$0.00</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Win Rate</p>
+            <p className="text-xl font-extrabold text-slate-900 font-mono mt-1">0%</p>
+          </div>
+        </div>
+
+        {/* Controls & Radar Visualizer */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
+          {/* Control Deck */}
+          <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-heading">Symbol Basket</label>
+              <div className="p-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800">
+                All Symbols
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-heading">Time Horizon</label>
+              <div className="p-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800">
+                Last 7 Days
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleRefreshData}
+              disabled={isRefreshing}
+              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <RotateCw className={clsx('w-3.5 h-3.5', isRefreshing && 'animate-spin')} />
+              <span>Sync Chart Feed</span>
+            </button>
+          </div>
+
+          {/* Visualizer Radar */}
+          <div className="lg:col-span-2 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-6 sm:p-8 text-center flex flex-col items-center justify-center space-y-3">
+            <div className="relative w-20 h-20 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-2 border-blue-200 animate-ping opacity-35" />
+              <div className="w-16 h-16 rounded-full border border-blue-300 flex items-center justify-center bg-blue-50/60">
+                <Orbit className="w-7 h-7 text-blue-600 animate-spin" style={{ animationDuration: '12s' }} />
+              </div>
+            </div>
+            <div>
+              <h4 className="text-base font-extrabold text-slate-900 font-heading">Market Feed Synchronized</h4>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                Waiting for first trade execution to stream real-time price routes and order telemetry.
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 3. CAPITAL SNAPSHOT 2x2 GRID - Crisp White Light Theme */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-mono uppercase tracking-widest text-blue-600 font-bold block">
-              CLIENT DASHBOARD
-            </span>
-            <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              Capital snapshot
+      {/* 8. TRANSACTION LEDGER */}
+      <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-3.5 sm:p-5 md:p-6 shadow-xs space-y-3 sm:space-y-4">
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight font-heading">
+              Transaction Ledger
             </h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => showToast('info', 'Snapshot Copied', 'Portfolio summary copied to clipboard.')}
-            className="p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer shadow-2xs"
-            title="Export snapshot"
-          >
-            <Copy className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Card 1: TOTAL DEPOSITS */}
-          <div className="bg-white border border-slate-200/90 hover:border-emerald-500/50 rounded-2xl p-5 space-y-4 transition-all duration-300 group shadow-xs hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <span className="px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-[10px] font-mono uppercase tracking-wider text-emerald-700 font-bold">
-                CAPITAL
-              </span>
-              <div className="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform">
-                <ArrowUpRight className="w-4 h-4" />
-              </div>
-            </div>
-
-            <div>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 font-bold block">
-                TOTAL DEPOSITS
-              </span>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="font-mono text-2xl sm:text-3xl font-extrabold text-slate-900">
-                  ${(client.totalDeposit || 0).toFixed(2)}
-                </span>
-                <span className="text-xs font-bold text-emerald-600 font-mono">
-                  +100%
-                </span>
-              </div>
-            </div>
-
-            {/* Emerald Progress Bar */}
-            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-              <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full w-[60%] rounded-full shadow-xs" />
-            </div>
-
-            <div className="flex items-center justify-between pt-1 text-xs">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Growth
-              </span>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 font-semibold">
-                SIGNAL 01
-              </span>
-            </div>
-          </div>
-
-          {/* Card 2: TOTAL EQUITY */}
-          <div className="bg-white border border-slate-200/90 hover:border-blue-500/50 rounded-2xl p-5 space-y-4 transition-all duration-300 group shadow-xs hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <span className="px-2.5 py-1 rounded-md bg-blue-50 border border-blue-200 text-[10px] font-mono uppercase tracking-wider text-blue-700 font-bold">
-                PORTFOLIO
-              </span>
-              <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform">
-                <ArrowUpRight className="w-4 h-4" />
-              </div>
-            </div>
-
-            <div>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 font-bold block">
-                TOTAL EQUITY
-              </span>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="font-mono text-2xl sm:text-3xl font-extrabold text-slate-900">
-                  ${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-                <span className="text-xs text-slate-400 font-mono">
-                  Net: $0.00
-                </span>
-              </div>
-            </div>
-
-            {/* Royal Blue Progress Bar */}
-            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full w-[85%] rounded-full shadow-xs" />
-            </div>
-
-            <div className="flex items-center justify-between pt-1 text-xs">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                Active
-              </span>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 font-semibold">
-                SIGNAL 02
-              </span>
-            </div>
-          </div>
-
-          {/* Card 3: TOTAL WITHDRAWALS */}
-          <div className="bg-white border border-slate-200/90 hover:border-rose-500/50 rounded-2xl p-5 space-y-4 transition-all duration-300 group shadow-xs hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <span className="px-2.5 py-1 rounded-md bg-rose-50 border border-rose-200 text-[10px] font-mono uppercase tracking-wider text-rose-700 font-bold">
-                OUTFLOW
-              </span>
-              <div className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 group-hover:scale-105 transition-transform">
-                <ArrowDownRight className="w-4 h-4" />
-              </div>
-            </div>
-
-            <div>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 font-bold block">
-                TOTAL WITHDRAWALS
-              </span>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="font-mono text-2xl sm:text-3xl font-extrabold text-slate-900">
-                  ${(client.totalWithdrawal || 0).toFixed(2)}
-                </span>
-                <span className="text-xs font-bold text-rose-600 font-mono">
-                  -3.1%
-                </span>
-              </div>
-            </div>
-
-            {/* Rose Progress Bar */}
-            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-              <div className="bg-gradient-to-r from-rose-500 to-pink-500 h-full w-[45%] rounded-full shadow-xs" />
-            </div>
-
-            <div className="flex items-center justify-between pt-1 text-xs">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                Decline
-              </span>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 font-semibold">
-                SIGNAL 03
-              </span>
-            </div>
-          </div>
-
-          {/* Card 4: MT5 ACCOUNTS */}
-          <div className="bg-white border border-slate-200/90 hover:border-indigo-500/50 rounded-2xl p-5 space-y-4 transition-all duration-300 group shadow-xs hover:shadow-md">
-            <div className="flex items-center justify-between">
-              <span className="px-2.5 py-1 rounded-md bg-indigo-50 border border-indigo-200 text-[10px] font-mono uppercase tracking-wider text-indigo-700 font-bold">
-                ACCOUNTS
-              </span>
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 group-hover:scale-105 transition-transform">
-                <ArrowUpRight className="w-4 h-4" />
-              </div>
-            </div>
-
-            <div>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 font-bold block">
-                MT5 ACCOUNTS
-              </span>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="font-mono text-2xl sm:text-3xl font-extrabold text-slate-900">
-                  {accountsCount}
-                </span>
-                <span className="text-xs text-slate-500 font-mono">
-                  Balance: ${(totalBalance / 1000).toFixed(2)}K
-                </span>
-              </div>
-            </div>
-
-            {/* Indigo Progress Bar */}
-            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full w-[75%] rounded-full shadow-xs" />
-            </div>
-
-            <div className="flex items-center justify-between pt-1 text-xs">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[11px] font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                Live Desk
-              </span>
-              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 font-semibold">
-                SIGNAL 04
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. TODAY PERFORMANCE SECTION - Crisp White Card */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-mono uppercase tracking-widest text-blue-600 font-bold block">
-              CLIENT DASHBOARD
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] sm:text-xs font-bold font-sans">
+              <ReceiptText className="w-3.5 h-3.5 text-blue-600" />
+              Funding Stream
             </span>
-            <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              Today performance
-            </h2>
           </div>
-          <button
-            type="button"
-            className="p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer shadow-2xs"
-            title="Layer views"
-          >
-            <Layers className="w-4 h-4" />
-          </button>
+
+          <div className="text-xs text-slate-500 font-mono">1 record • 1 in / 0 out</div>
         </div>
 
-        {/* Active Trading Account Card / Row */}
-        <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-shadow">
-          <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center font-mono font-bold text-blue-700 text-sm shadow-2xs">
-                MT5
+        {/* Transaction Record Card */}
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50/30 p-4 transition-all hover:bg-emerald-50/60">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <ArrowDownLeft className="w-5 h-5 stroke-[2.5]" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-base text-slate-900">
-                    #{(client.accounts && client.accounts[0]?.login) || '260730279'}
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 font-heading">
+                    Deposit
                   </span>
-                  <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-mono font-bold uppercase">
-                    {(client.accounts && client.accounts[0]?.type) || 'STANDARD'}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
-                    LIVE
-                  </span>
+                  <span className="text-xs font-mono font-bold text-slate-800">#98989898989</span>
                 </div>
-                <span className="text-xs text-slate-500 font-sans mt-0.5 block">
-                  Server: OceanMarkets-Live • Leverage 1:300
-                </span>
+                <p className="text-xs text-slate-500 mt-0.5">crypto Deposit • 31/07/2026, 10:57:00</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 block font-semibold">
-                  ACCOUNT BALANCE
-                </span>
-                <span className="font-mono font-extrabold text-xl text-emerald-600">
-                  ${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => router.push('/client/deposit')}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-xs"
-              >
-                + Deposit
-              </button>
+            <div className="flex items-center gap-4 self-end sm:self-center">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold font-mono">
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                Approved
+              </span>
+              <span className="text-base sm:text-lg font-extrabold text-emerald-700 font-mono">
+                +US$560,000.00
+              </span>
             </div>
           </div>
+        </div>
 
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 bg-slate-50/60 text-xs p-4">
-            <div className="p-3 text-center sm:text-left">
-              <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">Free Margin</span>
-              <span className="font-mono font-bold text-slate-900 text-sm mt-0.5 block">
-                ${totalBalance.toLocaleString()}
+        {/* Pagination Footer */}
+        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+          <span>Showing 1 - 1 of 1</span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled
+              className="p-1 rounded-lg border border-slate-200 text-slate-300 cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              disabled
+              className="p-1 rounded-lg border border-slate-200 text-slate-300 cursor-not-allowed"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 9. TRADING ACCOUNTS (ACCOUNT REGISTRY) */}
+      <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-3.5 sm:p-5 md:p-6 shadow-xs space-y-4">
+        {/* Section Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight font-heading">
+              Trading Accounts
+            </h2>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] sm:text-xs font-bold font-sans">
+              <WalletCards className="w-3.5 h-3.5 text-blue-600" />
+              Active Portfolio
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => openClientModal('deposit')}
+              className="px-3.5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1"
+            >
+              <ArrowDownLeft className="w-3.5 h-3.5" />
+              <span>Deposit funds</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => openClientModal('withdrawal')}
+              className="px-3.5 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1"
+            >
+              <ArrowUpRight className="w-3.5 h-3.5" />
+              <span>Withdraw funds</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Account Cards Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white to-slate-50/50 p-4 sm:p-5 shadow-xs space-y-4">
+            {/* Account Top Row */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">
+                  #1
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold uppercase">
+                  BASIC
+                </span>
+                <span className="text-base font-extrabold text-slate-900 font-mono">98989898989</span>
+              </div>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live
               </span>
             </div>
-            <div className="p-3 text-center sm:text-left">
-              <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">Margin Level</span>
-              <span className="font-mono font-bold text-emerald-600 text-sm mt-0.5 block">
-                100.00%
-              </span>
+
+            {/* 4 Metric Boxes */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="rounded-xl border border-slate-200/80 bg-white p-2.5 text-center">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Balance</p>
+                <p className="text-sm sm:text-base font-extrabold text-slate-900 font-mono mt-0.5">${totalBalance.toLocaleString()}</p>
+              </div>
+              <div className="rounded-xl border border-slate-200/80 bg-white p-2.5 text-center">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Equity</p>
+                <p className="text-sm sm:text-base font-extrabold text-slate-900 font-mono mt-0.5">${totalBalance.toLocaleString()}</p>
+              </div>
+              <div className="rounded-xl border border-slate-200/80 bg-white p-2.5 text-center">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Leverage</p>
+                <p className="text-sm sm:text-base font-extrabold text-slate-900 font-mono mt-0.5">1:100</p>
+              </div>
+              <div className="rounded-xl border border-slate-200/80 bg-white p-2.5 text-center">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Health</p>
+                <p className="text-sm sm:text-base font-extrabold text-emerald-600 font-mono mt-0.5">100%</p>
+              </div>
             </div>
-            <div className="p-3 text-center sm:text-left">
-              <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">Floating P&amp;L</span>
-              <span className="font-mono font-bold text-slate-400 text-sm mt-0.5 block">
-                $0.00
-              </span>
+
+            {/* Health Bar */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-[11px] font-mono text-slate-500">
+                <span>Capital Health</span>
+                <span className="font-bold text-emerald-600">100%</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/60">
+                <div className="bg-gradient-to-r from-emerald-500 to-blue-500 h-2 rounded-full w-full" />
+              </div>
             </div>
-            <div className="p-3 text-center sm:text-left">
-              <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">Currency</span>
-              <span className="font-mono font-bold text-slate-800 text-sm mt-0.5 block">
-                USD ($)
-              </span>
+
+            {/* Account Action Buttons */}
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => openClientModal('deposit')}
+                className="flex-1 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <ArrowDownLeft className="w-3.5 h-3.5" />
+                <span>Deposit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openClientModal('withdrawal')}
+                className="flex-1 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <ArrowUpRight className="w-3.5 h-3.5" />
+                <span>Withdraw</span>
+              </button>
             </div>
           </div>
         </div>

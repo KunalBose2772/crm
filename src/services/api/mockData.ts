@@ -45,9 +45,9 @@ export const initialClients: Client[] = [
     totalDeposit: 560000,
     totalWithdrawal: 0,
     netDeposit: 560000,
-    totalBalance: 560000,
+    totalBalance: 5937.47,
     accounts: [
-      { id: 'acc_02_1', login: 2607101, platform: 'MT5', type: 'ECN', currency: 'USD', balance: 560000, equity: 560000, freeMargin: 560000, marginLevel: 0, leverage: '1:500', server: 'Live-Server-01', createdAt: '2026-08-01T12:00:00Z' }
+      { id: 'acc_02_1', login: 98989898989, platform: 'MT5', type: 'Standard', currency: 'USD', balance: 5937.47, equity: 5937.47, freeMargin: 5937.47, marginLevel: 100, leverage: '100', server: 'Ocean Markets Ltd.', createdAt: '2026-07-31T10:57:00Z' }
     ]
   },
   {

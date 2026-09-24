@@ -2,46 +2,47 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Plus, ArrowUpRight } from 'lucide-react';
+import { ArrowLeft, Plus, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
 
 export default function ClientAccountsPage() {
-  const { impersonation } = useCRM();
+  const { impersonation, openClientModal } = useCRM();
   const client = impersonation.client;
   const accounts = client?.accounts || [
     {
-      id: 'acc-mt5-1',
-      login: 260730279,
+      id: 'acc_02_1',
+      login: 98989898989,
       platform: 'MT5',
       type: 'BASIC',
       currency: 'USD',
-      balance: 411.20,
-      equity: 411.20,
-      leverage: '1:300',
-      server: 'OceanMarkets-Live',
+      balance: 5937.47,
+      equity: 5937.47,
+      leverage: '1:100',
+      server: 'Ocean Markets Ltd.',
     },
   ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <Link href="/client/dashboard" className="text-xs text-blue-600 font-semibold hover:underline flex items-center gap-1.5 mb-1">
             <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
           </Link>
-          <h1 className="font-serif text-3xl font-bold text-slate-900 tracking-tight">
+          <h1 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
             My Trading Accounts
           </h1>
           <p className="text-xs text-slate-500 mt-1">Manage active MT5 live &amp; demo trading accounts</p>
         </div>
 
-        <Link
-          href="/client/open-account"
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-bold shadow-xs hover:brightness-105 flex items-center gap-1.5"
+        <button
+          type="button"
+          onClick={() => openClientModal('open-account')}
+          className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-bold shadow-xs hover:brightness-105 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-all"
         >
           <Plus className="w-4 h-4" />
           <span>Open Account</span>
-        </Link>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -64,22 +65,35 @@ export default function ClientAccountsPage() {
               <div>
                 <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">Balance</span>
                 <span className="font-mono text-xl font-extrabold text-emerald-600 block">
-                  ${acc.balance.toLocaleString()}
+                  ${acc.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div>
                 <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">Equity</span>
                 <span className="font-mono text-xl font-extrabold text-slate-900 block">
-                  ${acc.equity.toLocaleString()}
+                  ${acc.equity.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
               <span className="text-slate-500 font-medium">{acc.server}</span>
-              <Link href="/client/deposit" className="text-emerald-600 hover:text-emerald-700 hover:underline font-bold flex items-center gap-1">
-                Deposit Funds <ArrowUpRight className="w-3.5 h-3.5" />
-              </Link>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => openClientModal('deposit')}
+                  className="text-emerald-600 hover:text-emerald-700 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  <ArrowDownLeft className="w-3.5 h-3.5" /> Deposit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openClientModal('withdrawal')}
+                  className="text-blue-600 hover:text-blue-700 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                >
+                  <ArrowUpRight className="w-3.5 h-3.5" /> Withdraw
+                </button>
+              </div>
             </div>
           </div>
         ))}

@@ -102,6 +102,11 @@ interface CRMContextType {
   updateIBTiers: (tiers: IBTierConfig[]) => void;
   approveIBWithdrawal: (id: string) => void;
   rejectIBWithdrawal: (id: string) => void;
+
+  // Client modal actions (for Open Account, Deposit, Withdraw)
+  clientModal: 'open-account' | 'deposit' | 'withdrawal' | null;
+  openClientModal: (modal: 'open-account' | 'deposit' | 'withdrawal') => void;
+  closeClientModal: () => void;
 }
 
 const CRMContext = createContext<CRMContextType | undefined>(undefined);
@@ -119,6 +124,10 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [impersonation, setImpersonation] = useState<ImpersonationState>({ isActive: false });
   const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [clientModal, setClientModal] = useState<'open-account' | 'deposit' | 'withdrawal' | null>(null);
+
+  const openClientModal = (modal: 'open-account' | 'deposit' | 'withdrawal') => setClientModal(modal);
+  const closeClientModal = () => setClientModal(null);
 
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -597,6 +606,9 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       updateIBTiers,
       approveIBWithdrawal,
       rejectIBWithdrawal,
+      clientModal,
+      openClientModal,
+      closeClientModal,
     }}>
       {children}
     </CRMContext.Provider>
