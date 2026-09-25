@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   TrendingDown, 
   TrendingUp, 
@@ -46,6 +46,19 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
   const [chartDropdownOpen, setChartDropdownOpen] = useState(false);
   const [hoveredDataPoint, setHoveredDataPoint] = useState<{ label: string; deposits: number; withdrawals: number; revenue: number } | null>(null);
 
+  // Sync state if controlled props change
+  useEffect(() => {
+    if (data?.chartType && data.chartType !== chartView) {
+      setChartView(data.chartType);
+    }
+  }, [data?.chartType]);
+
+  useEffect(() => {
+    if (data?.period && data.period !== timePeriod) {
+      setTimePeriod(data.period);
+    }
+  }, [data?.period]);
+
   const periodLabels: Record<string, string> = {
     today: 'Today',
     '7d': 'Last 7 days',
@@ -53,13 +66,21 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
     year: 'This Year',
   };
 
-  const handlePeriodSelect = (p: 'today' | '7d' | '30d' | 'year') => {
+  const handlePeriodSelect = (p: 'today' | '7d' | '30d' | 'year', e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setTimePeriod(p);
     setPeriodDropdownOpen(false);
     onPeriodChange?.(p);
   };
 
-  const handleChartSelect = (v: 'radial' | 'bar' | 'line') => {
+  const handleChartSelect = (v: 'radial' | 'bar' | 'line', e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setChartView(v);
     setChartDropdownOpen(false);
     onChartViewChange?.(v);
@@ -170,10 +191,10 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
       "rounded-2xl sm:rounded-3xl border border-purple-100/90 bg-white p-4 sm:p-5 md:p-6 shadow-xs flex flex-col justify-between h-full relative select-none transition-all",
       className
     )}>
-      {/* Invisible backdrop to instantly dismiss open dropdowns on outside click */}
+      {/* Invisible backdrop to dismiss open dropdowns on outside click */}
       {(chartDropdownOpen || periodDropdownOpen) && (
         <div 
-          className="fixed inset-0 z-40" 
+          className="fixed inset-0 z-20" 
           onClick={() => {
             setChartDropdownOpen(false);
             setPeriodDropdownOpen(false);
@@ -185,7 +206,7 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
       <div className="absolute -top-20 -left-20 w-52 h-52 bg-purple-500/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* 1. Header & Beautifully Cooked & Styled Pill Selectors */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3.5 sm:pb-4 border-b border-purple-50 relative z-20">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3.5 sm:pb-4 border-b border-purple-50 relative z-30">
         <div>
           <h2 className="text-lg sm:text-2xl font-bold tracking-tight font-heading bg-gradient-to-r from-purple-800 via-indigo-700 to-purple-900 bg-clip-text text-transparent">
             Revenue Analytics
@@ -195,8 +216,8 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
           </p>
         </div>
 
-        {/* Cooked Pill Selectors (Not Naked - Styled with Purple Tint, Borders, and Icons) */}
-        <div className="flex items-center gap-2 self-start sm:self-auto relative z-50">
+        {/* Cooked Pill Selectors */}
+        <div className="flex items-center gap-2 self-start sm:self-auto relative z-30">
           
           {/* Chart View Pill Dropdown */}
           <div className="relative">
@@ -229,7 +250,7 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
               <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl bg-white border border-purple-200/90 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95">
                 <button
                   type="button"
-                  onClick={() => handleChartSelect('radial')}
+                  onClick={(e) => handleChartSelect('radial', e)}
                   className={clsx(
                     'w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl transition-colors cursor-pointer font-medium',
                     chartView === 'radial' ? 'bg-purple-50 text-purple-800 font-bold' : 'text-slate-600 hover:bg-slate-50'
@@ -243,7 +264,7 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleChartSelect('bar')}
+                  onClick={(e) => handleChartSelect('bar', e)}
                   className={clsx(
                     'w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl transition-colors cursor-pointer font-medium',
                     chartView === 'bar' ? 'bg-purple-50 text-purple-800 font-bold' : 'text-slate-600 hover:bg-slate-50'
@@ -257,7 +278,7 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleChartSelect('line')}
+                  onClick={(e) => handleChartSelect('line', e)}
                   className={clsx(
                     'w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl transition-colors cursor-pointer font-medium',
                     chartView === 'line' ? 'bg-purple-50 text-purple-800 font-bold' : 'text-slate-600 hover:bg-slate-50'

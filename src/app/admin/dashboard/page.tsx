@@ -34,6 +34,7 @@ import {
 export default function AdminDashboardPage() {
   const { stats, clients, deposits, withdrawals, kycRecords, transactions, ibPartners } = useCRM();
   const [hoveredCardId, setHoveredCardId] = React.useState<string | null>(null);
+  const [adminChartView, setAdminChartView] = React.useState<'radial' | 'bar' | 'line'>('radial');
 
   const pendingKyc = kycRecords.filter(k => k.status === 'pending');
   const pendingDeposits = deposits.filter(d => d.status === 'pending');
@@ -159,7 +160,7 @@ export default function AdminDashboardPage() {
     depositsTrend: totalDepositAmount > 0 ? 14.2 : 0,
     withdrawalsTrend: totalWithdrawalAmount > 0 ? 4.2 : 0,
     period: '30d' as const,
-    chartType: 'radial' as const,
+    chartType: adminChartView,
     weeklyBreakdown: activeWeeklyData,
   };
 
@@ -404,7 +405,10 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-stretch">
         {/* Left Column: Revenue Analytics with Gauges & Time Period Controls */}
         <div className="lg:col-span-7 xl:col-span-8 flex flex-col">
-          <RevenueAnalyticsSection data={revenueAnalyticsData} />
+          <RevenueAnalyticsSection 
+            data={revenueAnalyticsData} 
+            onChartViewChange={setAdminChartView}
+          />
         </div>
 
         {/* Right Column: Account Distribution Concentric Ring Chart & Breakdown */}
