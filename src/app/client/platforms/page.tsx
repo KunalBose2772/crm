@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { 
   LaptopMinimal, 
   Apple, 
@@ -14,17 +15,41 @@ import {
   Download, 
   ExternalLink,
   Layers,
-  Cpu,
-  CheckCircle2
+  Copy,
+  Check,
+  Key,
+  WalletCards,
+  Info
 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
 import { ClientPageHeader } from '@/components/layout/ClientPageHeader';
+import { MT5_CONFIG } from '@/config/mt5';
 
-export default function ClientPlatformsPage() {
-  const { showToast } = useCRM();
+function ClientPlatformsContent() {
+  const searchParams = useSearchParams();
+  const targetClientId = searchParams?.get('clientId');
+  const { clients, impersonation, clientUser, showToast } = useCRM();
 
-  const handlePlatformAction = (platformName: string, actionUrl: string) => {
-    showToast('info', 'Platform Launch', `Opening ${platformName} access channel.`);
+  // Active client context
+  const clientFromParam = targetClientId ? clients.find(c => c.id === targetClientId) : null;
+  const rawClient = clientFromParam || impersonation.client || clientUser || clients[0];
+  const client = (rawClient?.id ? clients.find(c => c.id === rawClient.id || c.email === rawClient.email) : null) || rawClient;
+
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(label);
+    showToast('info', 'Copied to Clipboard', `${label}: ${text}`);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  // Official verified MT5 download & launch routes
+  const platformLinks = {
+    ios: 'https://download.mql5.com/cdn/mobile/mt5/ios',
+    android: 'https://download.mql5.com/cdn/mobile/mt5/android',
+    desktop: 'https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe',
+    webtrader: `https://trade.mql5.com/trade?servers=${encodeURIComponent(MT5_CONFIG.serverName)}&trade_server=${encodeURIComponent(MT5_CONFIG.serverName)}&startup_version=2`,
   };
 
   return (
@@ -34,37 +59,141 @@ export default function ClientPlatformsPage() {
         badge="Trading Platform Access"
         badgeIcon={<LaptopMinimal className="h-6 w-6 sm:h-7 sm:w-7 text-sky-200" />}
         title="Trade from any screen."
-        subtitle="Mobile, desktop, and browser-ready access. Keep the same command-surface feel as the dashboard while moving between devices for execution, monitoring, and account review."
+        subtitle="Mobile, desktop, and browser-ready access. Connect directly to our execution liquidity using your MT5 login credentials across all supported devices."
         chips={[
-          { label: 'Access mode', value: 'Install or launch', icon: <Download className="w-3.5 h-3.5 text-emerald-300" /> },
-          { label: 'Platform coverage', value: '4 channels', icon: <Layers className="w-3.5 h-3.5 text-sky-300" /> },
-          { label: 'Security posture', value: 'Protected', icon: <ShieldCheck className="w-3.5 h-3.5 text-amber-300" /> },
+          { label: 'Live Server', value: MT5_CONFIG.serverName, icon: <Server className="w-3.5 h-3.5 text-emerald-300" /> },
+          { label: 'Access mode', value: 'Install or WebTrader', icon: <Download className="w-3.5 h-3.5 text-sky-300" /> },
+          { label: 'Security posture', value: 'SSL 256-bit', icon: <ShieldCheck className="w-3.5 h-3.5 text-amber-300" /> },
         ]}
       />
 
-      {/* 2. 3 COVERAGE HIGHLIGHT CARDS */}
+      {/* 2. DYNAMIC CLIENT MT5 ACCOUNTS & CREDENTIALS BANNER */}
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-7 shadow-md border border-blue-800/60 relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-blue-800/80 pb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-blue-600/30 border border-blue-400/40 text-blue-200 flex items-center justify-center shrink-0">
+              <Key className="w-6 h-6 text-blue-300" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg sm:text-xl font-extrabold font-heading text-white">
+                  Your MT5 Terminal Credentials
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Ready to Trade
+                </span>
+              </div>
+              <p className="text-xs text-blue-200/80 mt-0.5">
+                Use these account numbers with your master password to sign in on Desktop, Mobile, or WebTrader.
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Copy Server Name */}
+          <div className="flex items-center gap-2 bg-blue-950/60 border border-blue-700/60 px-3.5 py-2 rounded-xl self-start md:self-auto">
+            <span className="text-[11px] font-mono text-blue-300">Server:</span>
+            <span className="text-xs font-mono font-bold text-white">{MT5_CONFIG.serverName}</span>
+            <button
+              type="button"
+              onClick={() => handleCopy(MT5_CONFIG.serverName, 'Server Name')}
+              className="ml-1 text-blue-300 hover:text-white transition p-1 hover:bg-white/10 rounded-lg cursor-pointer"
+              title="Copy server name"
+            >
+              {copiedKey === 'Server Name' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Live Accounts List */}
+        <div className="mt-5">
+          {client?.accounts && client.accounts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {client.accounts.map((acc: any) => (
+                <div 
+                  key={acc.login} 
+                  className="bg-white/5 border border-white/10 hover:border-blue-400/50 rounded-xl p-3.5 flex items-center justify-between transition-all"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <WalletCards className="w-5 h-5 text-blue-400 shrink-0" />
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-extrabold text-sm text-white tracking-wide">
+                          #{acc.login}
+                        </span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-200 border border-blue-400/20 font-bold uppercase">
+                          {acc.type || 'Standard'}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-blue-200/70 font-mono block mt-0.5">
+                        Bal: ${Number(acc.balance || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(String(acc.login), `Account #${acc.login}`)}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600/30 hover:bg-blue-600/60 text-xs font-semibold text-blue-200 hover:text-white transition border border-blue-400/30 cursor-pointer active:scale-95"
+                  >
+                    {copiedKey === `Account #${acc.login}` ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span className="text-emerald-400 text-[11px]">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span className="text-[11px]">Copy Login</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center sm:text-left flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Info className="w-5 h-5 text-amber-400 shrink-0" />
+                <span className="text-xs text-blue-200">
+                  No active MT5 accounts provisioned yet. Open a live trading account from the dashboard to receive your login and start trading.
+                </span>
+              </div>
+              <a
+                href="/client/open-account"
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition text-center shrink-0"
+              >
+                Open Account
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 3. 3 COVERAGE HIGHLIGHT CARDS */}
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-5 shadow-xs hover:shadow-md transition-shadow">
           <p className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-slate-400">
             Platform coverage
           </p>
           <p className="mt-2 text-xl sm:text-2xl font-extrabold text-slate-900 font-heading">
-            4 channels
+            4 Channels
           </p>
           <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
-            Mobile, desktop, and browser access mapped into one synchronized view.
+            iOS, Android, Windows desktop, and zero-install WebTrader mapped into one execution ecosystem.
           </p>
         </div>
 
         <div className="rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white p-5 shadow-xs hover:shadow-md transition-shadow">
           <p className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-slate-400">
-            Device fit
+            Execution Latency
           </p>
           <p className="mt-2 text-xl sm:text-2xl font-extrabold text-blue-700 font-heading">
-            Cross-device
+            Sub-millisecond
           </p>
           <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
-            Move between desk and mobile without switching portfolio or product context.
+            Direct routing to our Equinix LD4 trading bridge with tight spreads and negative balance protection.
           </p>
         </div>
 
@@ -73,15 +202,15 @@ export default function ClientPlatformsPage() {
             Security posture
           </p>
           <p className="mt-2 text-xl sm:text-2xl font-extrabold text-emerald-600 font-heading">
-            Protected
+            Encrypted
           </p>
           <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
-            Designed and authenticated as part of the secured client workspace experience.
+            256-bit SSL encrypted connection between your client terminal and MetaTrader 5 server.
           </p>
         </div>
       </div>
 
-      {/* 3. PLATFORM LINEUP SECTION */}
+      {/* 4. PLATFORM LINEUP SECTION (ACTIVE DOWNLOAD & LAUNCH BUTTONS) */}
       <section className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl shadow-xs overflow-hidden">
         {/* Header */}
         <div className="border-b border-slate-100 p-5 sm:p-6 lg:p-7">
@@ -89,13 +218,13 @@ export default function ClientPlatformsPage() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-blue-700">
                 <LaptopMinimal className="h-3.5 w-3.5 text-blue-600" />
-                <span>Client dashboard</span>
+                <span>Client Terminals</span>
               </div>
               <h2 className="mt-2 text-xl sm:text-2xl font-extrabold text-slate-900 font-heading">
-                Platform lineup
+                Launch or Download MetaTrader 5
               </h2>
               <p className="mt-1 max-w-2xl text-xs sm:text-sm text-slate-500">
-                Each access route is presented inside the same card treatment used across the client area, with clearer action labels and tighter information hierarchy.
+                Choose your preferred device. All platforms share the same account balance, orders, and execution speed.
               </p>
             </div>
             <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 text-blue-600 shadow-2xs sm:flex">
@@ -106,7 +235,88 @@ export default function ClientPlatformsPage() {
 
         {/* 4 Cards Grid */}
         <div className="p-5 sm:p-6 lg:p-7 grid gap-4 xl:grid-cols-2">
-          {/* iOS App */}
+          {/* 1. Web Terminal (Instant Browser Launch) */}
+          <article className="rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50/70 to-indigo-50/50 p-5 sm:p-6 flex flex-col justify-between hover:shadow-md transition-all shadow-2xs">
+            <div>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-blue-300 bg-white text-blue-600 shadow-2xs">
+                    <Globe className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-blue-600">
+                        Browser Access
+                      </p>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-600 text-white">
+                        Instant
+                      </span>
+                    </div>
+                    <h3 className="mt-1 text-base sm:text-lg font-extrabold text-slate-900 font-heading">
+                      MetaTrader 5 WebTrader
+                    </h3>
+                  </div>
+                </div>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-200 bg-white text-blue-600">
+                  <ExternalLink className="h-4 w-4" />
+                </div>
+              </div>
+
+              <p className="mt-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                Start trading directly from your web browser with zero software installation. Full technical indicators, interactive candlestick charts, and one-click order execution.
+              </p>
+            </div>
+
+            <a
+              href={platformLinks.webtrader}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 text-xs sm:text-sm font-bold transition cursor-pointer self-start shadow-sm hover:shadow active:scale-98"
+            >
+              <span>Launch WebTrader</span>
+              <ArrowUpRight className="h-4 w-4" />
+            </a>
+          </article>
+
+          {/* 2. Desktop Terminal (Windows / macOS) */}
+          <article className="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-5 sm:p-6 flex flex-col justify-between hover:bg-slate-50 transition-colors shadow-2xs">
+            <div>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-indigo-200 bg-white text-indigo-600 shadow-2xs">
+                    <Monitor className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-slate-400">
+                      Windows &amp; macOS
+                    </p>
+                    <h3 className="mt-1 text-base sm:text-lg font-extrabold text-slate-900 font-heading">
+                      Desktop Terminal
+                    </h3>
+                  </div>
+                </div>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400">
+                  <Download className="h-4 w-4" />
+                </div>
+              </div>
+
+              <p className="mt-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                Full-featured desktop workstation supporting Expert Advisors (EA algorithmic bots), institutional Depth of Market, multi-monitor workspaces, and custom indicator templates.
+              </p>
+            </div>
+
+            <a
+              href={platformLinks.desktop}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 px-4 py-3 text-xs sm:text-sm font-bold text-slate-800 transition cursor-pointer self-start shadow-2xs active:scale-98"
+            >
+              <Download className="h-4 w-4 text-slate-600" />
+              <span>Download for Windows (.exe)</span>
+            </a>
+          </article>
+
+          {/* 3. iOS App Store */}
           <article className="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-5 sm:p-6 flex flex-col justify-between hover:bg-slate-50 transition-colors shadow-2xs">
             <div>
               <div className="flex items-start justify-between gap-4">
@@ -119,7 +329,7 @@ export default function ClientPlatformsPage() {
                       Apple App Store
                     </p>
                     <h3 className="mt-1 text-base sm:text-lg font-extrabold text-slate-900 font-heading">
-                      iOS app
+                      iOS App (iPhone &amp; iPad)
                     </h3>
                   </div>
                 </div>
@@ -129,21 +339,22 @@ export default function ClientPlatformsPage() {
               </div>
 
               <p className="mt-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Native mobile access for real-time account management, multi-timeframe chart review, and instant biometric order execution.
+                Native iOS trading with interactive touch gestures, real-time push price notifications, and Face ID / Touch ID biometric authentication.
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => handlePlatformAction('iOS App', 'https://apps.apple.com')}
-              className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl border border-blue-300 bg-blue-50/80 hover:bg-blue-100/90 px-4 py-3 text-xs sm:text-sm font-bold text-blue-700 transition cursor-pointer self-start shadow-2xs active:scale-98"
+            <a
+              href={platformLinks.ios}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 px-4 py-3 text-xs sm:text-sm font-bold text-slate-800 transition cursor-pointer self-start shadow-2xs active:scale-98"
             >
-              <span>Open App Store</span>
+              <span>Download on App Store</span>
               <ArrowUpRight className="h-4 w-4" />
-            </button>
+            </a>
           </article>
 
-          {/* Android App */}
+          {/* 4. Google Play Store */}
           <article className="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-5 sm:p-6 flex flex-col justify-between hover:bg-slate-50 transition-colors shadow-2xs">
             <div>
               <div className="flex items-start justify-between gap-4">
@@ -156,7 +367,7 @@ export default function ClientPlatformsPage() {
                       Google Play
                     </p>
                     <h3 className="mt-1 text-base sm:text-lg font-extrabold text-slate-900 font-heading">
-                      Android app
+                      Android App
                     </h3>
                   </div>
                 </div>
@@ -166,184 +377,22 @@ export default function ClientPlatformsPage() {
               </div>
 
               <p className="mt-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Fast mobile trading with customized watchlists, push market alerts, and responsive interactive chart gestures.
+                Optimized mobile trading for Android devices with customizable watchlists, market news feed, and fast order modifications.
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => handlePlatformAction('Android App', 'https://play.google.com')}
-              className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl border border-blue-300 bg-blue-50/80 hover:bg-blue-100/90 px-4 py-3 text-xs sm:text-sm font-bold text-blue-700 transition cursor-pointer self-start shadow-2xs active:scale-98"
+            <a
+              href={platformLinks.android}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 px-4 py-3 text-xs sm:text-sm font-bold text-slate-800 transition cursor-pointer self-start shadow-2xs active:scale-98"
             >
-              <span>Open Play Store</span>
+              <span>Get it on Google Play</span>
               <ArrowUpRight className="h-4 w-4" />
-            </button>
-          </article>
-
-          {/* Desktop Terminal */}
-          <article className="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-5 sm:p-6 flex flex-col justify-between hover:bg-slate-50 transition-colors shadow-2xs">
-            <div>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3.5">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-indigo-200 bg-indigo-50 text-indigo-600 shadow-2xs">
-                    <Monitor className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-slate-400">
-                      Windows and macOS
-                    </p>
-                    <h3 className="mt-1 text-base sm:text-lg font-extrabold text-slate-900 font-heading">
-                      Desktop terminal
-                    </h3>
-                  </div>
-                </div>
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400">
-                  <ArrowUpRight className="h-4 w-4" />
-                </div>
-              </div>
-
-              <p className="mt-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Full-screen workstation for algorithmic trading (EA), institutional depth of market, and multi-monitor custom charting.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handlePlatformAction('Desktop Terminal', '/downloads/terminal-setup.exe')}
-              className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl border border-blue-300 bg-blue-50/80 hover:bg-blue-100/90 px-4 py-3 text-xs sm:text-sm font-bold text-blue-700 transition cursor-pointer self-start shadow-2xs active:scale-98"
-            >
-              <span>Get desktop build</span>
-              <ArrowUpRight className="h-4 w-4" />
-            </button>
-          </article>
-
-          {/* Web Terminal */}
-          <article className="rounded-2xl border border-slate-200/90 bg-slate-50/60 p-5 sm:p-6 flex flex-col justify-between hover:bg-slate-50 transition-colors shadow-2xs">
-            <div>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3.5">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 text-sky-600 shadow-2xs">
-                    <Globe className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-slate-400">
-                      Browser access
-                    </p>
-                    <h3 className="mt-1 text-base sm:text-lg font-extrabold text-slate-900 font-heading">
-                      Web terminal
-                    </h3>
-                  </div>
-                </div>
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-400">
-                  <ArrowUpRight className="h-4 w-4" />
-                </div>
-              </div>
-
-              <p className="mt-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Instant secure sign-in from any modern browser with zero local software installation required.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handlePlatformAction('Web Terminal', 'https://webtrader.testcrm.co.in')}
-              className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl border border-blue-300 bg-blue-50/80 hover:bg-blue-100/90 px-4 py-3 text-xs sm:text-sm font-bold text-blue-700 transition cursor-pointer self-start shadow-2xs active:scale-98"
-            >
-              <span>Launch web platform</span>
-              <ArrowUpRight className="h-4 w-4" />
-            </button>
+            </a>
           </article>
         </div>
       </section>
-
-      {/* 4. BOTTOM SPLIT: WORKSPACE FIT & EXECUTION NOTE */}
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.9fr)]">
-        {/* Workspace Fit */}
-        <section className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-7 shadow-xs space-y-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-blue-700">
-                <Waves className="h-3.5 w-3.5 text-blue-600" />
-                <span>Client dashboard</span>
-              </div>
-              <h2 className="mt-2 text-xl sm:text-2xl font-extrabold text-slate-900 font-heading">
-                Workspace fit
-              </h2>
-              <p className="mt-1 text-xs sm:text-sm text-slate-500">
-                The layout focuses on what matters operationally: where each platform fits and how it supports the same client workflow.
-              </p>
-            </div>
-            <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 text-blue-600 shadow-2xs sm:flex">
-              <Waves className="h-6 w-6" />
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3 pt-1">
-            <article className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-                Unified account access across mobile, desktop, and browser sessions.
-              </p>
-            </article>
-            <article className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-                Execution-ready layouts for charting, position tracking, and order flow.
-              </p>
-            </article>
-            <article className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
-                Same workspace tone and operational hierarchy as the main client dashboard.
-              </p>
-            </article>
-          </div>
-        </section>
-
-        {/* Execution Note */}
-        <section className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-7 shadow-xs space-y-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-blue-700">
-                <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
-                <span>Client dashboard</span>
-              </div>
-              <h2 className="mt-2 text-xl sm:text-2xl font-extrabold text-slate-900 font-heading">
-                Execution note
-              </h2>
-              <p className="mt-1 text-xs sm:text-sm text-slate-500">
-                A compact signal panel so the page reads like part of the same dashboard ecosystem.
-              </p>
-            </div>
-            <div className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-blue-200 bg-blue-50 text-blue-600 shadow-2xs sm:flex">
-              <ShieldCheck className="h-6 w-6" />
-            </div>
-          </div>
-
-          <div className="space-y-3 pt-1">
-            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
-              <p className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-blue-700">
-                Session continuity
-              </p>
-              <p className="mt-1 text-base font-extrabold text-slate-900 font-heading">
-                One workspace rhythm
-              </p>
-              <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                Device transitions now sit inside a calmer, more structured dashboard presentation.
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
-              <p className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-blue-700">
-                Coverage
-              </p>
-              <p className="mt-1 text-base font-extrabold text-slate-900 font-heading">
-                iOS, Android, desktop, web
-              </p>
-              <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                Choose the surface that matches your session without leaving the visual system.
-              </p>
-            </div>
-          </div>
-        </section>
-      </div>
 
       {/* 5. SERVER CONNECTION TELEMETRY CARD */}
       <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-7 shadow-xs space-y-4">
@@ -353,22 +402,42 @@ export default function ClientPlatformsPage() {
           </div>
           <div>
             <h4 className="text-base font-extrabold text-slate-900 font-heading">Server Credentials &amp; Discovery</h4>
-            <p className="text-xs text-slate-500">Enter these host specifications during MT5 terminal setup.</p>
+            <p className="text-xs text-slate-500">When prompted in the MT5 terminal, search for or select these server settings.</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-xs">
-            <span className="text-slate-400 block text-[10px] uppercase font-bold">Production Server</span>
-            <span className="font-extrabold text-blue-700 mt-0.5 block">OceanMarkets-Live</span>
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-xs flex items-center justify-between">
+            <div>
+              <span className="text-slate-400 block text-[10px] uppercase font-bold">Production Server</span>
+              <span className="font-extrabold text-blue-700 mt-0.5 block">{MT5_CONFIG.serverName}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleCopy(MT5_CONFIG.serverName, 'Production Server')}
+              className="p-1 hover:bg-slate-200 rounded text-slate-500 transition cursor-pointer"
+              title="Copy"
+            >
+              {copiedKey === 'Production Server' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+            </button>
           </div>
-          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-xs">
-            <span className="text-slate-400 block text-[10px] uppercase font-bold">Sandbox Server</span>
-            <span className="font-extrabold text-slate-800 mt-0.5 block">OceanMarkets-Demo</span>
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-xs flex items-center justify-between">
+            <div>
+              <span className="text-slate-400 block text-[10px] uppercase font-bold">Trading Host</span>
+              <span className="font-extrabold text-slate-800 mt-0.5 block">{MT5_CONFIG.serverHost}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleCopy(MT5_CONFIG.serverHost, 'Trading Host')}
+              className="p-1 hover:bg-slate-200 rounded text-slate-500 transition cursor-pointer"
+              title="Copy"
+            >
+              {copiedKey === 'Trading Host' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+            </button>
           </div>
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-xs">
             <span className="text-slate-400 block text-[10px] uppercase font-bold">Trading Port</span>
-            <span className="font-extrabold text-slate-800 mt-0.5 block">443 / SSL Secured</span>
+            <span className="font-extrabold text-slate-800 mt-0.5 block">{MT5_CONFIG.serverPort || 443} / SSL</span>
           </div>
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 font-mono text-xs">
             <span className="text-slate-400 block text-[10px] uppercase font-bold">Data Center</span>
@@ -377,5 +446,17 @@ export default function ClientPlatformsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ClientPlatformsPage() {
+  return (
+    <React.Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8">
+        <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+      </div>
+    }>
+      <ClientPlatformsContent />
+    </React.Suspense>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useCRM } from '@/context/CRMContext';
 import { DepositRequest } from '@/types/crm';
 import { WelcomeBanner } from '@/components/dashboard/WelcomeBanner';
@@ -28,7 +28,8 @@ import {
   MoreHorizontal, 
   Check,
   Calendar,
-  DollarSign
+  DollarSign,
+  Copy
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -45,6 +46,28 @@ export default function AdminDepositsPage() {
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Close action dropdown when clicking outside or pressing Escape
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setActiveMenuId(null);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setActiveMenuId(null);
+    };
+
+    if (activeMenuId) {
+      document.addEventListener('mousedown', handleOutsideClick);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeMenuId]);
 
   // Modals state
   const [selectedDeposit, setSelectedDeposit] = useState<DepositRequest | null>(null);
@@ -53,6 +76,17 @@ export default function AdminDepositsPage() {
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
   const [isRejectMode, setIsRejectMode] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [copiedTxHash, setCopiedTxHash] = useState<string | null>(null);
+
+  const handleCopyTxHash = (hash: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    navigator.clipboard.writeText(hash);
+    setCopiedTxHash(hash);
+    showToast('success', 'Copied', 'Transaction ID copied to clipboard');
+    setTimeout(() => {
+      setCopiedTxHash(null);
+    }, 2000);
+  };
 
   // Stats calculation
   const totalCount = deposits.length;
@@ -474,8 +508,8 @@ export default function AdminDepositsPage() {
       </div>
 
       {/* 4. DESKTOP DEPOSITS TABLE (Hidden on Mobile) */}
-      <div className="hidden md:block bg-white rounded-3xl border border-purple-100/90 shadow-sm overflow-hidden">
-        <div className="w-full overflow-x-auto pb-2">
+      <div className="hidden md:block bg-white rounded-3xl border border-purple-100/90 shadow-sm">
+        <div className="w-full overflow-x-auto pb-8 custom-scrollbar min-h-[340px]">
           <table className="w-max min-w-[1100px] divide-y divide-purple-100/80 text-slate-700">
             <thead className="bg-gradient-to-r from-slate-50 to-purple-50/40 text-slate-600 font-bold uppercase tracking-wider text-[11px] font-heading">
               <tr>
@@ -526,6 +560,8 @@ export default function AdminDepositsPage() {
                 </tr>
               ) : (
                 paginatedDeposits.map((dep, index) => {
+                  const isNearBottom = index >= paginatedDeposits.length - 2 && paginatedDeposits.length > 3;
+
                   return (
                     <tr
                       key={dep.id}
@@ -568,17 +604,41 @@ export default function AdminDepositsPage() {
                         {getPlanBadge(dep.plan)}
                       </td>
 
-                      {/* 5. Payment */}
+                      {/* 5. Payment & TXID */}
                       <td className="px-6 py-4 text-slate-700 text-sm">
-                        <div className="flex items-center gap-1.5 capitalize">
-                          {dep.paymentMethod.toLowerCase().includes('crypto') ? (
-                            <Wallet className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                          ) : dep.paymentMethod.toLowerCase().includes('bank') ? (
-                            <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                          ) : (
-                            <CreditCard className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          )}
-                          <span>{dep.paymentMethod}</span>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 capitalize font-medium">
+                            {dep.paymentMethod.toLowerCase().includes('crypto') ? (
+                              <Wallet className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                            ) : dep.paymentMethod.toLowerCase().includes('bank') ? (
+                              <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                            ) : (
+                              <CreditCard className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            )}
+                            <span>{dep.paymentMethod}</span>
+                          </div>
+                          
+                          {/* Transaction ID Badge with 1-click copy */}
+                          <div className="flex items-center gap-1">
+                            <span 
+                              className="font-mono text-[11px] font-semibold text-purple-700 bg-purple-50/90 px-2 py-0.5 rounded-md border border-purple-200/80 max-w-[140px] truncate"
+                              title={dep.txHash || dep.id}
+                            >
+                              {dep.txHash || dep.id}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => handleCopyTxHash(dep.txHash || dep.id, e)}
+                              className="p-1 rounded text-slate-400 hover:text-purple-700 hover:bg-purple-100/70 transition-colors cursor-pointer"
+                              title="Copy Transaction ID"
+                            >
+                              {copiedTxHash === (dep.txHash || dep.id) ? (
+                                <Check className="w-3 h-3 text-emerald-600" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
                         </div>
                       </td>
 
@@ -605,8 +665,11 @@ export default function AdminDepositsPage() {
                       </td>
 
                       {/* 9. Action */}
-                      <td className="px-6 py-4 text-right relative">
-                        <div className="relative inline-block text-left">
+                      <td className="px-6 py-4 text-right">
+                        <div 
+                          ref={activeMenuId === dep.id ? menuRef : undefined}
+                          className="relative inline-block text-left"
+                        >
                           <button
                             type="button"
                             onClick={() => setActiveMenuId(activeMenuId === dep.id ? null : dep.id)}
@@ -617,11 +680,16 @@ export default function AdminDepositsPage() {
                           </button>
 
                           {activeMenuId === dep.id && (
-                            <div className="absolute right-0 mt-1 w-44 rounded-2xl bg-white border border-purple-100 shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 space-y-1">
+                            <div 
+                              className={clsx(
+                                "absolute right-0 w-48 rounded-2xl bg-white border border-purple-100 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 space-y-1 ring-1 ring-black/5",
+                                isNearBottom ? "bottom-full mb-2 origin-bottom-right" : "top-full mt-1 origin-top-right"
+                              )}
+                            >
                               <button
                                 type="button"
                                 onClick={() => handleOpenDetail(dep)}
-                                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2 cursor-pointer"
+                                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2 cursor-pointer transition-colors"
                               >
                                 <Eye className="w-3.5 h-3.5 text-purple-600" />
                                 <span>View Details</span>
@@ -629,7 +697,7 @@ export default function AdminDepositsPage() {
                               <button
                                 type="button"
                                 onClick={() => handleOpenDoc(dep)}
-                                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2 cursor-pointer"
+                                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2 cursor-pointer transition-colors"
                               >
                                 <FileText className="w-3.5 h-3.5 text-indigo-600" />
                                 <span>Preview Receipt</span>
@@ -640,7 +708,7 @@ export default function AdminDepositsPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleOpenAction(dep, false)}
-                                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 cursor-pointer"
+                                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 cursor-pointer transition-colors"
                                   >
                                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                                     <span>Approve Deposit</span>
@@ -648,7 +716,7 @@ export default function AdminDepositsPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleOpenAction(dep, true)}
-                                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-rose-700 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
+                                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-rose-700 hover:bg-rose-50 flex items-center gap-2 cursor-pointer transition-colors"
                                   >
                                     <ShieldX className="w-3.5 h-3.5 text-rose-600" />
                                     <span>Reject Deposit</span>
@@ -714,6 +782,26 @@ export default function AdminDepositsPage() {
                 <div>
                   <span className="text-slate-400 text-xs">Payment</span>
                   <div className="text-slate-800 text-xs font-medium capitalize">{dep.paymentMethod}</div>
+                </div>
+                <div className="col-span-2 flex items-center justify-between bg-slate-50 p-2 rounded-xl border border-slate-100">
+                  <div>
+                    <span className="text-slate-400 text-[10px] block font-bold uppercase">TXID / Hash</span>
+                    <span className="font-mono text-purple-700 text-xs font-bold truncate max-w-[200px] block">
+                      {dep.txHash || dep.id}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => handleCopyTxHash(dep.txHash || dep.id, e)}
+                    className="p-1.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors"
+                    title="Copy Transaction ID"
+                  >
+                    {copiedTxHash === (dep.txHash || dep.id) ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
                 </div>
                 <div className="col-span-2">
                   <span className="text-slate-400 text-xs">Date</span>
@@ -833,6 +921,57 @@ export default function AdminDepositsPage() {
               </div>
             </div>
 
+            {/* Transaction ID / Blockchain Hash Verification Bar */}
+            <div className="p-3 rounded-2xl bg-slate-900 text-white border border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono uppercase font-bold text-purple-400 tracking-wider">
+                    Transaction ID / TX Hash
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    Primary Proof
+                  </span>
+                </div>
+                <div className="mt-1 font-mono text-xs sm:text-sm font-semibold text-slate-100 truncate select-all">
+                  {selectedDeposit.txHash || selectedDeposit.id}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={(e) => handleCopyTxHash(selectedDeposit.txHash || selectedDeposit.id, e)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-xs"
+                  title="Copy Transaction ID"
+                >
+                  {copiedTxHash === (selectedDeposit.txHash || selectedDeposit.id) ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-300" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy TXID</span>
+                    </>
+                  )}
+                </button>
+
+                {selectedDeposit.paymentMethod.toLowerCase().includes('crypto') && selectedDeposit.txHash && !selectedDeposit.txHash.startsWith('TXN-') && (
+                  <a
+                    href={`https://tronscan.org/#/transaction/${selectedDeposit.txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium border border-slate-700 transition-colors"
+                    title="Verify on TronScan Explorer"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">TronScan</span>
+                  </a>
+                )}
+              </div>
+            </div>
+
             {/* Document preview container */}
             <div className="space-y-2">
               <span className="text-xs font-bold text-slate-700 flex items-center justify-between font-heading">
@@ -927,6 +1066,22 @@ export default function AdminDepositsPage() {
                 <span className="font-semibold text-slate-800 capitalize">{selectedDeposit.paymentMethod}</span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-purple-100/60">
+                <span className="text-slate-500 font-medium">Transaction ID / TX Hash</span>
+                <div className="flex items-center gap-1.5 font-mono">
+                  <span className="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                    {selectedDeposit.txHash || selectedDeposit.id}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => handleCopyTxHash(selectedDeposit.txHash || selectedDeposit.id, e)}
+                    className="p-1 rounded-md text-purple-600 hover:text-purple-800 hover:bg-purple-100 cursor-pointer"
+                    title="Copy Transaction ID"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-purple-100/60">
                 <span className="text-slate-500 font-medium">Timestamp</span>
                 <span className="font-mono text-slate-700">{formatDisplayDate(selectedDeposit.createdAt)}</span>
               </div>
@@ -993,6 +1148,22 @@ export default function AdminDepositsPage() {
               <div className="flex justify-between">
                 <span className="text-slate-500 font-medium">Payment Gateway:</span>
                 <span className="text-slate-700 font-medium capitalize">{selectedDeposit.paymentMethod}</span>
+              </div>
+              <div className="flex justify-between items-center pt-1 border-t border-purple-100/60">
+                <span className="text-slate-500 font-medium">Transaction ID / TX Hash:</span>
+                <div className="flex items-center gap-1.5 font-mono">
+                  <span className="font-bold text-purple-700 bg-white px-2 py-0.5 rounded-lg border border-purple-200">
+                    {selectedDeposit.txHash || selectedDeposit.id}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => handleCopyTxHash(selectedDeposit.txHash || selectedDeposit.id, e)}
+                    className="p-1 rounded text-purple-600 hover:text-purple-800 hover:bg-purple-100 cursor-pointer"
+                    title="Copy Transaction ID"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
 

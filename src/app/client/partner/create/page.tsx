@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Sparkles, 
@@ -19,15 +19,25 @@ import { useCRM } from '@/context/CRMContext';
 import { clsx } from 'clsx';
 
 export default function ClientPartnerCreatePage() {
-  const { impersonation, showToast } = useCRM();
-  const client = impersonation.client;
+  const { clients, impersonation, clientUser, showToast } = useCRM();
+  const rawClient = impersonation.client || clientUser || clients[0];
+  const client = (rawClient?.id ? clients.find(c => c.id === rawClient.id || c.email === rawClient.email) : null) || rawClient;
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGenerated, setIsGenerated] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
+  const [origin, setOrigin] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setOrigin(window.location.origin);
+    }
+  }, []);
+
   const partnerCode = client ? `IB-${client.id.replace('CL-', '')}` : 'IB-88912';
-  const partnerLink = `https://nd1crm.testcrm.co.in/register?ib=${partnerCode}`;
+  const baseUrl = origin || (process.env.NEXT_PUBLIC_APP_URL || '');
+  const partnerLink = baseUrl ? `${baseUrl}/register?ib=${partnerCode}` : `/register?ib=${partnerCode}`;
 
   const handleGenerate = () => {
     setIsGenerating(true);

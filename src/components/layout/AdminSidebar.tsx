@@ -63,8 +63,8 @@ export const AdminSidebar: React.FC<{ isCollapsed?: boolean }> = ({ isCollapsed 
           icon: <Users className="w-5 h-5" />,
         },
         {
-          label: 'Client Panel',
-          href: '/client/dashboard',
+          label: 'Client Portal',
+          href: '/client/login',
           icon: <ExternalLink className="w-5 h-5 text-blue-600" />,
           isExternal: true,
         },

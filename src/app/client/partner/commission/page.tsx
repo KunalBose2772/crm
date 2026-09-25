@@ -42,54 +42,8 @@ export default function ClientPartnerCommissionPage() {
   const [selectedLevel, setSelectedLevel] = useState<'All' | 'L1' | 'L2' | 'L3' | 'L4' | 'L5'>('All');
   const [copiedAccount, setCopiedAccount] = useState<string | null>(null);
 
-  // Mock multi-tier partner network data
-  const initialPartners: IBPartnerRow[] = [
-    {
-      accountNumber: 98989898912,
-      name: 'Alexander Wright',
-      email: 'alex.wright@tradehub.uk',
-      level: 'L1',
-      totalVolume: 64.20,
-      totalEarned: 513.60,
-      status: 'Active',
-    },
-    {
-      accountNumber: 98989898944,
-      name: 'Elena Rostova',
-      email: 'elena.rostova@finance.de',
-      level: 'L1',
-      totalVolume: 48.50,
-      totalEarned: 388.00,
-      status: 'Active',
-    },
-    {
-      accountNumber: 98989898978,
-      name: 'Marcus Chen',
-      email: 'm.chen@apexcapital.sg',
-      level: 'L2',
-      totalVolume: 32.10,
-      totalEarned: 192.60,
-      status: 'Active',
-    },
-    {
-      accountNumber: 98989898991,
-      name: 'Tariq Al-Mansoor',
-      email: 'tariq.mansoor@gulfinv.ae',
-      level: 'L1',
-      totalVolume: 25.40,
-      totalEarned: 203.20,
-      status: 'Active',
-    },
-    {
-      accountNumber: 98989898905,
-      name: 'Sophie Laurent',
-      email: 'sophie.laurent@zurichtrade.ch',
-      level: 'L3',
-      totalVolume: 14.00,
-      totalEarned: 84.00,
-      status: 'Active',
-    },
-  ];
+  // Multi-tier partner network data
+  const initialPartners: IBPartnerRow[] = [];
 
   const filteredPartners = initialPartners.filter((p) => {
     if (selectedLevel !== 'All' && p.level !== selectedLevel) return false;
@@ -267,7 +221,7 @@ export default function ClientPartnerCommissionPage() {
             Avg Per Trade
           </p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold text-emerald-600 font-mono">
-            ${(totalCommission / 184).toFixed(4)}
+            ${activeCount > 0 ? (totalCommission / activeCount).toFixed(4) : '0.0000'}
           </p>
           <p className="mt-1.5 text-xs text-slate-500">Mean rebate generated per completed trade</p>
         </div>

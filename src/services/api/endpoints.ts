@@ -5,7 +5,7 @@
  * Toggle NEXT_PUBLIC_USE_MOCK_API to false in .env.local to hit your live server.
  */
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://nd1crm.testcrm.co.in/api';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
 export const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API !== 'false'; // Defaults to true until backend is connected
 
 export const API_ENDPOINTS = {

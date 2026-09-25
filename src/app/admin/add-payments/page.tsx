@@ -447,9 +447,16 @@ export default function ConfigurationPaymentsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-purple-50">
-                  {gateways.map((g, idx) => {
-                    const isCrypto = g.paymentType === 'Crypto Wallet';
-                    const isBank = g.paymentType === 'Bank Account';
+                  {gateways.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-slate-400 text-xs">
+                        No payment gateways configured. Click "Add Gateway" to set up bank rails or crypto deposit wallets.
+                      </td>
+                    </tr>
+                  ) : (
+                    gateways.map((g, idx) => {
+                      const isCrypto = g.paymentType === 'Crypto Wallet';
+                      const isBank = g.paymentType === 'Bank Account';
 
                     return (
                       <tr key={g.id} className="hover:bg-purple-50/30 transition-colors group">
@@ -546,64 +553,71 @@ export default function ConfigurationPaymentsPage() {
                         </td>
                       </tr>
                     );
-                  })}
+                  })
+                )}
                 </tbody>
               </table>
             </div>
 
             {/* Mobile Cards (Matches user's mobile layout) */}
             <div className="block md:hidden space-y-3 p-4 bg-slate-50/50">
-              {gateways.map((g, idx) => (
-                <div key={g.id} className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4 space-y-2.5">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-slate-800 text-sm">
-                      #{idx + 1} {g.paymentType}
-                    </span>
-                    <span className={clsx(
-                      "text-xs font-bold px-2 py-0.5 rounded-md",
-                      g.status === 'active' ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
-                    )}>
-                      {g.status === 'active' ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
+              {gateways.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 text-xs bg-white rounded-2xl border border-purple-100 p-4">
+                  No payment gateways configured.
+                </div>
+              ) : (
+                gateways.map((g, idx) => (
+                  <div key={g.id} className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4 space-y-2.5">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-slate-800 text-sm">
+                        #{idx + 1} {g.paymentType}
+                      </span>
+                      <span className={clsx(
+                        "text-xs font-bold px-2 py-0.5 rounded-md",
+                        g.status === 'active' ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
+                      )}>
+                        {g.status === 'active' ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
 
-                  <div className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                    {g.paymentType === 'Crypto Wallet' ? (
-                      <BitcoinIcon className="w-4 h-4 text-orange-500" />
-                    ) : (
-                      <Building2 className="w-4 h-4 text-blue-500" />
-                    )}
-                    <span>{g.name}</span>
-                  </div>
+                    <div className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                      {g.paymentType === 'Crypto Wallet' ? (
+                        <BitcoinIcon className="w-4 h-4 text-orange-500" />
+                      ) : (
+                        <Building2 className="w-4 h-4 text-blue-500" />
+                      )}
+                      <span>{g.name}</span>
+                    </div>
 
-                  <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenView(g)}
-                      className="text-purple-700 text-xs font-bold flex items-center gap-1 cursor-pointer hover:underline"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>View</span>
-                    </button>
-                    <div className="flex gap-2">
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                       <button
                         type="button"
-                        onClick={() => handleOpenEdit(g)}
-                        className="p-1.5 border border-purple-100 rounded-lg hover:bg-purple-50 text-slate-700 cursor-pointer"
+                        onClick={() => handleOpenView(g)}
+                        className="text-purple-700 text-xs font-bold flex items-center gap-1 cursor-pointer hover:underline"
                       >
-                        <Pencil className="w-3.5 h-3.5" />
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>View</span>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenDelete(g)}
-                        className="p-1.5 border border-rose-200 rounded-lg text-rose-600 hover:bg-rose-50 cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(g)}
+                          className="p-1.5 border border-purple-100 rounded-lg hover:bg-purple-50 text-slate-700 cursor-pointer"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDelete(g)}
+                          className="p-1.5 border border-rose-200 rounded-lg text-rose-600 hover:bg-rose-50 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             {/* Bottom Quick Add Bar */}

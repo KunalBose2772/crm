@@ -25,12 +25,14 @@ import {
   ShieldCheck,
   Sparkles,
   BarChart3,
-  Network
+  Network,
+  Plus,
+  LogIn
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export default function IBConfigurationPage() {
-  const { ibTiers, updateIBTiers, ibPartners, showToast } = useCRM();
+  const { ibTiers, updateIBTiers, ibPartners, clients, startImpersonation, showToast } = useCRM();
 
   // Tier Matrix State
   const [tiers, setTiers] = useState<IBTierConfig[]>(ibTiers);
@@ -49,12 +51,52 @@ export default function IBConfigurationPage() {
   const [selectedPartner, setSelectedPartner] = useState<IBPartner | null>(null);
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
 
+  // Add Partner Modal State
+  const [isAddPartnerOpen, setIsAddPartnerOpen] = useState(false);
+  const [isSubmittingPartner, setIsSubmittingPartner] = useState(false);
+  const [partnerForm, setPartnerForm] = useState({
+    name: '',
+    email: '',
+    tier: 'Gold',
+    rebatePerLotUsd: '8.0'
+  });
+
   // Copy code helper
   const handleCopy = (code: string) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
     showToast('info', 'Referral Code Copied', code);
     setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const handleCreatePartner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!partnerForm.name.trim() || !partnerForm.email.trim()) {
+      showToast('error', 'Fields Required', 'Please enter partner name and email.');
+      return;
+    }
+    setIsSubmittingPartner(true);
+    try {
+      const res = await fetch('/api/ib/partners', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(partnerForm)
+      });
+      const data = await res.json();
+      if (data.success && data.partner) {
+        showToast('success', 'Partner Created', `${data.partner.name} registered with referral code ${data.partner.referralCode}.`);
+        setIsAddPartnerOpen(false);
+        setPartnerForm({ name: '', email: '', tier: 'Gold', rebatePerLotUsd: '8.0' });
+        // Refresh page
+        window.location.reload();
+      } else {
+        showToast('error', 'Registration Failed', data.error || 'Unable to register partner.');
+      }
+    } catch (err: any) {
+      showToast('error', 'Error', err.message || 'Failed to submit partner.');
+    } finally {
+      setIsSubmittingPartner(false);
+    }
   };
 
   // Modify tier
@@ -76,6 +118,12 @@ export default function IBConfigurationPage() {
       showToast('success', 'Tier Rates Saved', 'Rebate rates and multi-tier commission structures updated.');
     }, 400);
   };
+
+  // Live Metrics from IB Partners
+  const activePartnersCount = ibPartners.length;
+  const totalLots = ibPartners.reduce((acc, p) => acc + (p.totalVolumeLots || 0), 0);
+  const totalPaid = ibPartners.reduce((acc, p) => acc + (p.totalCommissionEarned || 0), 0);
+  const totalWalletBalance = ibPartners.reduce((acc, p) => acc + (p.withdrawableCommission || 0), 0);
 
   // Filtered partners
   const filteredPartners = useMemo(() => {
@@ -131,6 +179,25 @@ export default function IBConfigurationPage() {
     showToast('info', 'Export Successful', `Exported ${filteredPartners.length} IB partners to CSV.`);
   };
 
+  // Wire "Login as Partner" directly into Client IB Portal
+  const handleImpersonatePartner = (partner: IBPartner) => {
+    const matchedClient = clients.find(
+      c => (partner.email && c.email?.toLowerCase() === partner.email.toLowerCase()) ||
+           (partner.id && c.id === partner.id) ||
+           ((partner as any).clientId && c.id === (partner as any).clientId)
+    );
+
+    if (matchedClient) {
+      startImpersonation(matchedClient);
+      showToast('info', 'Partner Portal Active', `Opening partner workspace for ${partner.name}...`);
+      window.open(`/client/partner/dashboard?clientId=${matchedClient.id}`, '_blank');
+    } else {
+      // If client object is not loaded yet in memory, fallback to clientId
+      showToast('info', 'Partner Portal Active', `Opening partner workspace for ${partner.name}...`);
+      window.open(`/client/partner/dashboard`, '_blank');
+    }
+  };
+
   const getTierBadge = (tier: string) => {
     if (tier === 'VIP') {
       return (
@@ -183,7 +250,7 @@ export default function IBConfigurationPage() {
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-mono">
-              46
+              {activePartnersCount}
             </span>
             <span className="text-xs text-slate-400 font-medium">registered IBs</span>
           </div>
@@ -200,7 +267,7 @@ export default function IBConfigurationPage() {
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-extrabold text-emerald-600 font-mono">
-              18,940.5
+              {totalLots.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
             </span>
             <span className="text-xs text-emerald-600/80 font-medium">lots traded</span>
           </div>
@@ -217,7 +284,7 @@ export default function IBConfigurationPage() {
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-extrabold text-amber-600 font-mono">
-              $66,737
+              ${totalPaid.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
             </span>
             <span className="text-xs text-amber-500/80 font-medium">commissions</span>
           </div>
@@ -234,7 +301,7 @@ export default function IBConfigurationPage() {
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-extrabold text-purple-700 font-mono">
-              $15,901
+              ${totalWalletBalance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
             </span>
             <span className="text-xs text-purple-600/80 font-medium">in IB wallets</span>
           </div>
@@ -267,91 +334,117 @@ export default function IBConfigurationPage() {
         </div>
 
         {/* Matrix Table */}
-        <div className="overflow-x-auto p-4 sm:p-6">
-          <table className="w-full text-left text-sm border-collapse min-w-[760px]">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm border-collapse min-w-[820px]">
             <thead>
-              <tr className="border-b border-purple-100 text-xs font-bold text-slate-500 uppercase tracking-wider font-heading bg-slate-50/60">
-                <th className="py-3.5 px-4 pl-6">Tier Level</th>
-                <th className="py-3.5 px-4">Min Monthly Lots</th>
-                <th className="py-3.5 px-4">Forex ($/lot)</th>
-                <th className="py-3.5 px-4">Metals ($/lot)</th>
-                <th className="py-3.5 px-4">Crypto ($/lot)</th>
-                <th className="py-3.5 px-4">Indices ($/lot)</th>
-                <th className="py-3.5 px-4 pr-6">Sub-IB Share (%)</th>
+              <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider font-heading">
+                <th className="py-3.5 px-5">Tier Level</th>
+                <th className="py-3.5 px-4 text-right">Min Monthly Lots</th>
+                <th className="py-3.5 px-4 text-right">Forex ($/lot)</th>
+                <th className="py-3.5 px-4 text-right">Metals ($/lot)</th>
+                <th className="py-3.5 px-4 text-right">Crypto ($/lot)</th>
+                <th className="py-3.5 px-4 text-right">Indices ($/lot)</th>
+                <th className="py-3.5 px-5 text-right">Sub-IB Share (%)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-purple-50 font-sans">
-              {tiers.map((tier, idx) => (
-                <tr key={tier.tierName} className="hover:bg-purple-50/30 transition-colors">
-                  <td className="py-4 px-4 pl-6 font-bold text-purple-950 font-heading">
-                    <div className="flex items-center gap-2">
-                      <Award className="w-4 h-4 text-purple-600" />
-                      <span>{tier.tierName}</span>
-                    </div>
-                  </td>
+            <tbody className="divide-y divide-slate-100 font-sans">
+              {tiers.map((tier, idx) => {
+                const tierBadges: Record<string, { bg: string; text: string; border: string }> = {
+                  Standard: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' },
+                  Silver: { bg: 'bg-slate-100', text: 'text-slate-800', border: 'border-slate-300' },
+                  Gold: { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
+                  VIP: { bg: 'bg-purple-50', text: 'text-purple-800', border: 'border-purple-200' },
+                };
+                const badge = tierBadges[tier.tierName] || { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200' };
 
-                  <td className="py-4 px-4">
-                    <input
-                      type="number"
-                      value={tier.minLots}
-                      onChange={e => handleTierChange(idx, 'minLots', Number(e.target.value))}
-                      className="w-24 px-3 py-1.5 bg-white border border-purple-100 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-purple-600 shadow-2xs tabular-nums"
-                    />
-                  </td>
+                return (
+                  <tr key={tier.tierName} className="hover:bg-slate-50/70 transition-colors group">
+                    <td className="py-3.5 px-5 font-bold font-heading">
+                      <div className="flex items-center gap-2.5">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold border ${badge.bg} ${badge.text} ${badge.border}`}>
+                          <Award className="w-3.5 h-3.5" />
+                          <span>{tier.tierName}</span>
+                        </span>
+                      </div>
+                    </td>
 
-                  <td className="py-4 px-4">
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={tier.forexRebatePerLot}
-                      onChange={e => handleTierChange(idx, 'forexRebatePerLot', Number(e.target.value))}
-                      className="w-20 px-3 py-1.5 bg-white border border-purple-100 rounded-xl text-xs font-mono text-emerald-600 font-bold focus:outline-none focus:border-purple-600 shadow-2xs tabular-nums"
-                    />
-                  </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="inline-flex items-center justify-end">
+                        <input
+                          type="number"
+                          value={tier.minLots}
+                          onChange={e => handleTierChange(idx, 'minLots', Number(e.target.value))}
+                          className="w-24 px-3 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono font-semibold text-slate-800 text-right focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-500 transition-all tabular-nums"
+                        />
+                      </div>
+                    </td>
 
-                  <td className="py-4 px-4">
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={tier.metalsRebatePerLot}
-                      onChange={e => handleTierChange(idx, 'metalsRebatePerLot', Number(e.target.value))}
-                      className="w-20 px-3 py-1.5 bg-white border border-purple-100 rounded-xl text-xs font-mono text-amber-600 font-bold focus:outline-none focus:border-purple-600 shadow-2xs tabular-nums"
-                    />
-                  </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="inline-flex items-center justify-end relative">
+                        <span className="absolute left-2.5 text-xs text-slate-400 font-mono">$</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={tier.forexRebatePerLot}
+                          onChange={e => handleTierChange(idx, 'forexRebatePerLot', Number(e.target.value))}
+                          className="w-24 pl-6 pr-2.5 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono text-emerald-700 font-bold text-right focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 transition-all tabular-nums"
+                        />
+                      </div>
+                    </td>
 
-                  <td className="py-4 px-4">
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={tier.cryptoRebatePerLot}
-                      onChange={e => handleTierChange(idx, 'cryptoRebatePerLot', Number(e.target.value))}
-                      className="w-20 px-3 py-1.5 bg-white border border-purple-100 rounded-xl text-xs font-mono text-purple-700 font-bold focus:outline-none focus:border-purple-600 shadow-2xs tabular-nums"
-                    />
-                  </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="inline-flex items-center justify-end relative">
+                        <span className="absolute left-2.5 text-xs text-slate-400 font-mono">$</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={tier.metalsRebatePerLot}
+                          onChange={e => handleTierChange(idx, 'metalsRebatePerLot', Number(e.target.value))}
+                          className="w-24 pl-6 pr-2.5 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono text-amber-700 font-bold text-right focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-500 transition-all tabular-nums"
+                        />
+                      </div>
+                    </td>
 
-                  <td className="py-4 px-4">
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={tier.indicesRebatePerLot}
-                      onChange={e => handleTierChange(idx, 'indicesRebatePerLot', Number(e.target.value))}
-                      className="w-20 px-3 py-1.5 bg-white border border-purple-100 rounded-xl text-xs font-mono text-blue-600 font-bold focus:outline-none focus:border-purple-600 shadow-2xs tabular-nums"
-                    />
-                  </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="inline-flex items-center justify-end relative">
+                        <span className="absolute left-2.5 text-xs text-slate-400 font-mono">$</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={tier.cryptoRebatePerLot}
+                          onChange={e => handleTierChange(idx, 'cryptoRebatePerLot', Number(e.target.value))}
+                          className="w-24 pl-6 pr-2.5 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono text-purple-700 font-bold text-right focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-500 transition-all tabular-nums"
+                        />
+                      </div>
+                    </td>
 
-                  <td className="py-4 px-4 pr-6">
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="number"
-                        value={tier.subIbSharePercent}
-                        onChange={e => handleTierChange(idx, 'subIbSharePercent', Number(e.target.value))}
-                        className="w-16 px-3 py-1.5 bg-white border border-purple-100 rounded-xl text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-purple-600 shadow-2xs tabular-nums"
-                      />
-                      <span className="text-xs text-slate-500 font-bold font-sans">%</span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="inline-flex items-center justify-end relative">
+                        <span className="absolute left-2.5 text-xs text-slate-400 font-mono">$</span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={tier.indicesRebatePerLot}
+                          onChange={e => handleTierChange(idx, 'indicesRebatePerLot', Number(e.target.value))}
+                          className="w-24 pl-6 pr-2.5 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono text-blue-700 font-bold text-right focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 transition-all tabular-nums"
+                        />
+                      </div>
+                    </td>
+
+                    <td className="py-3.5 px-5 text-right">
+                      <div className="inline-flex items-center justify-end relative">
+                        <input
+                          type="number"
+                          value={tier.subIbSharePercent}
+                          onChange={e => handleTierChange(idx, 'subIbSharePercent', Number(e.target.value))}
+                          className="w-20 pr-6 pl-2.5 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-800 text-right focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-500 transition-all tabular-nums"
+                        />
+                        <span className="absolute right-2 text-xs text-slate-400 font-bold">%</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -366,14 +459,25 @@ export default function IBConfigurationPage() {
             <p className="text-xs text-slate-500">Registered broker affiliates, commission earnings, and referred trading volume.</p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleExportCSV}
-            className="flex items-center justify-center gap-2 px-4 py-2 border border-purple-200/80 bg-white hover:bg-purple-50 text-purple-700 rounded-xl font-bold text-xs cursor-pointer shadow-2xs"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Export Directory</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsAddPartnerOpen(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs cursor-pointer shadow-xs transition-all active:scale-95"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Register Partner</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="flex items-center justify-center gap-2 px-4 py-2 border border-purple-200/80 bg-white hover:bg-purple-50 text-purple-700 rounded-xl font-bold text-xs cursor-pointer shadow-2xs"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export Directory</span>
+            </button>
+          </div>
         </div>
 
         {/* Filter & Search Bar */}
@@ -434,8 +538,15 @@ export default function IBConfigurationPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-purple-50 text-slate-700">
-              {paginatedPartners.map(p => (
-                <tr key={p.id} className="hover:bg-purple-50/30 transition-colors group">
+              {paginatedPartners.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-slate-400 text-xs">
+                    No introducing brokers registered yet. Partners will be listed here once registered.
+                  </td>
+                </tr>
+              ) : (
+                paginatedPartners.map(p => (
+                  <tr key={p.id} className="hover:bg-purple-50/30 transition-colors group">
                   {/* Partner */}
                   <td className="py-4 px-4 pl-6">
                     <div className="flex items-center gap-3">
@@ -498,25 +609,42 @@ export default function IBConfigurationPage() {
 
                   {/* Action */}
                   <td className="py-4 px-4 pr-6 text-right">
-                    <button
-                      type="button"
-                      onClick={() => { setSelectedPartner(p); setIsPartnerModalOpen(true); }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-200/80 bg-white hover:bg-purple-50 text-purple-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Details</span>
-                    </button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleImpersonatePartner(p)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-emerald-200/80 bg-white hover:bg-emerald-50 text-emerald-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                        title="Login as Partner (Client IB Workspace)"
+                      >
+                        <LogIn className="w-3.5 h-3.5" />
+                        <span>Portal</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedPartner(p); setIsPartnerModalOpen(true); }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-200/80 bg-white hover:bg-purple-50 text-purple-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Details</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>
 
         {/* Mobile Responsive Cards */}
         <div className="md:hidden space-y-3">
-          {paginatedPartners.map(p => (
-            <div key={p.id} className="bg-white rounded-2xl border border-purple-100/90 shadow-sm p-4 space-y-3">
+          {paginatedPartners.length === 0 ? (
+            <div className="py-8 text-center text-slate-400 text-xs bg-purple-50/30 rounded-2xl border border-purple-100 p-4">
+              No introducing brokers registered yet.
+            </div>
+          ) : (
+            paginatedPartners.map(p => (
+              <div key={p.id} className="bg-white rounded-2xl border border-purple-100/90 shadow-sm p-4 space-y-3">
               <div className="flex justify-between items-start">
                 <div>
                   <div className="font-bold text-slate-900 text-sm">{p.name}</div>
@@ -552,18 +680,27 @@ export default function IBConfigurationPage() {
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-100">
+              <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleImpersonatePartner(p)}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 h-8.5 rounded-xl border border-emerald-200/80 bg-emerald-50/50 hover:bg-emerald-100/70 text-emerald-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Portal</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => { setSelectedPartner(p); setIsPartnerModalOpen(true); }}
-                  className="w-full inline-flex items-center justify-center gap-1.5 h-8.5 rounded-xl border border-purple-200/80 bg-white hover:bg-purple-50 text-purple-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 h-8.5 rounded-xl border border-purple-200/80 bg-white hover:bg-purple-50 text-purple-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  <span>View Partner Details</span>
+                  <span>Details</span>
                 </button>
               </div>
             </div>
-          ))}
+          )))}
         </div>
 
         {/* Directory Pagination Bar */}
@@ -660,7 +797,19 @@ export default function IBConfigurationPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <div className="flex justify-between items-center gap-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPartnerModalOpen(false);
+                  handleImpersonatePartner(selectedPartner);
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs cursor-pointer shadow-xs transition-all active:scale-95"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Login to Partner Portal</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setIsPartnerModalOpen(false)}
@@ -671,6 +820,90 @@ export default function IBConfigurationPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Add Partner Modal */}
+      <Modal
+        isOpen={isAddPartnerOpen}
+        onClose={() => setIsAddPartnerOpen(false)}
+        title="Register New Introducing Broker"
+        subtitle="Add a new affiliate partner to your rebate and commission tier network"
+        maxWidth="md"
+      >
+        <form onSubmit={handleCreatePartner} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Partner Full Name *</label>
+            <input
+              type="text"
+              required
+              value={partnerForm.name}
+              onChange={e => setPartnerForm({ ...partnerForm, name: e.target.value })}
+              placeholder="e.g. John Doe or Prime Affiliates"
+              className="w-full px-3.5 py-2.5 bg-white border border-purple-100 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-purple-600"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Partner Email Address *</label>
+            <input
+              type="email"
+              required
+              value={partnerForm.email}
+              onChange={e => setPartnerForm({ ...partnerForm, email: e.target.value })}
+              placeholder="partner@example.com"
+              className="w-full px-3.5 py-2.5 bg-white border border-purple-100 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-purple-600"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Commission Tier</label>
+              <select
+                value={partnerForm.tier}
+                onChange={e => {
+                  const t = e.target.value;
+                  const defaultRates: Record<string, string> = { Gold: '8.0', Platinum: '10.0', Diamond: '12.0', VIP: '15.0' };
+                  setPartnerForm({ ...partnerForm, tier: t, rebatePerLotUsd: defaultRates[t] || '8.0' });
+                }}
+                className="w-full px-3 py-2.5 bg-white border border-purple-100 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:border-purple-600 cursor-pointer"
+              >
+                <option value="Gold">Gold Tier</option>
+                <option value="Platinum">Platinum Tier</option>
+                <option value="Diamond">Diamond Tier</option>
+                <option value="VIP">VIP Tier</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Rebate ($ / Lot)</label>
+              <input
+                type="number"
+                step="0.5"
+                required
+                value={partnerForm.rebatePerLotUsd}
+                onChange={e => setPartnerForm({ ...partnerForm, rebatePerLotUsd: e.target.value })}
+                className="w-full px-3.5 py-2.5 bg-white border border-purple-100 rounded-xl text-xs sm:text-sm font-mono font-bold text-purple-900 focus:outline-none focus:border-purple-600"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setIsAddPartnerOpen(false)}
+              className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 font-bold text-xs cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmittingPartner}
+              className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs cursor-pointer shadow-xs active:scale-95 disabled:opacity-50"
+            >
+              {isSubmittingPartner ? 'Registering...' : 'Register Partner'}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

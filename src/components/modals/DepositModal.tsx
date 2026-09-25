@@ -24,20 +24,64 @@ interface DepositModalProps {
 }
 
 export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) => {
-  const { showToast, impersonation } = useCRM();
+  const { showToast, impersonation, clientUser, clients, createDepositRequest } = useCRM();
+  const rawClient = impersonation.client || clientUser || clients[0];
+  const client = (rawClient?.id ? clients.find(c => c.id === rawClient.id || c.email === rawClient.email) : null) || rawClient;
+
+  const defaultAccounts: any[] = [];
+  const accounts = client?.accounts && client.accounts.length > 0 ? client.accounts : defaultAccounts;
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedRoute, setSelectedRoute] = useState<'bank' | 'crypto'>('crypto');
-  const [amount, setAmount] = useState('500');
+  const [selectedAccount, setSelectedAccount] = useState<string>(accounts[0]?.login?.toString() || '');
+  const [amount, setAmount] = useState('');
   const [refNumber, setRefNumber] = useState('');
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [treasury, setTreasury] = useState({
+    usdtAddress: 'TX9aB2cD4eF6gH8jK1mN3pQ5rS7tU9vW2x',
+    bankIban: 'GB82BARC20000012345678',
+    bankName: 'Standard Chartered Bank',
+    bankBeneficiary: 'Ocean Markets Global Ltd.',
+  });
+
+  // Load broker treasury configuration
+  React.useEffect(() => {
+    fetch('/api/admin/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.settings) {
+          setTreasury({
+            usdtAddress: data.settings.usdtAddress || 'TX9aB2cD4eF6gH8jK1mN3pQ5rS7tU9vW2x',
+            bankIban: data.settings.bankIban || 'GB82BARC20000012345678',
+            bankName: data.settings.bankName || 'Standard Chartered Bank',
+            bankBeneficiary: data.settings.bankBeneficiary || 'Ocean Markets Global Ltd.',
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Keep selectedAccount in sync when accounts load
+  React.useEffect(() => {
+    if (accounts.length > 0 && (!selectedAccount || !accounts.some(a => a.login?.toString() === selectedAccount))) {
+      setSelectedAccount(accounts[0].login?.toString() || '');
+    }
+  }, [accounts, selectedAccount]);
 
   if (!isOpen) return null;
 
   const handleClose = () => {
     setStep(1);
     setIsSuccess(false);
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    setRefNumber('');
+    setAmount('');
     onClose();
   };
 
@@ -48,14 +92,73 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
     showToast('info', 'Address Copied', 'USDT TRC-20 wallet address copied to clipboard.');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('error', 'File Too Large', 'Please upload a file smaller than 10MB.');
+      return;
+    }
+    setReceiptFile(file);
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => setReceiptPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setReceiptPreview(null);
+    }
+    showToast('success', 'File Selected', `${file.name} ready for submission.`);
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const parsedAmount = parseFloat(amount || '0');
+    if (parsedAmount <= 0) {
+      showToast('error', 'Invalid Amount', 'Please enter a valid deposit amount.');
+      return;
+    }
+
+    if (!selectedAccount && accounts.length > 0) {
+      setSelectedAccount(accounts[0].login?.toString() || '');
+    }
+
+    setIsUploading(true);
+    let uploadedReceiptUrl: string | undefined = undefined;
+
+    if (receiptFile) {
+      try {
+        const formData = new FormData();
+        formData.append('file', receiptFile);
+        formData.append('bucket', 'deposit-receipts');
+        formData.append('clientId', client?.id || 'client');
+        const uploadRes = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const uploadData = await uploadRes.json();
+        if (uploadData.success && uploadData.url) {
+          uploadedReceiptUrl = uploadData.url;
+        }
+      } catch (err) {
+        console.error('Receipt upload failed, continuing with deposit request:', err);
+      }
+    }
+
+    createDepositRequest({
+      clientId: client?.id,
+      clientName: client?.name,
+      clientEmail: client?.email,
+      accountLogin: parseInt(selectedAccount || accounts[0]?.login?.toString() || '0', 10),
+      amount: parsedAmount,
+      paymentMethod: selectedRoute === 'crypto' ? 'crypto_usdt' : 'bank_transfer',
+      txHash: refNumber || `TXN-${Math.floor(100000 + Math.random() * 900000)}`,
+      currency: 'USD',
+      plan: 'STANDARD',
+      remarks: uploadedReceiptUrl ? `Receipt: ${uploadedReceiptUrl}` : undefined,
+    });
+
+    setIsUploading(false);
     setIsSuccess(true);
-    showToast(
-      'success',
-      'Deposit Request Submitted',
-      `Deposit of $${parseFloat(amount || '0').toLocaleString()} has been queued for verification.`
-    );
   };
 
   return (
@@ -235,8 +338,10 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
 
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-1">
                     <p className="text-[10px] font-mono uppercase text-slate-400 font-bold">Transaction Status</p>
-                    <p className="text-sm font-bold text-amber-600 font-heading">Processing (1-3 Business Days)</p>
-                    <p className="text-xs text-slate-500 font-mono">Target: 98989898989 • Standard</p>
+                    <p className="text-sm font-bold text-amber-600 font-heading">Processing (Instant / Same-Day Approval)</p>
+                    <p className="text-xs text-slate-700 font-mono font-bold">
+                      Target MT5 Account: #{selectedAccount || accounts[0]?.login || 'Active'}
+                    </p>
                   </div>
 
                   <button
@@ -353,15 +458,25 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-700 font-heading block mb-1.5">
                       Target Trading Account
                     </label>
-                    <div className="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 text-xs font-bold uppercase">
-                          BASIC
-                        </span>
-                        <span className="font-mono text-sm font-bold text-slate-900">98989898989</span>
-                      </div>
-                      <span className="text-xs text-slate-500 font-mono">Balance: $5,937.47</span>
-                    </div>
+                    <select
+                      value={selectedAccount}
+                      onChange={(e) => setSelectedAccount(e.target.value)}
+                      className="w-full p-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-mono text-xs font-bold focus:outline-none focus:border-blue-500 transition-all cursor-pointer"
+                    >
+                      {accounts.length === 0 ? (
+                        <option value="">No MT5 Accounts Found — Please Open an Account First</option>
+                      ) : (
+                        accounts.map((acc: any) => {
+                          const bal = typeof acc.balance === 'number' ? acc.balance : parseFloat(acc.balance || '0');
+                          const accType = acc.accountType || acc.type || 'MT5';
+                          return (
+                            <option key={acc.login} value={acc.login}>
+                              Account #{acc.login} • {accType} (${bal.toFixed(2)})
+                            </option>
+                          );
+                        })
+                      )}
+                    </select>
                   </div>
 
                   <div>
@@ -396,29 +511,98 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
                     </div>
                   </div>
 
-                  {/* Payment Route Address Box */}
-                  <div className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 space-y-2">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
-                      {selectedRoute === 'crypto' ? 'Send USDT (TRC-20) to Address' : 'Bank Wire Account Details'}
-                    </p>
+                  {/* Payment Route Address & Real-time Scannable QR Box */}
+                  <div className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-heading flex items-center gap-1.5">
+                        <QrCode className="w-3.5 h-3.5 text-blue-600" />
+                        <span>{selectedRoute === 'crypto' ? 'Instant Scan or Copy USDT (TRC-20)' : 'Bank Wire Account Details'}</span>
+                      </p>
+                      <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md bg-emerald-100/80 text-emerald-800 border border-emerald-200">
+                        {selectedRoute === 'crypto' ? 'TRC20 Network' : 'SWIFT / SEPA'}
+                      </span>
+                    </div>
+
                     {selectedRoute === 'crypto' ? (
-                      <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white border border-slate-200">
-                        <span className="font-mono text-xs text-slate-800 truncate">
-                          TX9aB2cD4eF6gH8jK1mN3pQ5rS7tU9vW2x
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy('TX9aB2cD4eF6gH8jK1mN3pQ5rS7tU9vW2x')}
-                          className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors shrink-0 cursor-pointer"
-                        >
-                          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
+                      <div className="flex items-center gap-3 p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+                        {/* Compact Real-Time Scannable QR Code */}
+                        <div className="relative group shrink-0">
+                          <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-lg p-1 bg-white border border-slate-200 flex items-center justify-center overflow-hidden shadow-xs">
+                            <img
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(treasury.usdtAddress)}&color=0f172a&bgcolor=ffffff`}
+                              alt="Deposit QR Code"
+                              className="w-full h-full object-contain"
+                              loading="lazy"
+                            />
+                          </div>
+                          <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-[8px] font-extrabold uppercase px-1 py-0.2 rounded bg-slate-800 text-white tracking-widest whitespace-nowrap">
+                            Scan
+                          </span>
+                        </div>
+
+                        {/* Address Details & Fast Copy */}
+                        <div className="min-w-0 flex-1 space-y-1.5">
+                          <div>
+                            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Broker Deposit Address</div>
+                            <div className="font-mono text-[11px] sm:text-xs text-slate-800 font-bold break-all bg-slate-50 p-1.5 rounded-lg border border-slate-100 select-all">
+                              {treasury.usdtAddress}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 pt-0.5">
+                            <span className="text-[10px] text-slate-500 font-medium">
+                              Scan with Binance, OKX, TrustWallet or UPI
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopy(treasury.usdtAddress)}
+                              className="px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] flex items-center gap-1 transition-colors shrink-0 cursor-pointer border border-blue-200/60"
+                            >
+                              {copied ? (
+                                <>
+                                  <Check className="w-3 h-3 text-emerald-600" />
+                                  <span className="text-emerald-700">Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3 h-3" />
+                                  <span>Copy</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     ) : (
-                      <div className="text-xs text-slate-700 space-y-1 font-mono">
-                        <div>Beneficiary: <strong>Ocean Markets Global Ltd.</strong></div>
-                        <div>Account: <strong>987654321000</strong></div>
-                        <div>Bank: <strong>Standard Chartered Bank</strong></div>
+                      <div className="flex items-start gap-3 p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+                        {/* Compact QR for Bank Transfer Beneficiary Reference */}
+                        <div className="relative group shrink-0">
+                          <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-lg p-1 bg-white border border-slate-200 flex items-center justify-center overflow-hidden shadow-xs">
+                            <img
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(`IBAN:${treasury.bankIban};BENEFICIARY:${treasury.bankBeneficiary};BANK:${treasury.bankName}`)}&color=0f172a&bgcolor=ffffff`}
+                              alt="Bank Details QR"
+                              className="w-full h-full object-contain"
+                              loading="lazy"
+                            />
+                          </div>
+                          <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 text-[8px] font-extrabold uppercase px-1 py-0.2 rounded bg-slate-800 text-white tracking-widest whitespace-nowrap">
+                            Wire
+                          </span>
+                        </div>
+
+                        <div className="min-w-0 flex-1 text-[11px] text-slate-700 space-y-1 font-mono">
+                          <div className="truncate">Beneficiary: <strong className="text-slate-900">{treasury.bankBeneficiary}</strong></div>
+                          <div className="truncate">IBAN: <strong className="text-slate-900 select-all">{treasury.bankIban}</strong></div>
+                          <div className="truncate">Bank: <strong className="text-slate-900">{treasury.bankName}</strong></div>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(treasury.bankIban)}
+                            className="mt-1 px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[10px] inline-flex items-center gap-1 border border-blue-200/60 cursor-pointer"
+                          >
+                            <Copy className="w-2.5 h-2.5" />
+                            <span>Copy IBAN</span>
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -432,10 +616,9 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
                     </label>
                     <input
                       type="text"
-                      required
                       value={refNumber}
                       onChange={(e) => setRefNumber(e.target.value)}
-                      placeholder="e.g. 0x8a9f... or BANK-REF-98124"
+                      placeholder="e.g. 0x8a9f... or BANK-REF-98124 (Optional)"
                       className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 text-xs font-mono font-bold focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                     />
                   </div>
@@ -444,10 +627,37 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-700 font-heading block mb-1.5">
                       Upload Payment Receipt
                     </label>
-                    <div className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center hover:border-blue-500 bg-slate-50/50 transition-colors cursor-pointer">
-                      <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                      <p className="text-xs font-bold text-slate-700">Click to upload transfer screenshot</p>
-                      <p className="text-[10px] text-slate-400 mt-1">PNG, JPG, PDF up to 10MB</p>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className={clsx(
+                        "border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer group",
+                        receiptFile ? "border-emerald-500 bg-emerald-50/30" : "border-slate-300 hover:border-blue-500 bg-slate-50/50 hover:bg-blue-50/30"
+                      )}
+                    >
+                      {receiptFile ? (
+                        <div className="space-y-2">
+                          <CheckCircle2 className="w-8 h-8 text-emerald-600 mx-auto" />
+                          <p className="text-xs font-bold text-emerald-800 truncate max-w-xs mx-auto">
+                            {receiptFile.name} ({(receiptFile.size / 1024).toFixed(1)} KB)
+                          </p>
+                          <p className="text-[10px] text-emerald-600 underline font-semibold">Click to choose a different file</p>
+                        </div>
+                      ) : (
+                        <>
+                          <Upload className="w-8 h-8 text-slate-400 group-hover:text-blue-600 mx-auto mb-2 transition-colors" />
+                          <p className="text-xs font-bold text-slate-700 group-hover:text-blue-700 transition-colors">
+                            Click to upload transfer screenshot
+                          </p>
+                          <p className="text-[10px] text-slate-400 mt-1">PNG, JPG, PDF up to 10MB</p>
+                        </>
+                      )}
                     </div>
                   </div>
                 </form>
@@ -483,11 +693,21 @@ export const DepositModal: React.FC<DepositModalProps> = ({ isOpen, onClose }) =
               ) : (
                 <button
                   type="button"
-                  onClick={handleSubmit}
-                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                  disabled={isUploading}
+                  onClick={() => handleSubmit()}
+                  className={clsx(
+                    "px-6 py-2.5 rounded-xl text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer",
+                    isUploading ? "bg-emerald-400 cursor-not-allowed opacity-80" : "bg-emerald-600 hover:bg-emerald-700 active:scale-98"
+                  )}
                 >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Submit Deposit Request</span>
+                  {isUploading ? (
+                    <span>Submitting...</span>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Submit Deposit Request</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>

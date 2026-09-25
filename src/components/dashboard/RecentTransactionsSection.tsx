@@ -197,66 +197,74 @@ export const RecentTransactionsSection: React.FC<RecentTransactionsSectionProps>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-sans">
-            {filteredTransactions.map((tx, idx) => {
-              const isDeposit = tx.type === 'deposit';
-              return (
-                <tr key={tx.id} className="hover:bg-purple-50/20 transition-colors">
-                  <td className="py-3 px-3.5 font-mono text-xs text-slate-400 tabular-nums">
-                    {idx + 1}
-                  </td>
-                  <td className="py-3 px-3.5">
-                    <div className="font-bold text-slate-900 font-mono text-xs tabular-nums">
-                      {tx.accountLogin || tx.referenceId}
-                    </div>
-                    <div className="text-[11px] text-slate-400 capitalize">
-                      {tx.method}
-                    </div>
-                  </td>
-                  <td className="py-3 px-3.5">
-                    <div className="font-semibold text-slate-900 text-xs sm:text-sm">
-                      {tx.clientName}
-                    </div>
-                    <div className="text-[11px] text-slate-400 font-mono">
-                      {tx.clientEmail}
-                    </div>
-                  </td>
-                  <td className="py-3 px-3.5">
-                    <div className={clsx(
-                      "inline-flex items-center gap-1 font-semibold text-xs",
-                      isDeposit ? "text-emerald-600" : "text-rose-500"
-                    )}>
-                      {isDeposit ? (
-                        <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
-                      ) : (
-                        <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" />
-                      )}
-                      <span className="capitalize">{tx.type}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-3.5">
-                    <span className={clsx(
-                      "font-mono font-bold text-xs sm:text-sm tabular-nums",
-                      isDeposit ? "text-emerald-600" : "text-rose-600"
-                    )}>
-                      {isDeposit ? `+${formatCurrency(tx.amount)}` : `-${formatCurrency(tx.amount)}`}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3.5 text-xs text-slate-500 tabular-nums">
-                    {formatDate(tx.timestamp)}
-                  </td>
-                  <td className="py-3 px-3.5 text-right">
-                    <span className={clsx(
-                      "inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold font-sans",
-                      tx.status === 'completed' && "bg-emerald-50 text-emerald-700 border border-emerald-200",
-                      tx.status === 'pending' && "bg-amber-50 text-amber-700 border border-amber-200",
-                      tx.status === 'rejected' && "bg-rose-50 text-rose-700 border border-rose-200"
-                    )}>
-                      {tx.status === 'completed' ? 'Approved' : tx.status === 'pending' ? 'Pending' : 'Rejected'}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
+            {filteredTransactions.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
+                  No transaction records found. Live clearing activity will appear here.
+                </td>
+              </tr>
+            ) : (
+              filteredTransactions.map((tx, idx) => {
+                const isDeposit = tx.type === 'deposit';
+                return (
+                  <tr key={tx.id} className="hover:bg-purple-50/20 transition-colors">
+                    <td className="py-3 px-3.5 font-mono text-xs text-slate-400 tabular-nums">
+                      {idx + 1}
+                    </td>
+                    <td className="py-3 px-3.5">
+                      <div className="font-bold text-slate-900 font-mono text-xs tabular-nums">
+                        {tx.accountLogin || tx.referenceId}
+                      </div>
+                      <div className="text-[11px] text-slate-400 capitalize">
+                        {tx.method}
+                      </div>
+                    </td>
+                    <td className="py-3 px-3.5">
+                      <div className="font-semibold text-slate-900 text-xs sm:text-sm">
+                        {tx.clientName}
+                      </div>
+                      <div className="text-[11px] text-slate-400 font-mono">
+                        {tx.clientEmail}
+                      </div>
+                    </td>
+                    <td className="py-3 px-3.5">
+                      <div className={clsx(
+                        "inline-flex items-center gap-1 font-semibold text-xs",
+                        isDeposit ? "text-emerald-600" : "text-rose-500"
+                      )}>
+                        {isDeposit ? (
+                          <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                        ) : (
+                          <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                        )}
+                        <span className="capitalize">{tx.type}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-3.5">
+                      <span className={clsx(
+                        "font-mono font-bold text-xs sm:text-sm tabular-nums",
+                        isDeposit ? "text-emerald-600" : "text-rose-600"
+                      )}>
+                        {isDeposit ? `+${formatCurrency(tx.amount)}` : `-${formatCurrency(tx.amount)}`}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3.5 text-xs text-slate-500 tabular-nums">
+                      {formatDate(tx.timestamp)}
+                    </td>
+                    <td className="py-3 px-3.5 text-right">
+                      <span className={clsx(
+                        "inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold font-sans",
+                        tx.status === 'completed' && "bg-emerald-50 text-emerald-700 border border-emerald-200",
+                        tx.status === 'pending' && "bg-amber-50 text-amber-700 border border-amber-200",
+                        tx.status === 'rejected' && "bg-rose-50 text-rose-700 border border-rose-200"
+                      )}>
+                        {tx.status === 'completed' ? 'Approved' : tx.status === 'pending' ? 'Pending' : 'Rejected'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

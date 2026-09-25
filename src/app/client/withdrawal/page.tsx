@@ -22,8 +22,9 @@ import { useCRM } from '@/context/CRMContext';
 import { clsx } from 'clsx';
 
 export default function ClientWithdrawalPage() {
-  const { impersonation, withdrawals, openClientModal, showToast } = useCRM();
-  const client = impersonation.client;
+  const { clients, impersonation, clientUser, withdrawals, openClientModal, showToast } = useCRM();
+  const rawClient = impersonation.client || clientUser || clients[0];
+  const client = (rawClient?.id ? clients.find(c => c.id === rawClient.id || c.email === rawClient.email) : null) || rawClient;
 
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'All' | 'completed' | 'pending' | 'rejected'>('All');

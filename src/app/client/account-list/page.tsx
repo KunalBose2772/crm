@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { 
   CreditCard, 
   Sparkles, 
@@ -23,15 +24,23 @@ import {
   Lock, 
   Settings, 
   FileText, 
-  ArrowLeftRight 
+  ArrowLeftRight,
+  RotateCw,
+  X,
+  KeyRound,
+  Gauge
 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
 import { ClientPageHeader } from '@/components/layout/ClientPageHeader';
 import { clsx } from 'clsx';
 
-export default function ClientAccountListPage() {
-  const { impersonation, openClientModal, showToast } = useCRM();
-  const client = impersonation.client;
+function ClientAccountListContent() {
+  const searchParams = useSearchParams();
+  const targetClientId = searchParams?.get('clientId');
+  const { clients, impersonation, clientUser, openClientModal, showToast, syncAccountBalance } = useCRM();
+  const clientFromParam = targetClientId ? clients.find(c => c.id === targetClientId) : null;
+  const rawClient = clientFromParam || impersonation.client || clientUser || clients[0];
+  const client = (rawClient ? clients.find(c => (rawClient.email && c.email.toLowerCase() === rawClient.email.toLowerCase()) || (rawClient.id && c.id === rawClient.id)) : null) || rawClient;
 
   const [filter, setFilter] = useState<'All' | 'MT5' | 'Live' | 'Demo'>('All');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -39,59 +48,36 @@ export default function ClientAccountListPage() {
   const [expandedAccountId, setExpandedAccountId] = useState<string | null>('acc_02_1');
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
+  // Live MT5 Account Actions Modal States
+  const [passwordModalAccount, setPasswordModalAccount] = useState<number | null>(null);
+  const [passwordType, setPasswordType] = useState<'main' | 'investor'>('main');
+  const [newPassword, setNewPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  const [leverageModalAccount, setLeverageModalAccount] = useState<number | null>(null);
+  const [newLeverage, setNewLeverage] = useState('1:100');
+  const [isUpdatingLeverage, setIsUpdatingLeverage] = useState(false);
+
+  const [syncingLogin, setSyncingLogin] = useState<number | null>(null);
+
   // Accounts list (from context or standard client accounts)
-  const defaultAccounts = [
-    {
-      id: 'acc_02_1',
-      login: 98989898989,
-      name: client?.name || 'test nikita',
-      platform: 'MT5',
-      type: 'BASIC',
-      status: 'Active',
-      currency: 'USD',
-      balance: 5937.47,
-      equity: 5937.47,
-      pnl: 0.00,
-      leverage: '100',
-      server: 'Ocean Markets Ltd.',
-      freeMargin: 5937.47,
-      marginLevel: '0.00%',
-      isLive: true,
-    },
-    {
-      id: 'acc_02_2',
-      login: 260730279,
-      name: client?.name || 'test nikita',
-      platform: 'MT5',
-      type: 'PRO ECN',
-      status: 'Active',
-      currency: 'USD',
-      balance: 411.20,
-      equity: 411.20,
-      pnl: 14.50,
-      leverage: '200',
-      server: 'Ocean Markets Ltd.',
-      freeMargin: 411.20,
-      marginLevel: '0.00%',
-      isLive: true,
-    },
-  ];
+  const defaultAccounts: any[] = [];
 
   const accounts = client?.accounts && client.accounts.length > 0
-    ? client.accounts.map((a, idx) => ({
+    ? client.accounts.map((a: any, idx: number) => ({
         id: a.id || `acc_${idx}`,
-        login: a.login,
-        name: client.name,
+        login: Number(a.login),
+        name: client.name || 'Trader',
         platform: a.platform || 'MT5',
-        type: a.type || 'BASIC',
-        status: 'Active',
+        type: a.accountType || a.type || 'STANDARD',
+        status: a.status || 'Active',
         currency: a.currency || 'USD',
-        balance: a.balance,
-        equity: a.equity,
+        balance: typeof a.balance === 'number' ? a.balance : parseFloat(a.balance || '0'),
+        equity: typeof a.equity === 'number' ? a.equity : parseFloat(a.equity || '0'),
         pnl: 0.00,
         leverage: a.leverage ? a.leverage.replace('1:', '') : '100',
-        server: a.server || 'Ocean Markets Ltd.',
-        freeMargin: a.balance,
+        server: a.server || 'TheKFMarket-Live',
+        freeMargin: typeof a.freeMargin === 'number' ? a.freeMargin : parseFloat(a.freeMargin || a.balance || '0'),
         marginLevel: '0.00%',
         isLive: true,
       }))
@@ -115,6 +101,78 @@ export default function ClientAccountListPage() {
     setCopiedLogin(login.toString());
     showToast('info', 'Account Copied', `Account #${login} copied to clipboard.`);
     setTimeout(() => setCopiedLogin(null), 1800);
+  };
+
+  const handleSyncAccount = async (e: React.MouseEvent, login: number) => {
+    e.stopPropagation();
+    setSyncingLogin(login);
+    try {
+      const res = await syncAccountBalance(login);
+      if (res) {
+        showToast('success', 'Balance Synchronized', `Account #${login} ledger updated from MT5 server.`);
+      } else {
+        showToast('info', 'MT5 Live Status', `Account #${login} ledger is currently up to date.`);
+      }
+    } finally {
+      setSyncingLogin(null);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordModalAccount || !newPassword || newPassword.length < 8) {
+      showToast('error', 'Invalid Password', 'Password must be at least 8 characters long.');
+      return;
+    }
+    setIsUpdatingPassword(true);
+    try {
+      const res = await fetch('/api/mt5/accounts/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          login: passwordModalAccount,
+          password: newPassword,
+          type: passwordType,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update MT5 password.');
+      }
+      showToast('success', 'Password Updated on MT5', `Successfully changed MT5 ${passwordType === 'main' ? 'Trading' : 'Investor'} password for #${passwordModalAccount}.`);
+      setPasswordModalAccount(null);
+      setNewPassword('');
+    } catch (err: any) {
+      showToast('error', 'Update Failed', err.message || 'Could not change password.');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  const handleUpdateLeverage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!leverageModalAccount) return;
+    setIsUpdatingLeverage(true);
+    try {
+      const res = await fetch('/api/mt5/accounts/leverage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          login: leverageModalAccount,
+          leverage: newLeverage,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update leverage on MT5.');
+      }
+      showToast('success', 'Leverage Updated on MT5', `Account #${leverageModalAccount} leverage updated to ${newLeverage}.`);
+      setLeverageModalAccount(null);
+    } catch (err: any) {
+      showToast('error', 'Update Failed', err.message || 'Could not update leverage.');
+    } finally {
+      setIsUpdatingLeverage(false);
+    }
   };
 
   const toggleExpand = (id: string) => {
@@ -244,7 +302,30 @@ export default function ClientAccountListPage() {
 
       {/* 3. TRADING ACCOUNTS ROSTER */}
       <div className="space-y-4 sm:space-y-5">
-        {filteredAccounts.map((acc) => {
+        {filteredAccounts.length === 0 ? (
+          <div className="p-8 sm:p-12 text-center rounded-2xl sm:rounded-3xl border border-dashed border-slate-200 bg-white space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-2xs">
+              <CreditCard className="w-7 h-7" />
+            </div>
+            <div>
+              <h4 className="text-base sm:text-lg font-bold text-slate-900 font-heading">
+                No Trading Accounts Found
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mt-1">
+                You haven&apos;t opened an MT5 trading account yet. Click below to create your live MetaTrader 5 account instantly.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => openClientModal('open-account')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Open Trading Account</span>
+            </button>
+          </div>
+        ) : (
+          filteredAccounts.map((acc) => {
           const isExpanded = expandedAccountId === acc.id;
           const isDropdownOpen = openDropdownId === acc.id;
           const initial = acc.name.charAt(0).toUpperCase() || 'B';
@@ -377,6 +458,17 @@ export default function ClientAccountListPage() {
                       <span className="hidden xl:inline">Withdraw</span>
                     </button>
 
+                    {/* Quick Sync Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => handleSyncAccount(e, acc.login)}
+                      className="inline-flex items-center gap-1.5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-2.5 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+                      title="Sync live MT5 balance"
+                    >
+                      <RotateCw className={clsx("h-3.5 w-3.5 text-slate-600", syncingLogin === acc.login && "animate-spin text-blue-600")} />
+                      <span className="hidden xl:inline">Sync</span>
+                    </button>
+
                     {/* Options / Ellipsis Dropdown */}
                     <div className="relative">
                       <button
@@ -409,9 +501,21 @@ export default function ClientAccountListPage() {
                           </Link>
                           <button
                             type="button"
+                            onClick={(e) => {
+                              setOpenDropdownId(null);
+                              handleSyncAccount(e, acc.login);
+                            }}
+                            className="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-blue-700 cursor-pointer"
+                          >
+                            <RotateCw className={clsx("w-3.5 h-3.5 text-slate-400", syncingLogin === acc.login && "animate-spin text-blue-600")} />
+                            <span>Sync Live Balance</span>
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => {
                               setOpenDropdownId(null);
-                              showToast('info', 'Password Reset', 'Password update instructions dispatched to your email.');
+                              setPasswordModalAccount(acc.login);
+                              setNewPassword('');
                             }}
                             className="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-blue-700 cursor-pointer"
                           >
@@ -422,7 +526,8 @@ export default function ClientAccountListPage() {
                             type="button"
                             onClick={() => {
                               setOpenDropdownId(null);
-                              showToast('info', 'Leverage Setting', 'Leverage modification request sent to risk management.');
+                              setLeverageModalAccount(acc.login);
+                              setNewLeverage(acc.leverage.startsWith('1:') ? acc.leverage : `1:${acc.leverage}`);
                             }}
                             className="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-slate-50 hover:text-blue-700 cursor-pointer"
                           >
@@ -476,8 +581,184 @@ export default function ClientAccountListPage() {
               )}
             </div>
           );
-        })}
+        }))}
       </div>
+
+      {/* Password Modal */}
+      {passwordModalAccount !== null && (
+        <div className="fixed inset-0 z-50 overflow-y-auto p-4 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center animate-in fade-in">
+          <div className="relative w-full max-w-md bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 font-heading">
+                    Change MT5 Password
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono">Account #{passwordModalAccount}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPasswordModalAccount(null)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-600 block mb-1.5 font-heading">
+                  Password Type
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPasswordType('main')}
+                    className={clsx(
+                      "py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer",
+                      passwordType === 'main'
+                        ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                        : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                    )}
+                  >
+                    Trading Password
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPasswordType('investor')}
+                    className={clsx(
+                      "py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer",
+                      passwordType === 'investor'
+                        ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                        : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                    )}
+                  >
+                    Investor (Read-only)
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-600 block mb-1.5 font-heading">
+                  New MT5 Password
+                </label>
+                <input
+                  type="text"
+                  required
+                  minLength={8}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Min 8 alphanumeric characters"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPasswordModalAccount(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingPassword}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                >
+                  {isUpdatingPassword ? 'Updating...' : 'Update on MT5'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Leverage Modal */}
+      {leverageModalAccount !== null && (
+        <div className="fixed inset-0 z-50 overflow-y-auto p-4 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center animate-in fade-in">
+          <div className="relative w-full max-w-md bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl space-y-5 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
+                  <Gauge className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 font-heading">
+                    Adjust Leverage
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono">Account #{leverageModalAccount}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLeverageModalAccount(null)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateLeverage} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase text-slate-600 block mb-1.5 font-heading">
+                  Select Maximum Leverage
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['1:50', '1:100', '1:200', '1:300', '1:500'].map((lev) => (
+                    <button
+                      key={lev}
+                      type="button"
+                      onClick={() => setNewLeverage(lev)}
+                      className={clsx(
+                        "py-2.5 px-3 rounded-xl text-xs font-bold font-mono border transition-all cursor-pointer",
+                        newLeverage === lev
+                          ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                          : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                      )}
+                    >
+                      {lev}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLeverageModalAccount(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingLeverage}
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                >
+                  {isUpdatingLeverage ? 'Updating...' : 'Apply on MT5'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function ClientAccountListPage() {
+  return (
+    <React.Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8">
+        <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+      </div>
+    }>
+      <ClientAccountListContent />
+    </React.Suspense>
   );
 }

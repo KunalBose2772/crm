@@ -23,18 +23,32 @@ interface WithdrawalModalProps {
 }
 
 export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose }) => {
-  const { showToast } = useCRM();
+  const { showToast, impersonation, clientUser, clients, createWithdrawalRequest } = useCRM();
+  const rawClient = impersonation.client || clientUser || clients[0];
+  const client = (rawClient?.id ? clients.find(c => c.id === rawClient.id || c.email === rawClient.email) : null) || rawClient;
+
+  const defaultAccounts: any[] = [];
+  const accounts = client?.accounts && client.accounts.length > 0 ? client.accounts : defaultAccounts;
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedRoute, setSelectedRoute] = useState<'bank' | 'crypto'>('bank');
-  const [amount, setAmount] = useState('500');
-  const [beneficiaryName, setBeneficiaryName] = useState('test nikita');
+  const [selectedAccount, setSelectedAccount] = useState<string>(accounts[0]?.login?.toString() || '');
+  const [amount, setAmount] = useState('');
+  const [beneficiaryName, setBeneficiaryName] = useState(client?.name || '');
   const [accountNumber, setAccountNumber] = useState('');
-  const [bankName, setBankName] = useState('Standard Chartered');
+  const [bankName, setBankName] = useState('');
   const [cryptoAddress, setCryptoAddress] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const availableBalance = 5937.47;
+  // Sync selectedAccount when accounts load
+  React.useEffect(() => {
+    if (accounts.length > 0 && (!selectedAccount || !accounts.some(a => a.login?.toString() === selectedAccount))) {
+      setSelectedAccount(accounts[0].login?.toString() || '');
+    }
+  }, [accounts, selectedAccount]);
+
+  const activeAccount = accounts.find(a => a.login?.toString() === selectedAccount) || accounts[0];
+  const availableBalance = activeAccount?.balance ?? 0;
 
   if (!isOpen) return null;
 
@@ -50,12 +64,36 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClos
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const parsedAmount = parseFloat(amount || '0');
+    if (parsedAmount <= 0) {
+      showToast('error', 'Invalid Amount', 'Please enter a valid withdrawal amount.');
+      return;
+    }
+    if (parsedAmount > availableBalance) {
+      showToast('error', 'Insufficient Funds', `Available balance in account #${selectedAccount} is $${availableBalance.toFixed(2)}.`);
+      return;
+    }
+
+    createWithdrawalRequest({
+      clientId: client?.id,
+      clientName: client?.name,
+      clientEmail: client?.email,
+      tradingAccountId: `acc_${selectedAccount}`,
+      accountLogin: parseInt(selectedAccount),
+      requestedAmount: parsedAmount,
+      fee: 0,
+      currency: 'USD',
+      paymentMethod: selectedRoute === 'crypto' ? 'crypto_usdt' : 'bank_transfer',
+      destinationType: selectedRoute === 'crypto' ? 'Crypto_Wallet' : 'Bank_Account',
+      destinationDetails: selectedRoute === 'crypto'
+        ? { walletAddress: cryptoAddress || 'TRC20-Wallet', network: 'TRC-20' }
+        : { bankName, accountNumber, accountHolder: beneficiaryName },
+      clientBalance: availableBalance,
+      clientEquity: availableBalance,
+      plan: 'STANDARD',
+    });
+
     setIsSuccess(true);
-    showToast(
-      'success',
-      'Withdrawal Request Submitted',
-      `Payout request of $${parseFloat(amount || '0').toLocaleString()} has been queued for processing.`
-    );
   };
 
   return (
@@ -253,6 +291,25 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClos
                     </div>
 
                     <div className="p-4 rounded-2xl border border-blue-200 bg-blue-50/40 relative">
+                      {accounts.length > 1 ? (
+                        <div className="mb-3">
+                          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-heading block mb-1">
+                            Choose Trading Account
+                          </label>
+                          <select
+                            value={selectedAccount}
+                            onChange={(e) => setSelectedAccount(e.target.value)}
+                            className="w-full p-2.5 rounded-xl border border-blue-200 bg-white text-slate-900 font-mono text-xs font-bold focus:outline-none focus:border-blue-500 transition-all cursor-pointer"
+                          >
+                            {accounts.map((acc) => (
+                              <option key={acc.login} value={acc.login}>
+                                Account #{acc.login} • {acc.type || 'MT5'} (${acc.balance?.toFixed(2) ?? '0.00'})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : null}
+
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
                           <Landmark className="w-5 h-5" />
@@ -260,9 +317,9 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClos
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 font-heading">
-                              BASIC
+                              {activeAccount?.type || 'BASIC'}
                             </span>
-                            <span className="text-xs font-mono font-bold text-slate-800">98989898989</span>
+                            <span className="text-xs font-mono font-bold text-slate-800">#{selectedAccount}</span>
                           </div>
 
                           <div className="mt-2 flex items-center justify-between">
@@ -280,7 +337,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClos
                           </div>
 
                           <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
-                            Use this account as the source of funds for the payout request.
+                            Funds will be deducted from this account once approved by admin.
                           </p>
                         </div>
                       </div>

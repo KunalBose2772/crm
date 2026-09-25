@@ -29,7 +29,7 @@ import {
 import { clsx } from 'clsx';
 
 export default function AdminTransactionPage() {
-  const { transactions, showToast } = useCRM();
+  const { transactions, clients, showToast } = useCRM();
 
   // Search, filter, sorting, and pagination
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,15 +51,42 @@ export default function AdminTransactionPage() {
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  // Metrics (grounded in transactions and platform totals)
-  const totalTransactionsCount = 76; // matches user's provided metric
-  const totalVolume = '$54,946,801'; // matches user's provided metric
-  const pendingCount = 10; // matches user's provided metric
-  const transferCount = 3; // matches user's provided metric
+  // Enrich transactions with accurate client name and email if missing or generic
+  const enrichedTransactions = useMemo(() => {
+    return transactions.map(tx => {
+      // Find matching client
+      const matchedClient = clients.find(c => 
+        (tx.clientId && c.id === tx.clientId) ||
+        (tx.accountLogin && c.accounts?.some(a => a.login === tx.accountLogin)) ||
+        (tx.clientEmail && c.email.toLowerCase() === tx.clientEmail.toLowerCase())
+      );
+
+      const clientName = (tx.clientName && tx.clientName !== 'Live Trader') 
+        ? tx.clientName 
+        : (matchedClient?.name || 'Valued Trader');
+
+      const clientEmail = (tx.clientEmail && tx.clientEmail !== 'trader@client.com')
+        ? tx.clientEmail
+        : (matchedClient?.email || 'client@tradingdesk.com');
+
+      return {
+        ...tx,
+        clientName,
+        clientEmail,
+      };
+    });
+  }, [transactions, clients]);
+
+  // Metrics (grounded in live transactions)
+  const totalTransactionsCount = enrichedTransactions.length;
+  const rawTotalVolume = enrichedTransactions.reduce((acc, t) => acc + (t.amount || 0), 0);
+  const totalVolume = `$${rawTotalVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const pendingCount = enrichedTransactions.filter(t => t.status === 'pending').length;
+  const transferCount = enrichedTransactions.filter(t => t.type === 'transfer').length;
 
   // Filtering & Sorting
   const filteredTransactions = useMemo(() => {
-    return transactions
+    return enrichedTransactions
       .filter(tx => {
         const q = searchQuery.toLowerCase().trim();
         const matchesSearch = 
@@ -782,7 +809,7 @@ export default function AdminTransactionPage() {
               </div>
               <div className="flex justify-between items-center py-1 border-b border-purple-100/60">
                 <span className="text-slate-500 font-medium">Settlement Fee</span>
-                <span className="font-mono text-slate-600">${selectedTx.fee.toFixed(2)}</span>
+                <span className="font-mono text-slate-600">${(selectedTx.fee ?? 0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-purple-100/60">
                 <span className="text-slate-500 font-medium">Payment Channel / Rail</span>

@@ -61,6 +61,7 @@ export interface KYCRecord {
   reviewedDocsCount?: number;
   totalDocsCount?: number;
   rejectionReason?: string;
+  adminComment?: string;
   reviewedBy?: string;
   reviewedAt?: string;
 }
@@ -200,6 +201,7 @@ export interface RevenueAnalyticsConfig {
   withdrawalsTrend: number;
   period?: 'today' | '7d' | '30d' | 'year';
   chartType?: 'radial' | 'bar' | 'line';
+  weeklyBreakdown?: Array<{ label: string; deposits: number; withdrawals: number; revenue: number }>;
 }
 
 // API Configurable Data Model for Account Distribution

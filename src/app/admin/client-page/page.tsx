@@ -175,7 +175,7 @@ export default function ClientManagementPage() {
   const handleImpersonate = (client: Client) => {
     startImpersonation(client);
     showToast('info', 'Client Portal Active', `Opening client workspace for ${client.name} in a new tab...`);
-    window.open('/client/dashboard', '_blank');
+    window.open(`/client/dashboard?clientId=${client.id}`, '_blank');
   };
 
   const handleSaveDetails = () => {
@@ -193,51 +193,40 @@ export default function ClientManagementPage() {
     setIsPasswordModalOpen(false);
   };
 
-  const handleCreateClient = (e: React.FormEvent) => {
+  const [isSubmittingClient, setIsSubmittingClient] = useState(false);
+
+  const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClientForm.name || !newClientForm.email) return;
 
-    addClient({
-      name: newClientForm.name,
-      email: newClientForm.email,
-      phone: newClientForm.phone || '+1 555 0199',
-      country: newClientForm.country,
-      city: newClientForm.city,
-      status: 'verified',
-      emailVerified: true,
-      kycVerified: false,
-      ibPartnerStatus: 'None',
-      totalBalance: 0,
-      totalDeposit: 0,
-      totalWithdrawal: 0,
-      netDeposit: 0,
-      accounts: [
-        {
-          id: `acc_${Date.now()}`,
-          login: Math.floor(260000000 + Math.random() * 90000000),
-          platform: 'MT5',
-          type: 'Standard',
-          currency: 'USD',
-          balance: 0,
-          equity: 0,
-          freeMargin: 0,
-          marginLevel: 0,
-          leverage: '1:500',
-          server: 'OceanMarkets-Live',
-          createdAt: new Date().toISOString(),
-        }
-      ]
-    });
+    setIsSubmittingClient(true);
+    try {
+      const res = await addClient({
+        name: newClientForm.name,
+        email: newClientForm.email,
+        phone: newClientForm.phone || '+91 9876543210',
+        country: newClientForm.country || 'India',
+        city: newClientForm.city || 'Headquarters',
+      });
 
-    setIsAddModalOpen(false);
-    setNewClientForm({
-      name: '',
-      email: '',
-      phone: '',
-      country: 'United Kingdom',
-      city: 'London',
-    });
-    showToast('success', 'Client Registered', 'New client profile added successfully.');
+      if (res.success) {
+        setIsAddModalOpen(false);
+        setNewClientForm({
+          name: '',
+          email: '',
+          phone: '',
+          country: 'India',
+          city: 'Mumbai',
+        });
+        showToast(
+          'success',
+          'Client Registered & Credentials Sent',
+          `Welcome email with portal login link, username and password has been emailed to ${newClientForm.email}.`
+        );
+      }
+    } finally {
+      setIsSubmittingClient(false);
+    }
   };
 
   const handleExportCSV = () => {
@@ -1228,7 +1217,7 @@ export default function ClientManagementPage() {
                 <div className="p-4 rounded-2xl bg-purple-50 border border-purple-100 text-center">
                   <span className="text-[10px] uppercase font-bold text-purple-800">Net Equity</span>
                   <div className="font-mono text-xl font-extrabold text-purple-700 mt-1">
-                    ${(selectedClient?.totalBalance || 411.20).toFixed(2)}
+                    ${(selectedClient?.totalBalance || 0).toFixed(2)}
                   </div>
                 </div>
               </div>
@@ -1270,7 +1259,7 @@ export default function ClientManagementPage() {
                 <span className="text-xs font-bold font-sans">Total Accounts</span>
               </div>
               <div className="text-3xl font-extrabold font-mono">
-                {selectedClient?.accounts?.length || 1}
+                {selectedClient?.accounts?.length || 0}
               </div>
             </div>
 
@@ -1281,7 +1270,7 @@ export default function ClientManagementPage() {
                 <span className="text-xs font-bold font-sans">Total Balance</span>
               </div>
               <div className="text-3xl font-extrabold font-mono">
-                ${(selectedClient?.totalBalance || 411.20).toFixed(2)}
+                ${(selectedClient?.totalBalance || 0).toFixed(2)}
               </div>
             </div>
 
@@ -1292,7 +1281,7 @@ export default function ClientManagementPage() {
                 <span className="text-xs font-bold font-sans">Total Equity</span>
               </div>
               <div className="text-3xl font-extrabold font-mono">
-                ${(selectedClient?.totalBalance || 411.20).toFixed(2)}
+                ${(selectedClient?.totalBalance || 0).toFixed(2)}
               </div>
             </div>
           </div>
@@ -1332,17 +1321,10 @@ export default function ClientManagementPage() {
                       </tr>
                     ))
                   ) : (
-                    <tr className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-medium text-slate-900">260730279</td>
-                      <td className="py-3.5 px-4">
-                        <span className="px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold text-[10px] uppercase font-mono">
-                          BASIC
-                        </span>
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                        No MT5 accounts provisioned yet for this client.
                       </td>
-                      <td className="py-3.5 px-4 font-sans text-slate-700">300</td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900">${(selectedClient?.totalBalance || 411.20).toFixed(2)}</td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-slate-900">${(selectedClient?.totalBalance || 411.20).toFixed(2)}</td>
-                      <td className="py-3.5 px-4 font-mono font-bold text-emerald-600">$0.00</td>
                     </tr>
                   )}
                 </tbody>
@@ -1512,9 +1494,10 @@ export default function ClientManagementPage() {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+              disabled={isSubmittingClient}
+              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
             >
-              Register Client
+              {isSubmittingClient ? 'Registering & Sending Email...' : 'Register Client'}
             </button>
           </div>
         </form>

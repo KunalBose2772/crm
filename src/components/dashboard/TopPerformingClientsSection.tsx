@@ -132,29 +132,37 @@ export const TopPerformingClientsSection: React.FC<TopPerformingClientsSectionPr
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-sans">
-            {sortedClients.map((client, idx) => (
-              <tr key={client.id} className="hover:bg-purple-50/20 transition-colors">
-                <td className="py-3 px-3.5 font-mono text-xs text-slate-400 tabular-nums">
-                  {idx + 1}
-                </td>
-                <td className="py-3 px-3.5">
-                  <span className="font-semibold text-slate-900 text-xs sm:text-sm">
-                    {client.nameOrEmail}
-                  </span>
-                </td>
-                <td className="py-3 px-3.5 text-center font-mono font-medium text-slate-700 tabular-nums">
-                  {client.depositsCount}
-                </td>
-                <td className="py-3 px-3.5 text-center font-mono font-medium text-slate-700 tabular-nums">
-                  {client.accountsCount}
-                </td>
-                <td className="py-3 px-3.5 text-right">
-                  <span className="font-mono font-bold text-xs sm:text-sm text-emerald-600 tabular-nums">
-                    {formatCurrency(client.totalDeposited)}
-                  </span>
+            {sortedClients.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-12 text-center text-slate-400 text-xs">
+                  No client deposit records yet. Top performing traders will appear here.
                 </td>
               </tr>
-            ))}
+            ) : (
+              sortedClients.map((client, idx) => (
+                <tr key={client.id} className="hover:bg-purple-50/20 transition-colors">
+                  <td className="py-3 px-3.5 font-mono text-xs text-slate-400 tabular-nums">
+                    {idx + 1}
+                  </td>
+                  <td className="py-3 px-3.5">
+                    <span className="font-semibold text-slate-900 text-xs sm:text-sm">
+                      {client.nameOrEmail}
+                    </span>
+                  </td>
+                  <td className="py-3 px-3.5 text-center font-mono font-medium text-slate-700 tabular-nums">
+                    {client.depositsCount}
+                  </td>
+                  <td className="py-3 px-3.5 text-center font-mono font-medium text-slate-700 tabular-nums">
+                    {client.accountsCount}
+                  </td>
+                  <td className="py-3 px-3.5 text-right">
+                    <span className="font-mono font-bold text-xs sm:text-sm text-emerald-600 tabular-nums">
+                      {formatCurrency(client.totalDeposited)}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

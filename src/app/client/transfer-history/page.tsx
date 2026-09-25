@@ -37,8 +37,9 @@ interface LedgerItem {
 }
 
 export default function ClientTransferHistoryPage() {
-  const { impersonation, showToast } = useCRM();
-  const client = impersonation.client;
+  const { clients, impersonation, clientUser, transactions, showToast } = useCRM();
+  const rawClient = impersonation.client || clientUser || clients[0];
+  const client = (rawClient?.id ? clients.find(c => c.id === rawClient.id || c.email === rawClient.email) : null) || rawClient;
 
   const [isFilterOpen, setIsFilterOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,63 +47,21 @@ export default function ClientTransferHistoryPage() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [copiedAccount, setCopiedAccount] = useState<string | null>(null);
 
-  // Client's transaction records
-  const defaultLedger: LedgerItem[] = [
-    {
-      id: 'TX-10928',
-      account: 98989898989,
-      flow: 'deposit',
-      amount: 500.00,
-      currency: 'USD',
-      date: '2026-03-20 14:32:10',
-      status: 'completed',
-    },
-    {
-      id: 'TX-10814',
-      account: 98989898989,
-      flow: 'deposit',
-      amount: 1200.00,
-      currency: 'USD',
-      date: '2026-03-15 10:15:45',
-      status: 'completed',
-    },
-    {
-      id: 'TX-10702',
-      account: 98989898989,
-      flow: 'transfer',
-      amount: 250.00,
-      currency: 'USD',
-      date: '2026-03-12 09:20:00',
-      status: 'completed',
-    },
-    {
-      id: 'TX-10502',
-      account: 98989898989,
-      flow: 'withdrawal',
-      amount: 350.00,
-      currency: 'USD',
-      date: '2026-03-10 18:40:32',
-      status: 'completed',
-    },
-    {
-      id: 'TX-10488',
-      account: 98989898989,
-      flow: 'deposit',
-      amount: 4500.00,
-      currency: 'USD',
-      date: '2026-03-01 11:05:12',
-      status: 'completed',
-    },
-    {
-      id: 'TX-10319',
-      account: 98989898989,
-      flow: 'withdrawal',
-      amount: 125.00,
-      currency: 'USD',
-      date: '2026-02-24 16:12:05',
-      status: 'completed',
-    },
-  ];
+  // Client's transaction records from live context
+  const clientTransactions = (transactions || []).filter(tx => {
+    if (client && tx.clientId !== client.id && tx.clientEmail !== client.email) return false;
+    return true;
+  });
+
+  const defaultLedger: LedgerItem[] = clientTransactions.map(tx => ({
+    id: tx.referenceId || tx.id,
+    account: tx.accountLogin || 0,
+    flow: (tx.type === 'deposit' || tx.type === 'withdrawal' || tx.type === 'transfer' ? tx.type : 'deposit') as 'deposit' | 'withdrawal' | 'transfer',
+    amount: tx.amount,
+    currency: tx.currency || 'USD',
+    date: tx.timestamp ? new Date(tx.timestamp).toLocaleString() : 'N/A',
+    status: (tx.status === 'completed' || tx.status === 'rejected' ? tx.status : 'pending') as 'completed' | 'pending' | 'rejected',
+  }));
 
   const filteredRecords = defaultLedger.filter((item) => {
     if (selectedType !== 'all' && item.flow !== selectedType) return false;

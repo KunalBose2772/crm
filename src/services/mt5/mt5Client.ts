@@ -53,7 +53,7 @@ class MT5ClientService {
             headers: {
               Connection: 'keep-alive',
             },
-            timeout: 12000,
+            timeout: 15000,
           },
           (res) => {
             let data = '';
@@ -238,6 +238,92 @@ class MT5ClientService {
         ticket,
         balance: updatedBalance,
       };
+    });
+  }
+
+  /**
+   * Executes an internal transfer between two MT5 trading accounts
+   */
+  public async transfer(
+    fromLogin: string | number,
+    toLogin: string | number,
+    amount: number,
+    comment?: string
+  ): Promise<{ debitTicket: string; creditTicket: string; fromBalance: number; toBalance: number }> {
+    return await this.executeSession(async (req) => {
+      const debitComment = comment || `Transfer to #${toLogin}`;
+      const creditComment = comment || `Transfer from #${fromLogin}`;
+
+      // 1. Debit from source account
+      const debitQuery = new URLSearchParams({
+        login: String(fromLogin),
+        type: '2',
+        balance: (-Math.abs(amount)).toFixed(2),
+        comment: debitComment,
+      });
+
+      const debitRes = await req(`/api/trade/balance?${debitQuery.toString()}`);
+      if (!debitRes || debitRes.retcode !== '0 Done') {
+        throw new Error(`Failed to debit Account #${fromLogin}: ${debitRes?.retcode || 'Error'}`);
+      }
+
+      // 2. Credit to destination account
+      const creditQuery = new URLSearchParams({
+        login: String(toLogin),
+        type: '2',
+        balance: Math.abs(amount).toFixed(2),
+        comment: creditComment,
+      });
+
+      const creditRes = await req(`/api/trade/balance?${creditQuery.toString()}`);
+      if (!creditRes || creditRes.retcode !== '0 Done') {
+        // Rollback debit if credit fails
+        await req(`/api/trade/balance?login=${fromLogin}&type=2&balance=${Math.abs(amount).toFixed(2)}&comment=Rollback`);
+        throw new Error(`Failed to credit Account #${toLogin}: ${creditRes?.retcode || 'Error'}`);
+      }
+
+      // 3. Fetch updated balances
+      const [fromAcc, toAcc] = await Promise.all([
+        req(`/api/user/account/get?login=${fromLogin}`),
+        req(`/api/user/account/get?login=${toLogin}`),
+      ]);
+
+      return {
+        debitTicket: String(debitRes.answer?.ticket || ''),
+        creditTicket: String(creditRes.answer?.ticket || ''),
+        fromBalance: parseFloat(fromAcc?.answer?.Balance || '0'),
+        toBalance: parseFloat(toAcc?.answer?.Balance || '0'),
+      };
+    });
+  }
+
+  /**
+   * Updates account leverage on MT5
+   */
+  public async updateLeverage(login: string | number, leverage: string | number): Promise<boolean> {
+    const leverageNum = typeof leverage === 'string'
+      ? parseInt(leverage.replace('1:', ''), 10) || 100
+      : leverage;
+
+    return await this.executeSession(async (req) => {
+      const res = await req(`/api/user/update?login=${login}&leverage=${leverageNum}`);
+      return res && res.retcode === '0 Done';
+    });
+  }
+
+  /**
+   * Updates trading or investor password on MT5
+   */
+  public async changePassword(
+    login: string | number,
+    password: string,
+    type: 'main' | 'investor' = 'main'
+  ): Promise<boolean> {
+    return await this.executeSession(async (req) => {
+      const res = await req(
+        `/api/user/change_password?login=${login}&type=${type}&password=${encodeURIComponent(password)}`
+      );
+      return res && res.retcode === '0 Done';
     });
   }
 }

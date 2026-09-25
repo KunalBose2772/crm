@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useCRM } from '@/context/CRMContext';
 import { WithdrawalRequest } from '@/types/crm';
 import { WelcomeBanner } from '@/components/dashboard/WelcomeBanner';
@@ -43,6 +43,28 @@ export default function AdminWithdrawalsPage() {
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Close action dropdown when clicking outside or pressing Escape
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setActiveMenuId(null);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setActiveMenuId(null);
+    };
+
+    if (activeMenuId) {
+      document.addEventListener('mousedown', handleOutsideClick);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [activeMenuId]);
 
   // Modals state
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<WithdrawalRequest | null>(null);
@@ -470,8 +492,8 @@ export default function AdminWithdrawalsPage() {
       </div>
 
       {/* 4. DESKTOP WITHDRAWALS TABLE (Hidden on Mobile) */}
-      <div className="hidden md:block bg-white rounded-3xl border border-purple-100/90 shadow-sm overflow-hidden">
-        <div className="w-full overflow-x-auto pb-2">
+      <div className="hidden md:block bg-white rounded-3xl border border-purple-100/90 shadow-sm">
+        <div className="w-full overflow-x-auto pb-8 custom-scrollbar min-h-[340px]">
           <table className="w-max min-w-[980px] divide-y divide-purple-100/80 text-slate-700">
             <thead className="bg-gradient-to-r from-slate-50 to-purple-50/40 text-slate-600 font-bold uppercase tracking-wider text-[11px] font-heading">
               <tr>
@@ -522,6 +544,7 @@ export default function AdminWithdrawalsPage() {
               ) : (
                 paginatedWithdrawals.map((wdr, index) => {
                   const paymentDisplay = wdr.paymentMethod || (wdr.destinationType === 'Crypto_Wallet' ? 'Crypto Wallet' : 'Bank Account');
+                  const isNearBottom = index >= paginatedWithdrawals.length - 2 && paginatedWithdrawals.length > 3;
 
                   return (
                     <tr
@@ -588,8 +611,11 @@ export default function AdminWithdrawalsPage() {
                       </td>
 
                       {/* 8. Action */}
-                      <td className="px-6 py-4 text-right relative">
-                        <div className="relative inline-block text-left">
+                      <td className="px-6 py-4 text-right">
+                        <div 
+                          ref={activeMenuId === wdr.id ? menuRef : undefined}
+                          className="relative inline-block text-left"
+                        >
                           <button
                             type="button"
                             onClick={() => setActiveMenuId(activeMenuId === wdr.id ? null : wdr.id)}
@@ -600,11 +626,16 @@ export default function AdminWithdrawalsPage() {
                           </button>
 
                           {activeMenuId === wdr.id && (
-                            <div className="absolute right-0 mt-1 w-44 rounded-2xl bg-white border border-purple-100 shadow-xl p-1.5 z-50 animate-in fade-in zoom-in-95 space-y-1">
+                            <div 
+                              className={clsx(
+                                "absolute right-0 w-48 rounded-2xl bg-white border border-purple-100 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 space-y-1 ring-1 ring-black/5",
+                                isNearBottom ? "bottom-full mb-2 origin-bottom-right" : "top-full mt-1 origin-top-right"
+                              )}
+                            >
                               <button
                                 type="button"
                                 onClick={() => handleOpenDetail(wdr)}
-                                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2 cursor-pointer"
+                                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2 cursor-pointer transition-colors"
                               >
                                 <Eye className="w-3.5 h-3.5 text-purple-600" />
                                 <span>View Details</span>
@@ -615,7 +646,7 @@ export default function AdminWithdrawalsPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleOpenAction(wdr, false)}
-                                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 cursor-pointer"
+                                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 cursor-pointer transition-colors"
                                   >
                                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                                     <span>Approve Payout</span>
@@ -623,7 +654,7 @@ export default function AdminWithdrawalsPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleOpenAction(wdr, true)}
-                                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-rose-700 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
+                                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-rose-700 hover:bg-rose-50 flex items-center gap-2 cursor-pointer transition-colors"
                                   >
                                     <ShieldX className="w-3.5 h-3.5 text-rose-600" />
                                     <span>Reject Payout</span>

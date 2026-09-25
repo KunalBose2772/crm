@@ -74,13 +74,23 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
     }).format(val);
   };
 
-  // Realistic working dataset for Bar & Line Charts across periods
-  const weeklyData = [
-    { label: 'Week 1', deposits: 18000, withdrawals: 4500, revenue: 13500 },
-    { label: 'Week 2', deposits: 32000, withdrawals: 8200, revenue: 23800 },
-    { label: 'Week 3', deposits: 24000, withdrawals: 6100, revenue: 17900 },
-    { label: 'Week 4', deposits: 39000, withdrawals: 11000, revenue: 28000 },
-  ];
+  // Dataset for Bar & Line Charts across periods from live props
+  const weeklyData = config.weeklyBreakdown && config.weeklyBreakdown.length > 0
+    ? config.weeklyBreakdown
+    : [
+        { label: 'Week 1', deposits: Math.round(config.depositsAmount * 0.15), withdrawals: Math.round(config.withdrawalsAmount * 0.10), revenue: Math.round(config.netRevenue * 0.15) },
+        { label: 'Week 2', deposits: Math.round(config.depositsAmount * 0.25), withdrawals: Math.round(config.withdrawalsAmount * 0.30), revenue: Math.round(config.netRevenue * 0.25) },
+        { label: 'Week 3', deposits: Math.round(config.depositsAmount * 0.20), withdrawals: Math.round(config.withdrawalsAmount * 0.20), revenue: Math.round(config.netRevenue * 0.20) },
+        { label: 'Week 4', deposits: Math.round(config.depositsAmount * 0.40), withdrawals: Math.round(config.withdrawalsAmount * 0.40), revenue: Math.round(config.netRevenue * 0.40) },
+      ];
+
+  // Dynamic max value calculation for responsive Y-axis scaling
+  const maxComputedVal = Math.max(
+    1000,
+    ...weeklyData.flatMap(d => [d.deposits, d.withdrawals, d.revenue])
+  );
+  // Round up to clean ceiling (e.g. 6000 -> 8000 or nearest 1000/5000)
+  const chartCeiling = Math.ceil(maxComputedVal / 1000) * 1000 || 5000;
 
   // Compact Radial Gauge Ring Component
   const CompactRadialGauge: React.FC<{
@@ -422,15 +432,17 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
             <div className="relative w-full h-44 sm:h-52">
               <svg viewBox="0 0 540 180" className="w-full h-full overflow-visible">
                 {/* Y-Axis Grid Lines & Labels */}
-                {[4, 3, 2, 1, 0].map((val, idx) => {
+                {[4, 3, 2, 1, 0].map((stepIdx, idx) => {
                   const y = 20 + idx * 32;
+                  const labelValue = Math.round((chartCeiling / 4) * stepIdx);
+                  const displayLabel = labelValue >= 1000 ? `$${(labelValue / 1000).toFixed(0)}k` : `$${labelValue}`;
                   return (
-                    <g key={val}>
-                      <text x="12" y={y + 4} className="text-[10px] font-mono fill-slate-400" textAnchor="end">
-                        {val}
+                    <g key={stepIdx}>
+                      <text x="32" y={y + 4} className="text-[10px] font-mono fill-slate-400 font-semibold" textAnchor="end">
+                        {displayLabel}
                       </text>
                       <line
-                        x1="22"
+                        x1="38"
                         y1={y}
                         x2="530"
                         y2={y}
@@ -444,14 +456,13 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
 
                 {/* Grouped Bars per Week */}
                 {weeklyData.map((item, idx) => {
-                  const groupX = 60 + idx * 115;
-                  const maxVal = 40000;
+                  const groupX = 75 + idx * 115;
                   const chartBottom = 148;
                   const maxBarH = 120;
 
-                  const depH = (item.deposits / maxVal) * maxBarH;
-                  const wdrH = (item.withdrawals / maxVal) * maxBarH;
-                  const revH = (item.revenue / maxVal) * maxBarH;
+                  const depH = Math.min(maxBarH, Math.max(item.deposits > 0 ? 6 : 0, (item.deposits / chartCeiling) * maxBarH));
+                  const wdrH = Math.min(maxBarH, Math.max(item.withdrawals > 0 ? 6 : 0, (item.withdrawals / chartCeiling) * maxBarH));
+                  const revH = Math.min(maxBarH, Math.max(item.revenue > 0 ? 6 : 0, (item.revenue / chartCeiling) * maxBarH));
 
                   return (
                     <g 
@@ -464,41 +475,41 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
                       <rect
                         x={groupX}
                         y={chartBottom - depH}
-                        width="14"
+                        width="16"
                         height={depH}
-                        rx="3"
+                        rx="4"
                         fill="#10b981"
-                        className="transition-all duration-300 group-hover:opacity-90 group-hover:scale-y-105 origin-bottom"
+                        className="transition-all duration-300 group-hover:opacity-90 group-hover:scale-y-105 origin-bottom shadow-xs"
                       />
 
                       {/* Withdrawals Bar (Pink/Red) */}
                       <rect
-                        x={groupX + 18}
+                        x={groupX + 20}
                         y={chartBottom - wdrH}
-                        width="14"
+                        width="16"
                         height={wdrH}
-                        rx="3"
+                        rx="4"
                         fill="#f43f5e"
-                        className="transition-all duration-300 group-hover:opacity-90 group-hover:scale-y-105 origin-bottom"
+                        className="transition-all duration-300 group-hover:opacity-90 group-hover:scale-y-105 origin-bottom shadow-xs"
                       />
 
                       {/* Revenue Bar (Blue/Purple) */}
                       <rect
-                        x={groupX + 36}
+                        x={groupX + 40}
                         y={chartBottom - revH}
-                        width="14"
+                        width="16"
                         height={revH}
-                        rx="3"
+                        rx="4"
                         fill="#6366f1"
-                        className="transition-all duration-300 group-hover:opacity-90 group-hover:scale-y-105 origin-bottom"
+                        className="transition-all duration-300 group-hover:opacity-90 group-hover:scale-y-105 origin-bottom shadow-xs"
                       />
 
                       {/* X-Axis Week Label */}
                       <text
-                        x={groupX + 25}
+                        x={groupX + 28}
                         y={chartBottom + 16}
                         textAnchor="middle"
-                        className="text-[10px] font-sans font-medium fill-slate-500"
+                        className="text-[10px] font-sans font-bold fill-slate-500 uppercase tracking-wider"
                       >
                         {item.label}
                       </text>
@@ -507,16 +518,16 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
                 })}
 
                 {/* X-Axis Baseline */}
-                <line x1="22" y1="148" x2="530" y2="148" stroke="#cbd5e1" strokeWidth="1" />
+                <line x1="38" y1="148" x2="530" y2="148" stroke="#cbd5e1" strokeWidth="1" />
               </svg>
 
               {/* Hover Tooltip */}
               {hoveredDataPoint && (
-                <div className="absolute top-2 right-4 bg-slate-900/90 text-white px-3 py-1.5 rounded-xl shadow-lg backdrop-blur-xs text-xs font-mono z-20 animate-in fade-in">
+                <div className="absolute top-2 right-4 bg-slate-900/95 text-white px-3.5 py-2 rounded-xl shadow-xl backdrop-blur-xs text-xs font-mono z-20 animate-in fade-in border border-slate-700">
                   <span className="font-bold text-slate-300 mr-2">{hoveredDataPoint.label}:</span>
-                  <span className="text-emerald-400 mr-2">Dep: {formatCurrency(hoveredDataPoint.deposits)}</span>
-                  <span className="text-rose-400 mr-2">Wdr: {formatCurrency(hoveredDataPoint.withdrawals)}</span>
-                  <span className="text-indigo-400">Rev: {formatCurrency(hoveredDataPoint.revenue)}</span>
+                  <span className="text-emerald-400 mr-2 font-bold">Dep: {formatCurrency(hoveredDataPoint.deposits)}</span>
+                  <span className="text-rose-400 mr-2 font-bold">Wdr: {formatCurrency(hoveredDataPoint.withdrawals)}</span>
+                  <span className="text-indigo-400 font-bold">Rev: {formatCurrency(hoveredDataPoint.revenue)}</span>
                 </div>
               )}
             </div>
@@ -566,15 +577,17 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
                 </defs>
 
                 {/* Grid Lines */}
-                {[4, 3, 2, 1, 0].map((val, idx) => {
+                {[4, 3, 2, 1, 0].map((stepIdx, idx) => {
                   const y = 20 + idx * 32;
+                  const labelValue = Math.round((chartCeiling / 4) * stepIdx);
+                  const displayLabel = labelValue >= 1000 ? `$${(labelValue / 1000).toFixed(0)}k` : `$${labelValue}`;
                   return (
-                    <g key={val}>
-                      <text x="12" y={y + 4} className="text-[10px] font-mono fill-slate-400" textAnchor="end">
-                        {val}
+                    <g key={stepIdx}>
+                      <text x="32" y={y + 4} className="text-[10px] font-mono fill-slate-400 font-semibold" textAnchor="end">
+                        {displayLabel}
                       </text>
                       <line
-                        x1="22"
+                        x1="38"
                         y1={y}
                         x2="530"
                         y2={y}
@@ -586,74 +599,105 @@ export const RevenueAnalyticsSection: React.FC<RevenueAnalyticsSectionProps> = (
                   );
                 })}
 
-                {/* Deposits Spline Area & Line */}
-                <path
-                  d="M 60,94 C 150,52 260,76 350,50 C 420,30 480,24 500,22 L 500,148 L 60,148 Z"
-                  fill="url(#area-dep-main)"
-                />
-                <path
-                  d="M 60,94 C 150,52 260,76 350,50 C 420,30 480,24 500,22"
-                  fill="none"
-                  stroke="#10b981"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
+                {/* Calculate Dynamic Points for Line Splines */}
+                {(() => {
+                  const maxBarH = 120;
+                  const chartBottom = 148;
 
-                {/* Revenue Spline Area & Line */}
-                <path
-                  d="M 60,108 C 150,76 260,94 350,64 C 420,44 480,36 500,34 L 500,148 L 60,148 Z"
-                  fill="url(#area-rev-main)"
-                />
-                <path
-                  d="M 60,108 C 150,76 260,94 350,64 C 420,44 480,36 500,34"
-                  fill="none"
-                  stroke="#6366f1"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
+                  const points = weeklyData.map((item, i) => {
+                    const x = 75 + i * 140;
+                    const depY = chartBottom - Math.min(maxBarH, Math.max(item.deposits > 0 ? 6 : 0, (item.deposits / chartCeiling) * maxBarH));
+                    const wdrY = chartBottom - Math.min(maxBarH, Math.max(item.withdrawals > 0 ? 6 : 0, (item.withdrawals / chartCeiling) * maxBarH));
+                    const revY = chartBottom - Math.min(maxBarH, Math.max(item.revenue > 0 ? 6 : 0, (item.revenue / chartCeiling) * maxBarH));
+                    return { x, depY, wdrY, revY, item };
+                  });
 
-                {/* Withdrawals Line */}
-                <path
-                  d="M 60,134 C 150,123 260,130 350,115 C 420,105 480,95 500,92"
-                  fill="none"
-                  stroke="#f43f5e"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
+                  // Generate SVG smooth spline paths
+                  const buildPath = (getY: (p: typeof points[0]) => number) => {
+                    return points.reduce((acc, p, i, arr) => {
+                      if (i === 0) return `M ${p.x},${getY(p)}`;
+                      const prev = arr[i - 1];
+                      const cpX1 = prev.x + (p.x - prev.x) / 2;
+                      const cpX2 = cpX1;
+                      return `${acc} C ${cpX1},${getY(prev)} ${cpX2},${getY(p)} ${p.x},${getY(p)}`;
+                    }, '');
+                  };
 
-                {/* Data Nodes */}
-                {[
-                  { x: 60, dep: 94, wdr: 134, rev: 108, item: weeklyData[0] },
-                  { x: 200, dep: 60, wdr: 125, rev: 80, item: weeklyData[1] },
-                  { x: 350, dep: 74, wdr: 120, rev: 88, item: weeklyData[2] },
-                  { x: 500, dep: 22, wdr: 92, rev: 34, item: weeklyData[3] },
-                ].map((pt, i) => (
-                  <g 
-                    key={i}
-                    onMouseEnter={() => setHoveredDataPoint(pt.item)}
-                    onMouseLeave={() => setHoveredDataPoint(null)}
-                    className="cursor-pointer"
-                  >
-                    <circle cx={pt.x} cy={pt.dep} r="4" fill="#10b981" stroke="#fff" strokeWidth="2" />
-                    <circle cx={pt.x} cy={pt.rev} r="4" fill="#6366f1" stroke="#fff" strokeWidth="2" />
-                    <circle cx={pt.x} cy={pt.wdr} r="4" fill="#f43f5e" stroke="#fff" strokeWidth="2" />
-                    <text x={pt.x} y="164" textAnchor="middle" className="text-[10px] font-sans font-medium fill-slate-500">
-                      W{i + 1}
-                    </text>
-                  </g>
-                ))}
+                  const depPath = buildPath(p => p.depY);
+                  const wdrPath = buildPath(p => p.wdrY);
+                  const revPath = buildPath(p => p.revY);
+
+                  const firstX = points[0]?.x || 75;
+                  const lastX = points[points.length - 1]?.x || 495;
+
+                  return (
+                    <>
+                      {/* Deposits Spline Area & Line */}
+                      <path
+                        d={`${depPath} L ${lastX},148 L ${firstX},148 Z`}
+                        fill="url(#area-dep-main)"
+                      />
+                      <path
+                        d={depPath}
+                        fill="none"
+                        stroke="#10b981"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                      />
+
+                      {/* Revenue Spline Area & Line */}
+                      <path
+                        d={`${revPath} L ${lastX},148 L ${firstX},148 Z`}
+                        fill="url(#area-rev-main)"
+                      />
+                      <path
+                        d={revPath}
+                        fill="none"
+                        stroke="#6366f1"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                      />
+
+                      {/* Withdrawals Line */}
+                      <path
+                        d={wdrPath}
+                        fill="none"
+                        stroke="#f43f5e"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                      />
+
+                      {/* Data Nodes */}
+                      {points.map((pt, i) => (
+                        <g 
+                          key={i}
+                          onMouseEnter={() => setHoveredDataPoint(pt.item)}
+                          onMouseLeave={() => setHoveredDataPoint(null)}
+                          className="cursor-pointer group"
+                        >
+                          <circle cx={pt.x} cy={pt.depY} r="4.5" fill="#10b981" stroke="#fff" strokeWidth="2" className="transition-transform group-hover:scale-125" />
+                          <circle cx={pt.x} cy={pt.revY} r="4.5" fill="#6366f1" stroke="#fff" strokeWidth="2" className="transition-transform group-hover:scale-125" />
+                          <circle cx={pt.x} cy={pt.wdrY} r="4.5" fill="#f43f5e" stroke="#fff" strokeWidth="2" className="transition-transform group-hover:scale-125" />
+                          <text x={pt.x} y="164" textAnchor="middle" className="text-[10px] font-sans font-bold fill-slate-500 uppercase tracking-wider">
+                            W{i + 1}
+                          </text>
+                        </g>
+                      ))}
+                    </>
+                  );
+                })()}
 
                 {/* X-Axis Baseline */}
-                <line x1="22" y1="148" x2="530" y2="148" stroke="#cbd5e1" strokeWidth="1" />
+                <line x1="38" y1="148" x2="530" y2="148" stroke="#cbd5e1" strokeWidth="1" />
               </svg>
 
               {/* Hover Tooltip */}
               {hoveredDataPoint && (
-                <div className="absolute top-2 right-4 bg-slate-900/90 text-white px-3 py-1.5 rounded-xl shadow-lg backdrop-blur-xs text-xs font-mono z-20 animate-in fade-in">
+                <div className="absolute top-2 right-4 bg-slate-900/95 text-white px-3.5 py-2 rounded-xl shadow-xl backdrop-blur-xs text-xs font-mono z-20 animate-in fade-in border border-slate-700">
                   <span className="font-bold text-slate-300 mr-2">{hoveredDataPoint.label}:</span>
-                  <span className="text-emerald-400 mr-2">Dep: {formatCurrency(hoveredDataPoint.deposits)}</span>
-                  <span className="text-rose-400 mr-2">Wdr: {formatCurrency(hoveredDataPoint.withdrawals)}</span>
-                  <span className="text-indigo-400">Rev: {formatCurrency(hoveredDataPoint.revenue)}</span>
+                  <span className="text-emerald-400 mr-2 font-bold">Dep: {formatCurrency(hoveredDataPoint.deposits)}</span>
+                  <span className="text-rose-400 mr-2 font-bold">Wdr: {formatCurrency(hoveredDataPoint.withdrawals)}</span>
+                  <span className="text-indigo-400 font-bold">Rev: {formatCurrency(hoveredDataPoint.revenue)}</span>
                 </div>
               )}
             </div>

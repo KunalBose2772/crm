@@ -31,8 +31,12 @@ export const AccountDistributionSection: React.FC<AccountDistributionSectionProp
   };
 
   const categories = config.categories || initialAccountDistribution.categories;
-  const totalAccounts = config.totalAccountsCount || 69;
-  const totalAccountTypes = config.totalAccountTypes || categories.length;
+  const totalAccounts = typeof config.totalAccountsCount === 'number' 
+    ? config.totalAccountsCount 
+    : categories.reduce((sum, c) => sum + c.count, 0);
+  const totalAccountTypes = typeof config.totalAccountTypes === 'number'
+    ? config.totalAccountTypes
+    : categories.length;
 
   const [hoveredCategoryId, setHoveredCategoryId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -68,7 +72,7 @@ export const AccountDistributionSection: React.FC<AccountDistributionSectionProp
 
   let cumulativePercent = 0;
   const donutSegments = categories.map((cat) => {
-    const pct = cat.count / totalAccounts;
+    const pct = totalAccounts > 0 ? cat.count / totalAccounts : 0;
     const strokeDash = pct * donutCircumference;
     const gap = 3; // subtle spacing between slices
     const dashArray = `${Math.max(0, strokeDash - gap)} ${donutCircumference}`;
@@ -222,7 +226,7 @@ export const AccountDistributionSection: React.FC<AccountDistributionSectionProp
                     {activeCategory.count}
                   </span>
                   <span className="text-[11px] font-bold text-slate-500 font-sans block mt-0.5">
-                    {((activeCategory.count / totalAccounts) * 100).toFixed(1)}% Share
+                    {totalAccounts > 0 ? ((activeCategory.count / totalAccounts) * 100).toFixed(1) : '0.0'}% Share
                   </span>
                 </div>
               ) : (
@@ -304,7 +308,7 @@ export const AccountDistributionSection: React.FC<AccountDistributionSectionProp
       <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5 my-2 sm:my-3 relative z-10">
         {categories.map((cat) => {
           const isHovered = hoveredCategoryId === cat.id;
-          const sharePct = ((cat.count / totalAccounts) * 100).toFixed(1);
+          const sharePct = totalAccounts > 0 ? ((cat.count / totalAccounts) * 100).toFixed(1) : '0.0';
 
           return (
             <div

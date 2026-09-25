@@ -30,9 +30,10 @@ import { clsx } from 'clsx';
 
 export default function ClientOpenAccountPage() {
   const router = useRouter();
-  const { impersonation, showToast, addTradingAccount } = useCRM();
-
-  const clientName = impersonation.client?.name || 'Nikita Client';
+  const { clients, impersonation, clientUser, showToast, addTradingAccount } = useCRM();
+  const rawClient = impersonation.client || clientUser || clients[0];
+  const client = (rawClient?.id ? clients.find(c => c.id === rawClient.id || c.email === rawClient.email) : null) || rawClient;
+  const clientName = client?.name || 'Trading Client';
 
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedAccount, setSelectedAccount] = useState<'BASIC' | 'STANDARD' | 'VVIP'>('STANDARD');
@@ -44,52 +45,70 @@ export default function ClientOpenAccountPage() {
   const [createdServer, setCreatedServer] = useState(MT5_CONFIG.serverName);
   const [createdPasswords, setCreatedPasswords] = useState<{ main?: string; investor?: string }>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [groupMappings, setGroupMappings] = useState<Record<string, any>>(MT5_ACCOUNT_MAPPING);
+
+  // Fetch live account group configurations from backend API
+  React.useEffect(() => {
+    fetch('/api/mt5/groups')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.groups) {
+          setGroupMappings(data.groups);
+        }
+      })
+      .catch(err => console.warn('Could not fetch live groups, using fallback:', err));
+  }, []);
+
+  const basicConfig = groupMappings.BASIC || MT5_ACCOUNT_MAPPING.BASIC;
+  const standardConfig = groupMappings.STANDARD || MT5_ACCOUNT_MAPPING.STANDARD;
+  const vvipConfig = groupMappings.VVIP || MT5_ACCOUNT_MAPPING.VVIP;
 
   const accountTypes = [
     {
       id: 'BASIC' as const,
-      name: MT5_ACCOUNT_MAPPING.BASIC.name,
-      group: MT5_ACCOUNT_MAPPING.BASIC.group,
+      name: basicConfig.name,
+      group: basicConfig.group,
       icon: <Users className="w-5 h-5 text-emerald-600" />,
-      tag: MT5_ACCOUNT_MAPPING.BASIC.tag,
-      deposit: MT5_ACCOUNT_MAPPING.BASIC.deposit,
-      description: MT5_ACCOUNT_MAPPING.BASIC.description,
-      features: MT5_ACCOUNT_MAPPING.BASIC.features,
-      highlightsCount: 5,
-      server: MT5_CONFIG.serverName,
-      leverageOptions: 'Up to 1:300',
+      tag: basicConfig.tag,
+      deposit: basicConfig.deposit,
+      description: basicConfig.description,
+      features: basicConfig.features,
+      highlightsCount: basicConfig.highlightsCount || basicConfig.features?.length || 5,
+      server: basicConfig.server || MT5_CONFIG.serverName,
+      leverageOptions: `Up to ${basicConfig.maxLeverage || '1:300'}`,
     },
     {
       id: 'STANDARD' as const,
-      name: MT5_ACCOUNT_MAPPING.STANDARD.name,
-      group: MT5_ACCOUNT_MAPPING.STANDARD.group,
+      name: standardConfig.name,
+      group: standardConfig.group,
       icon: <TrendingUp className="w-5 h-5 text-blue-600" />,
-      tag: MT5_ACCOUNT_MAPPING.STANDARD.tag,
-      deposit: MT5_ACCOUNT_MAPPING.STANDARD.deposit,
-      description: MT5_ACCOUNT_MAPPING.STANDARD.description,
-      features: MT5_ACCOUNT_MAPPING.STANDARD.features,
-      highlightsCount: 5,
-      server: MT5_CONFIG.serverName,
-      leverageOptions: 'Up to 1:500',
+      tag: standardConfig.tag,
+      deposit: standardConfig.deposit,
+      description: standardConfig.description,
+      features: standardConfig.features,
+      highlightsCount: standardConfig.highlightsCount || standardConfig.features?.length || 5,
+      server: standardConfig.server || MT5_CONFIG.serverName,
+      leverageOptions: `Up to ${standardConfig.maxLeverage || '1:500'}`,
     },
     {
       id: 'VVIP' as const,
-      name: MT5_ACCOUNT_MAPPING.VVIP.name,
-      group: MT5_ACCOUNT_MAPPING.VVIP.group,
+      name: vvipConfig.name,
+      group: vvipConfig.group,
       icon: <Award className="w-5 h-5 text-indigo-600" />,
-      tag: MT5_ACCOUNT_MAPPING.VVIP.tag,
-      deposit: MT5_ACCOUNT_MAPPING.VVIP.deposit,
-      description: MT5_ACCOUNT_MAPPING.VVIP.description,
-      features: MT5_ACCOUNT_MAPPING.VVIP.features,
-      highlightsCount: 5,
-      server: MT5_CONFIG.serverName,
-      leverageOptions: 'Up to 1:200',
+      tag: vvipConfig.tag,
+      deposit: vvipConfig.deposit,
+      description: vvipConfig.description,
+      features: vvipConfig.features,
+      highlightsCount: vvipConfig.highlightsCount || vvipConfig.features?.length || 5,
+      server: vvipConfig.server || MT5_CONFIG.serverName,
+      leverageOptions: `Up to ${vvipConfig.maxLeverage || '1:200'}`,
     },
   ];
 
   const handleSelectAccount = (id: 'BASIC' | 'STANDARD' | 'VVIP') => {
     setSelectedAccount(id);
-    setLeverage(MT5_ACCOUNT_MAPPING[id].defaultLeverage);
+    const chosen = groupMappings[id] || MT5_ACCOUNT_MAPPING[id];
+    setLeverage(chosen.defaultLeverage || '1:100');
     setStep(2);
   };
 
@@ -102,8 +121,9 @@ export default function ClientOpenAccountPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          clientId: client?.id,
           clientName,
-          email: impersonation.client?.email || `${clientName.toLowerCase().replace(/\s+/g, '')}@testcrm.co.in`,
+          email: client?.email || `${clientName.toLowerCase().replace(/\s+/g, '')}@testcrm.co.in`,
           accountType: selectedAccount,
           leverage,
         }),
@@ -385,7 +405,7 @@ export default function ClientOpenAccountPage() {
                             Features
                           </p>
                           <ul className="space-y-1.5 text-slate-600">
-                            {acc.features.map((feat, idx) => (
+                            {(acc.features || []).map((feat: any, idx: number) => (
                               <li key={idx} className="flex items-center gap-2">
                                 <CheckCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                                 <span>{feat}</span>

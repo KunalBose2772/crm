@@ -84,15 +84,15 @@ export const AdminHeader: React.FC = () => {
           <HeaderSearchBar isMobileTriggerOnly />
         </div>
 
-        {/* Client Panel Button (Always opens in new tab) */}
+        {/* Client Portal Button (Always opens in new tab) */}
         <a
-          href="/client/dashboard"
+          href="/client/login"
           target="_blank"
           rel="noopener noreferrer"
           className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50/80 text-blue-700 hover:bg-blue-100 text-xs font-semibold transition-all shadow-2xs"
-          title="Open Client Panel in new tab"
+          title="Open Client Portal Login in new tab"
         >
-          <span>Client Panel</span>
+          <span>Client Portal</span>
           <ExternalLink className="w-3.5 h-3.5" />
         </a>
         {/* Notifications Bell */}

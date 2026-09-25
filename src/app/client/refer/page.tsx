@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Gift, 
   Sparkles, 
@@ -16,20 +16,52 @@ import {
   TrendingUp,
   BarChart3
 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useCRM } from '@/context/CRMContext';
 import { ClientPageHeader } from '@/components/layout/ClientPageHeader';
 
-export default function ClientReferPage() {
-  const { impersonation, showToast } = useCRM();
+function ClientReferContent() {
+  const searchParams = useSearchParams();
+  const targetClientId = searchParams?.get('clientId');
+  const { clients, impersonation, clientUser, ibPartners, showToast } = useCRM();
 
-  // State: Code generation status
-  const [hasCode, setHasCode] = useState(false);
+  const clientFromParam = targetClientId ? clients.find(c => c.id === targetClientId) : null;
+  const rawClient = clientFromParam || impersonation.client || clientUser || clients[0];
+  const client = (rawClient?.id ? clients.find(c => c.id === rawClient.id || c.email === rawClient.email) : null) || rawClient;
+
+  // Find if client is a registered IB partner
+  const existingPartner = ibPartners.find(
+    p => (client?.email && p.email?.toLowerCase() === client.email.toLowerCase()) || 
+         (client?.id && p.id === client.id) ||
+         (client?.id && (p as any).clientId === client.id) ||
+         (client?.name && p.name?.toLowerCase() === client.name?.toLowerCase())
+  );
+
+  // If already an IB partner or approved, or already has referral code
+  const isRegisteredPartner = !!existingPartner || client?.ibPartnerStatus === 'active';
+
+  // Referral code: prioritize the partner's official referral code (e.g., REF750828), else formatted code
+  const referralCode = existingPartner?.referralCode || (client ? `REF-${client.id.replace('CL-', '')}` : 'REF-8891');
+
+  // State: Code generation status - if already a partner, code is active immediately!
+  const [hasCode, setHasCode] = useState<boolean>(isRegisteredPartner);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [origin, setOrigin] = useState('');
 
-  const client = impersonation.client;
-  const referralCode = client ? `REF-${client.id.replace('CL-', '')}` : 'REF-8891';
-  const referralLink = `https://nd1crm.testcrm.co.in/register?ref=${referralCode}`;
+  useEffect(() => {
+    if (isRegisteredPartner) {
+      setHasCode(true);
+    }
+  }, [isRegisteredPartner]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setOrigin(window.location.origin);
+    }
+  }, []);
+  const baseUrl = origin || (process.env.NEXT_PUBLIC_APP_URL || '');
+  const referralLink = baseUrl ? `${baseUrl}/register?ref=${referralCode}` : `/register?ref=${referralCode}`;
 
   const handleCreateCode = () => {
     setIsGenerating(true);
@@ -189,7 +221,9 @@ export default function ClientReferPage() {
                   <p className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-slate-400">
                     Total Referrals
                   </p>
-                  <p className="mt-1 text-2xl font-extrabold text-slate-900 font-mono">0</p>
+                  <p className="mt-1 text-2xl font-extrabold text-slate-900 font-mono">
+                    {existingPartner?.activeClientsCount ?? 0}
+                  </p>
                   <p className="mt-1 text-[11px] text-slate-500">Registered traders</p>
                 </div>
 
@@ -197,7 +231,9 @@ export default function ClientReferPage() {
                   <p className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-slate-400">
                     Network Volume
                   </p>
-                  <p className="mt-1 text-2xl font-extrabold text-blue-700 font-mono">0.00 Lots</p>
+                  <p className="mt-1 text-2xl font-extrabold text-blue-700 font-mono">
+                    {(existingPartner?.totalVolumeLots ?? 0).toFixed(2)} Lots
+                  </p>
                   <p className="mt-1 text-[11px] text-slate-500">Aggregated trading flow</p>
                 </div>
 
@@ -205,7 +241,9 @@ export default function ClientReferPage() {
                   <p className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-slate-400">
                     Total Earned
                   </p>
-                  <p className="mt-1 text-2xl font-extrabold text-emerald-600 font-mono">$0.00</p>
+                  <p className="mt-1 text-2xl font-extrabold text-emerald-600 font-mono">
+                    ${(existingPartner?.totalCommissionEarned ?? 0).toFixed(2)}
+                  </p>
                   <p className="mt-1 text-[11px] text-slate-500">Lifetime rebate cash</p>
                 </div>
               </div>
@@ -314,5 +352,17 @@ export default function ClientReferPage() {
         </section>
       </div>
     </div>
+  );
+}
+
+export default function ClientReferPage() {
+  return (
+    <React.Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8">
+        <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+      </div>
+    }>
+      <ClientReferContent />
+    </React.Suspense>
   );
 }

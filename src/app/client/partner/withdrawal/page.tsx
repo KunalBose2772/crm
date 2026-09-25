@@ -43,22 +43,22 @@ export default function ClientPartnerWithdrawalPage() {
   const { showToast } = useCRM();
 
   // State
-  const [withdrawableBalance, setWithdrawableBalance] = useState<number>(540.00);
+  const [withdrawableBalance, setWithdrawableBalance] = useState<number>(0.00);
   const [amount, setAmount] = useState<string>('');
   const [method, setMethod] = useState<'bank' | 'crypto'>('bank');
 
   // Bank Form State
   const [bankForm, setBankForm] = useState({
-    bankName: 'Chase Manhattan Bank, N.A.',
-    accountHolderName: 'Alexander Wright',
-    accountNumber: '987654321012',
-    ifscCode: 'CHASUS33XXX',
+    bankName: '',
+    accountHolderName: '',
+    accountNumber: '',
+    ifscCode: '',
   });
 
   // Crypto Form State
   const [cryptoForm, setCryptoForm] = useState({
     network: 'USDT (TRC20)',
-    walletAddress: 'TYDzsYUE2t...9pLx2Q4W',
+    walletAddress: '',
     memo: '',
   });
 
@@ -66,28 +66,7 @@ export default function ClientPartnerWithdrawalPage() {
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
   // Recent withdrawal requests
-  const [requests, setRequests] = useState<PartnerWithdrawalRequest[]>([
-    {
-      id: 'pwr-101',
-      referenceId: 'IBW-98241',
-      date: 'Sep 21, 2026, 14:32',
-      method: 'bank',
-      destination: 'Chase Manhattan Bank',
-      details: '••••1012 | Alexander Wright',
-      amount: 450.00,
-      status: 'Settled',
-    },
-    {
-      id: 'pwr-102',
-      referenceId: 'IBW-98104',
-      date: 'Sep 14, 2026, 09:18',
-      method: 'crypto',
-      destination: 'USDT (TRC20)',
-      details: 'TYDzs...Lx2Q4W',
-      amount: 391.40,
-      status: 'Settled',
-    },
-  ]);
+  const [requests, setRequests] = useState<PartnerWithdrawalRequest[]>([]);
 
   const settledCount = requests.filter(r => r.status === 'Settled').length;
   const settledTotal = requests
@@ -97,7 +76,7 @@ export default function ClientPartnerWithdrawalPage() {
   const pendingRequests = requests.filter(r => r.status === 'Pending');
   const pendingTotal = pendingRequests.reduce((sum, r) => sum + r.amount, 0);
 
-  const totalCommissions = 1381.40;
+  const totalCommissions = settledTotal + pendingTotal + withdrawableBalance;
 
   const handleMaxClick = () => {
     setAmount(withdrawableBalance.toFixed(2));

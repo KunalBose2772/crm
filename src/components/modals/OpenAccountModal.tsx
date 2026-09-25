@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Sparkles, 
@@ -28,9 +28,12 @@ interface OpenAccountModalProps {
 }
 
 export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({ isOpen, onClose }) => {
-  const { showToast, impersonation, addTradingAccount } = useCRM();
+  const { showToast, impersonation, clientUser, clients, addTradingAccount } = useCRM();
 
-  const clientName = impersonation.client?.name || 'Nikita Client';
+  const rawClient = impersonation.client || clientUser || clients[0];
+  const activeClient = (rawClient?.id ? clients.find(c => c.id === rawClient.id || c.email === rawClient.email) : null) || rawClient;
+  const clientName = activeClient?.name || 'Trading Client';
+  const clientEmail = activeClient?.email || `${clientName.toLowerCase().replace(/\s+/g, '')}@livecrm.com`;
 
   const [step, setStep] = useState<1 | 2>(1);
   const [selectedType, setSelectedType] = useState<'BASIC' | 'STANDARD' | 'VVIP'>('STANDARD');
@@ -42,6 +45,20 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({ isOpen, onCl
   const [createdServer, setCreatedServer] = useState(MT5_CONFIG.serverName);
   const [createdPasswords, setCreatedPasswords] = useState<{ main?: string; investor?: string }>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [groupMappings, setGroupMappings] = useState<Record<string, any>>(MT5_ACCOUNT_MAPPING);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch('/api/mt5/groups')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.groups) {
+            setGroupMappings(data.groups);
+          }
+        })
+        .catch(err => console.warn('Could not fetch live groups in modal:', err));
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -60,7 +77,7 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({ isOpen, onCl
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientName,
-          email: impersonation.client?.email || `${clientName.toLowerCase().replace(/\s+/g, '')}@testcrm.co.in`,
+          email: clientEmail,
           accountType: selectedType,
           leverage,
         }),
@@ -121,42 +138,46 @@ export const OpenAccountModal: React.FC<OpenAccountModalProps> = ({ isOpen, onCl
     showToast('info', 'Copied', `${field} copied to clipboard.`);
   };
 
+  const basicConfig = groupMappings.BASIC || MT5_ACCOUNT_MAPPING.BASIC;
+  const standardConfig = groupMappings.STANDARD || MT5_ACCOUNT_MAPPING.STANDARD;
+  const vvipConfig = groupMappings.VVIP || MT5_ACCOUNT_MAPPING.VVIP;
+
   const accountTypes = [
     {
       id: 'BASIC' as const,
-      name: MT5_ACCOUNT_MAPPING.BASIC.name,
-      group: MT5_ACCOUNT_MAPPING.BASIC.group,
+      name: basicConfig.name,
+      group: basicConfig.group,
       icon: <Sparkles className="w-5 h-5 text-amber-500" />,
-      tag: MT5_ACCOUNT_MAPPING.BASIC.tag,
-      deposit: MT5_ACCOUNT_MAPPING.BASIC.deposit,
-      description: MT5_ACCOUNT_MAPPING.BASIC.description,
-      features: 'Low minimum deposit • Instant execution • Negative balance protection',
+      tag: basicConfig.tag,
+      deposit: basicConfig.deposit,
+      description: basicConfig.description,
+      features: Array.isArray(basicConfig.features) ? basicConfig.features.join(' • ') : basicConfig.features || 'Low minimum deposit • Instant execution',
       platform: 'MT5',
-      leverageOptions: 'Up to 1:300',
+      leverageOptions: `Up to ${basicConfig.maxLeverage || '1:300'}`,
     },
     {
       id: 'STANDARD' as const,
-      name: MT5_ACCOUNT_MAPPING.STANDARD.name,
-      group: MT5_ACCOUNT_MAPPING.STANDARD.group,
+      name: standardConfig.name,
+      group: standardConfig.group,
       icon: <DollarSign className="w-5 h-5 text-blue-600" />,
-      tag: MT5_ACCOUNT_MAPPING.STANDARD.tag,
-      deposit: MT5_ACCOUNT_MAPPING.STANDARD.deposit,
-      description: MT5_ACCOUNT_MAPPING.STANDARD.description,
-      features: 'Tighter spreads from 0.8 pips • Zero commission • Full EA support',
+      tag: standardConfig.tag,
+      deposit: standardConfig.deposit,
+      description: standardConfig.description,
+      features: Array.isArray(standardConfig.features) ? standardConfig.features.join(' • ') : standardConfig.features || 'Tighter spreads from 0.8 pips • Zero commission',
       platform: 'MT5',
-      leverageOptions: 'Up to 1:500',
+      leverageOptions: `Up to ${standardConfig.maxLeverage || '1:500'}`,
     },
     {
       id: 'VVIP' as const,
-      name: MT5_ACCOUNT_MAPPING.VVIP.name,
-      group: MT5_ACCOUNT_MAPPING.VVIP.group,
+      name: vvipConfig.name,
+      group: vvipConfig.group,
       icon: <Star className="w-5 h-5 text-indigo-600" />,
-      tag: MT5_ACCOUNT_MAPPING.VVIP.tag,
-      deposit: MT5_ACCOUNT_MAPPING.VVIP.deposit,
-      description: MT5_ACCOUNT_MAPPING.VVIP.description,
-      features: 'Multi-level rebate structure • Dedicated account manager • Institutional liquidity',
+      tag: vvipConfig.tag,
+      deposit: vvipConfig.deposit,
+      description: vvipConfig.description,
+      features: Array.isArray(vvipConfig.features) ? vvipConfig.features.join(' • ') : vvipConfig.features || 'Multi-level rebate structure • Institutional liquidity',
       platform: 'MT5',
-      leverageOptions: 'Up to 1:200',
+      leverageOptions: `Up to ${vvipConfig.maxLeverage || '1:200'}`,
     },
   ];
 

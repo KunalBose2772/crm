@@ -31,6 +31,7 @@ import {
   AlertCircle,
   Sparkles,
   ArrowRight,
+  MessageSquare,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -49,6 +50,7 @@ export default function KYCVerificationPage() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
+  const [approvalComment, setApprovalComment] = useState('');
 
   // Stats calculation
   const totalSubmissions = kycRecords.length;
@@ -90,12 +92,13 @@ export default function KYCVerificationPage() {
     setSelectedRecord(record);
     setIsRejecting(false);
     setRejectReason('');
+    setApprovalComment('');
     setIsReviewModalOpen(true);
   };
 
   const handleApprove = () => {
     if (!selectedRecord) return;
-    approveKYC(selectedRecord.id);
+    approveKYC(selectedRecord.id, approvalComment.trim() || undefined);
     showToast('success', 'KYC Approved', `${selectedRecord.clientName}'s identity documents verified.`);
     setIsReviewModalOpen(false);
   };
@@ -662,10 +665,22 @@ export default function KYCVerificationPage() {
 
             {/* Document Preview Scans */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2 font-heading">
-                <FileText className="w-4 h-4 text-purple-600" />
-                Submitted Document Images
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2 font-heading">
+                  <FileText className="w-4 h-4 text-purple-600" />
+                  Submitted Document Images
+                </h4>
+
+                <a
+                  href={`/api/kyc/download?id=${selectedRecord.id}&print=true`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download Complete Document Page (PDF)</span>
+                </a>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
@@ -724,6 +739,28 @@ export default function KYCVerificationPage() {
                   onChange={e => setRejectReason(e.target.value)}
                   placeholder="Specify why the submission was rejected (e.g. Blurry photo, document expired, name mismatch)..."
                   className="w-full px-3.5 py-2.5 bg-white border border-rose-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-rose-500"
+                />
+              </div>
+            )}
+
+            {/* Optional Approval Note / Comment input */}
+            {!isRejecting && selectedRecord.status !== 'verified' && (
+              <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-emerald-900 flex items-center gap-1.5 font-heading">
+                    <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
+                    Approval Note / Verification Comment
+                  </label>
+                  <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                    Optional
+                  </span>
+                </div>
+                <textarea
+                  rows={2}
+                  value={approvalComment}
+                  onChange={e => setApprovalComment(e.target.value)}
+                  placeholder="Add an optional note (e.g. Verified via official passport scan, address confirmed). This note will also be included in the approval email."
+                  className="w-full px-3.5 py-2.5 bg-white border border-emerald-200 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 shadow-2xs"
                 />
               </div>
             )}

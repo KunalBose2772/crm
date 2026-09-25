@@ -19,8 +19,8 @@ export interface MT5GroupConfig {
 export const MT5_CONFIG = {
   serverHost: process.env.MT5_SERVER_HOST || 'access.tgshost.org',
   serverPort: parseInt(process.env.MT5_SERVER_PORT || '26043', 10),
-  managerLogin: process.env.MT5_MANAGER_LOGIN || '4321',
-  apiPassword: process.env.MT5_API_PASSWORD || 'Api@1234',
+  managerLogin: process.env.MT5_MANAGER_LOGIN || '',
+  apiPassword: process.env.MT5_API_PASSWORD || '',
   serverName: process.env.NEXT_PUBLIC_MT5_SERVER_NAME || 'TheKFMarket-Live',
 };
 
