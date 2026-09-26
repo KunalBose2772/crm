@@ -124,8 +124,33 @@ function CopyTradingHubContent() {
       } catch (e) {
         console.error('Error loading subscriptions', e);
       }
+      // 3. Trigger trade replication cycle in background to mirror any active master positions
+      try {
+        const repRes = await fetch('/api/copy-trading/replicate', { method: 'POST' });
+        const repData = await repRes.json();
+        if (repData.success && repData.replicatedCount > 0) {
+          showToast('success', 'Trade Mirrored', `Mirrored ${repData.replicatedCount} master order(s) to your copier account.`);
+        }
+      } catch {
+        // quiet background worker
+      }
     }
     loadData();
+
+    // Active trade replication background heartbeat (every 10 seconds)
+    const replicationTimer = setInterval(async () => {
+      try {
+        const repRes = await fetch('/api/copy-trading/replicate', { method: 'POST' });
+        const repData = await repRes.json();
+        if (repData.success && repData.replicatedCount > 0) {
+          showToast('success', 'Trade Mirrored Live', `Real-time replication executed on MT5.`);
+        }
+      } catch {
+        // silent
+      }
+    }, 10000);
+
+    return () => clearInterval(replicationTimer);
   }, [client?.id]);
 
   // Handle subscription pause/resume/stop

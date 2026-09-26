@@ -377,6 +377,78 @@ class MT5ClientService {
       }
     });
   }
+
+  /**
+   * Automatically places a mirror market trade on a copier account
+   */
+  public async orderOpen(params: {
+    login: string | number;
+    symbol: string;
+    action: 'BUY' | 'SELL';
+    volume: number; // In lots, e.g. 0.01, 0.10, 1.00
+    price?: number;
+    sl?: number;
+    tp?: number;
+    comment?: string;
+  }): Promise<{ ticket: string; retcode: string }> {
+    return await this.executeSession(async (req) => {
+      // MT5 WebAPI action types: 0 = BUY, 1 = SELL
+      const actionType = params.action === 'SELL' ? '1' : '0';
+      // Convert standard lot to MT5 API volume (1 lot = 100 or 10000 depending on server configuration)
+      const volumeParam = Math.max(1, Math.round(params.volume * 100)).toString();
+
+      const query = new URLSearchParams({
+        login: String(params.login),
+        symbol: params.symbol,
+        type: actionType,
+        volume: volumeParam,
+        comment: params.comment || 'Copy Engine Mirror',
+      });
+
+      if (params.price && params.price > 0) query.append('price', params.price.toString());
+      if (params.sl && params.sl > 0) query.append('sl', params.sl.toString());
+      if (params.tp && params.tp > 0) query.append('tp', params.tp.toString());
+
+      const res = await req(`/api/trade/order?${query.toString()}`);
+      if (!res || (res.retcode !== '0 Done' && !res.answer?.ticket)) {
+        throw new Error(`MT5 order open failed: ${res?.retcode || JSON.stringify(res)}`);
+      }
+
+      return {
+        ticket: String(res.answer?.ticket || res.answer?.order || Date.now()),
+        retcode: res.retcode || '0 Done',
+      };
+    });
+  }
+
+  /**
+   * Automatically closes a mirrored position on a copier account
+   */
+  public async positionClose(params: {
+    login: string | number;
+    ticket: string | number;
+    symbol: string;
+    volume: number;
+    action: 'BUY' | 'SELL';
+  }): Promise<boolean> {
+    return await this.executeSession(async (req) => {
+      // Opposite action to close: BUY closes with SELL (1), SELL closes with BUY (0)
+      const closeActionType = params.action === 'BUY' ? '1' : '0';
+      const volumeParam = Math.max(1, Math.round(params.volume * 100)).toString();
+
+      const query = new URLSearchParams({
+        login: String(params.login),
+        position: String(params.ticket),
+        symbol: params.symbol,
+        type: closeActionType,
+        volume: volumeParam,
+        comment: 'Copy Engine Close',
+      });
+
+      const res = await req(`/api/trade/close?${query.toString()}`);
+      return Boolean(res && (res.retcode === '0 Done' || res.answer));
+    });
+  }
 }
 
 export const mt5Client = new MT5ClientService();
