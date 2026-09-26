@@ -67,6 +67,10 @@ function ClientAccountListContent() {
 
     let isMounted = true;
     const autoSyncAll = async () => {
+      // Scale Optimization: Do NOT query MT5 server if user minimized the window or switched tabs
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
       if (isAutoSyncing) return;
       setIsAutoSyncing(true);
       try {

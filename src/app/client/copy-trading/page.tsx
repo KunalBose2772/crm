@@ -137,8 +137,11 @@ function CopyTradingHubContent() {
     }
     loadData();
 
-    // Active trade replication background heartbeat (every 10 seconds)
+    // Active trade replication background heartbeat (every 10 seconds, pause when tab hidden)
     const replicationTimer = setInterval(async () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
       try {
         const repRes = await fetch('/api/copy-trading/replicate', { method: 'POST' });
         const repData = await repRes.json();

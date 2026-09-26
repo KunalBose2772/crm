@@ -58,38 +58,42 @@ export async function GET(req: NextRequest) {
     clients.forEach(c => clientMap.set(c.id, c));
 
     // 2. Fetch live MT5 positions, deals, and balances for real accounts
-    // Query MT5 for all accounts in parallel with safety
+    // Concurrency optimization: Process accounts in batches of 10 to prevent socket pool exhaustion
     const mt5DataMap = new Map<number, { positions: any[]; deals: any[]; balance: number; equity: number }>();
+    const BATCH_SIZE = 10;
 
-    await Promise.all(
-      accounts.map(async (acc) => {
-        const loginNum = Number(acc.login);
-        try {
-          const [mt5Acc, positions, deals] = await Promise.all([
-            mt5Client.getAccount(loginNum).catch(() => null),
-            mt5Client.getPositions(loginNum).catch(() => []),
-            mt5Client.getDeals(loginNum).catch(() => []),
-          ]);
+    for (let i = 0; i < accounts.length; i += BATCH_SIZE) {
+      const batch = accounts.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        batch.map(async (acc) => {
+          const loginNum = Number(acc.login);
+          try {
+            const [mt5Acc, positions, deals] = await Promise.all([
+              mt5Client.getAccount(loginNum).catch(() => null),
+              mt5Client.getPositions(loginNum).catch(() => []),
+              mt5Client.getDeals(loginNum).catch(() => []),
+            ]);
 
-          const bal = mt5Acc ? mt5Acc.balance : (parseFloat(acc.balance) || 0);
-          const eq = mt5Acc ? mt5Acc.equity : (parseFloat(acc.equity) || bal);
+            const bal = mt5Acc ? mt5Acc.balance : (parseFloat(acc.balance) || 0);
+            const eq = mt5Acc ? mt5Acc.equity : (parseFloat(acc.equity) || bal);
 
-          mt5DataMap.set(loginNum, {
-            positions: positions || [],
-            deals: deals || [],
-            balance: bal,
-            equity: eq,
-          });
-        } catch {
-          mt5DataMap.set(loginNum, {
-            positions: [],
-            deals: [],
-            balance: parseFloat(acc.balance) || 0,
-            equity: parseFloat(acc.equity) || 0,
-          });
-        }
-      })
-    );
+            mt5DataMap.set(loginNum, {
+              positions: positions || [],
+              deals: deals || [],
+              balance: bal,
+              equity: eq,
+            });
+          } catch {
+            mt5DataMap.set(loginNum, {
+              positions: [],
+              deals: [],
+              balance: parseFloat(acc.balance) || 0,
+              equity: parseFloat(acc.equity) || 0,
+            });
+          }
+        })
+      );
+    }
 
     // 3. Transform real MT5 positions and deals into ContestTrade objects
     const openTrades: ContestTrade[] = [];

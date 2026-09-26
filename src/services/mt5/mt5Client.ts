@@ -28,7 +28,39 @@ export interface MT5AccountResponse {
   investorPassword?: string;
 }
 
+interface CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+
 class MT5ClientService {
+  // In-memory micro-cache (3 seconds TTL) to prevent MT5 socket exhaustion under high concurrency
+  private cache = new Map<string, CacheEntry<any>>();
+
+  private getCached<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.data as T;
+  }
+
+  private setCached<T>(key: string, data: T, ttlMs = 3000): void {
+    this.cache.set(key, {
+      data,
+      expiresAt: Date.now() + ttlMs,
+    });
+  }
+
+  public invalidateAccountCache(login: string | number): void {
+    const strLogin = String(login);
+    this.cache.delete(`acc:${strLogin}`);
+    this.cache.delete(`pos:${strLogin}`);
+    this.cache.delete(`deals:${strLogin}`);
+  }
+
   /**
    * Executes a command on MT5 WebAPI within an isolated authenticated session
    */
@@ -175,10 +207,14 @@ class MT5ClientService {
   }
 
   /**
-   * Fetches real-time live trading account balance and details
+   * Fetches real-time live trading account balance and details (with 3-second micro-cache)
    */
   public async getAccount(login: string | number): Promise<MT5AccountResponse> {
-    return await this.executeSession(async (req) => {
+    const cacheKey = `acc:${String(login)}`;
+    const cached = this.getCached<MT5AccountResponse>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.executeSession(async (req) => {
       const [userRes, accRes] = await Promise.all([
         req(`/api/user/get?login=${login}`),
         req(`/api/user/account/get?login=${login}`),
@@ -204,6 +240,9 @@ class MT5ClientService {
         server: MT5_CONFIG.serverName,
       };
     });
+
+    this.setCached(cacheKey, result, 3000);
+    return result;
   }
 
   /**
@@ -343,10 +382,14 @@ class MT5ClientService {
     }
 
   /**
-   * Fetches open positions for a trading account from MT5
+   * Fetches open positions for a trading account from MT5 (cached for 3s)
    */
   public async getPositions(login: string | number): Promise<any[]> {
-    return await this.executeSession(async (req) => {
+    const cacheKey = `pos:${String(login)}`;
+    const cached = this.getCached<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.executeSession(async (req) => {
       try {
         const res = await req(`/api/position/get_page?login=${login}&offset=0&total=50`);
         if (res && res.retcode === '0 Done' && Array.isArray(res.answer)) {
@@ -358,13 +401,20 @@ class MT5ClientService {
         return [];
       }
     });
+
+    this.setCached(cacheKey, result, 3000);
+    return result;
   }
 
   /**
-   * Fetches trade history deals for an account from MT5
+   * Fetches trade history deals for an account from MT5 (cached for 5s)
    */
   public async getDeals(login: string | number): Promise<any[]> {
-    return await this.executeSession(async (req) => {
+    const cacheKey = `deals:${String(login)}`;
+    const cached = this.getCached<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const result = await this.executeSession(async (req) => {
       try {
         const res = await req(`/api/deal/get_page?login=${login}&offset=0&total=50`);
         if (res && res.retcode === '0 Done' && Array.isArray(res.answer)) {
@@ -376,6 +426,9 @@ class MT5ClientService {
         return [];
       }
     });
+
+    this.setCached(cacheKey, result, 5000);
+    return result;
   }
 
   /**
