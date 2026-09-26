@@ -127,7 +127,7 @@ export default function ClientPartnerCreatePage() {
               <div className="space-y-4 pt-1">
                 <div className="flex items-start gap-3 rounded-2xl border border-blue-300/20 bg-white/10 px-4 py-3 text-xs text-blue-100 backdrop-blur-xs">
                   <ShieldCheck className="w-4 h-4 text-emerald-300 shrink-0 mt-0.5" />
-                  <span>Your master trading account is pre-approved for Tier 1 Master IB commissions ($8.00 USD / lot rebate).</span>
+                  <span>Every partner starts with Silver Tier by default ($6.00 USD/lot rebate) and automatically upgrades to Gold, Platinum, Diamond, and VIP as your trades and lot thresholds are met.</span>
                 </div>
 
                 <button

@@ -40,7 +40,7 @@ export default function IBConfigurationPage() {
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
-  const [tierFilter, setTierFilter] = useState<'all' | 'Gold' | 'Platinum' | 'Diamond' | 'VIP'>('all');
+  const [tierFilter, setTierFilter] = useState<'all' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond' | 'VIP'>('all');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   // Pagination
@@ -57,8 +57,8 @@ export default function IBConfigurationPage() {
   const [partnerForm, setPartnerForm] = useState({
     name: '',
     email: '',
-    tier: 'Gold',
-    rebatePerLotUsd: '8.0'
+    tier: 'Silver',
+    rebatePerLotUsd: '6.0'
   });
 
   // Copy code helper
@@ -220,9 +220,16 @@ export default function IBConfigurationPage() {
         </span>
       );
     }
+    if (tier === 'Gold') {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-900 border border-yellow-300 shadow-2xs">
+          Gold
+        </span>
+      );
+    }
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-900 border border-yellow-300 shadow-2xs">
-        Gold
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300 shadow-2xs">
+        Silver (Default)
       </span>
     );
   };
@@ -335,111 +342,156 @@ export default function IBConfigurationPage() {
 
         {/* Matrix Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm border-collapse min-w-[820px]">
+          <table className="w-full text-left text-sm border-collapse min-w-[980px]">
             <thead>
               <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider font-heading">
                 <th className="py-3.5 px-5">Tier Level</th>
-                <th className="py-3.5 px-4 text-right">Min Monthly Lots</th>
-                <th className="py-3.5 px-4 text-right">Forex ($/lot)</th>
-                <th className="py-3.5 px-4 text-right">Metals ($/lot)</th>
-                <th className="py-3.5 px-4 text-right">Crypto ($/lot)</th>
-                <th className="py-3.5 px-4 text-right">Indices ($/lot)</th>
-                <th className="py-3.5 px-5 text-right">Sub-IB Share (%)</th>
+                <th className="py-3.5 px-3 text-right">Min Lots</th>
+                <th className="py-3.5 px-3 text-right">Min Trades</th>
+                <th className="py-3.5 px-3 text-right">Min Traders</th>
+                <th className="py-3.5 px-3 text-right">Forex ($/lot)</th>
+                <th className="py-3.5 px-3 text-right">Metals ($/lot)</th>
+                <th className="py-3.5 px-3 text-right">Crypto ($/lot)</th>
+                <th className="py-3.5 px-3 text-right">Indices ($/lot)</th>
+                <th className="py-3.5 px-4 text-right">Sub-IB (%)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-sans">
               {tiers.map((tier, idx) => {
                 const tierBadges: Record<string, { bg: string; text: string; border: string }> = {
-                  Standard: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-200' },
-                  Silver: { bg: 'bg-slate-100', text: 'text-slate-800', border: 'border-slate-300' },
+                  Silver: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-300' },
                   Gold: { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
-                  VIP: { bg: 'bg-purple-50', text: 'text-purple-800', border: 'border-purple-200' },
+                  Platinum: { bg: 'bg-purple-50', text: 'text-purple-800', border: 'border-purple-200' },
+                  Diamond: { bg: 'bg-cyan-50', text: 'text-cyan-800', border: 'border-cyan-200' },
+                  VIP: { bg: 'bg-rose-50', text: 'text-rose-800', border: 'border-rose-200' },
                 };
                 const badge = tierBadges[tier.tierName] || { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200' };
 
                 return (
                   <tr key={tier.tierName} className="hover:bg-slate-50/70 transition-colors group">
                     <td className="py-3.5 px-5 font-bold font-heading">
-                      <div className="flex items-center gap-2.5">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold border ${badge.bg} ${badge.text} ${badge.border}`}>
-                          <Award className="w-3.5 h-3.5" />
-                          <span>{tier.tierName}</span>
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="inline-flex items-center justify-end">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold border ${badge.bg} ${badge.text} ${badge.border}`}>
+                            <Award className="w-3.5 h-3.5" />
+                            <span>{tier.tierName}</span>
+                          </span>
+                          {tier.tierName === 'Silver' && (
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider font-mono">
+                              Default
+                            </span>
+                          )}
+                        </div>
                         <input
-                          type="number"
-                          value={tier.minLots}
-                          onChange={e => handleTierChange(idx, 'minLots', Number(e.target.value))}
-                          className="w-24 px-3 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono font-semibold text-slate-800 text-right focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-500 transition-all tabular-nums"
+                          type="text"
+                          value={tier.description || ''}
+                          placeholder="Clause description..."
+                          onChange={e => {
+                            const updated = [...tiers];
+                            updated[idx] = { ...updated[idx], description: e.target.value };
+                            setTiers(updated);
+                          }}
+                          className="text-[11px] text-slate-500 bg-transparent border-b border-dashed border-slate-200 focus:border-purple-500 focus:outline-none py-0.5"
                         />
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-4 text-right">
+                    {/* Min Lots Threshold */}
+                    <td className="py-3.5 px-3 text-right">
+                      <input
+                        type="number"
+                        value={tier.minLots}
+                        onChange={e => handleTierChange(idx, 'minLots', Number(e.target.value))}
+                        className="w-20 px-2.5 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono font-semibold text-slate-800 text-right focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-500 transition-all tabular-nums"
+                      />
+                    </td>
+
+                    {/* Min Trades Threshold */}
+                    <td className="py-3.5 px-3 text-right">
+                      <input
+                        type="number"
+                        value={tier.minTrades ?? 0}
+                        onChange={e => handleTierChange(idx, 'minTrades', Number(e.target.value))}
+                        className="w-20 px-2.5 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono font-semibold text-indigo-700 font-bold text-right focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-500 transition-all tabular-nums"
+                      />
+                    </td>
+
+                    {/* Min Active Traders Threshold */}
+                    <td className="py-3.5 px-3 text-right">
+                      <input
+                        type="number"
+                        value={tier.minActiveClients ?? 0}
+                        onChange={e => handleTierChange(idx, 'minActiveClients', Number(e.target.value))}
+                        className="w-20 px-2.5 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono font-semibold text-emerald-700 font-bold text-right focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 transition-all tabular-nums"
+                      />
+                    </td>
+
+                    {/* Forex Rebate */}
+                    <td className="py-3.5 px-3 text-right">
                       <div className="inline-flex items-center justify-end relative">
-                        <span className="absolute left-2.5 text-xs text-slate-400 font-mono">$</span>
+                        <span className="absolute left-2 text-xs text-slate-400 font-mono">$</span>
                         <input
                           type="number"
                           step="0.5"
                           value={tier.forexRebatePerLot}
                           onChange={e => handleTierChange(idx, 'forexRebatePerLot', Number(e.target.value))}
-                          className="w-24 pl-6 pr-2.5 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono text-emerald-700 font-bold text-right focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 transition-all tabular-nums"
+                          className="w-20 pl-5 pr-2 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono text-emerald-700 font-bold text-right focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 transition-all tabular-nums"
                         />
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-4 text-right">
+                    {/* Metals Rebate */}
+                    <td className="py-3.5 px-3 text-right">
                       <div className="inline-flex items-center justify-end relative">
-                        <span className="absolute left-2.5 text-xs text-slate-400 font-mono">$</span>
+                        <span className="absolute left-2 text-xs text-slate-400 font-mono">$</span>
                         <input
                           type="number"
                           step="0.5"
                           value={tier.metalsRebatePerLot}
                           onChange={e => handleTierChange(idx, 'metalsRebatePerLot', Number(e.target.value))}
-                          className="w-24 pl-6 pr-2.5 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono text-amber-700 font-bold text-right focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-500 transition-all tabular-nums"
+                          className="w-20 pl-5 pr-2 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono text-amber-700 font-bold text-right focus:outline-none focus:border-amber-600 focus:ring-1 focus:ring-amber-500 transition-all tabular-nums"
                         />
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-4 text-right">
+                    {/* Crypto Rebate */}
+                    <td className="py-3.5 px-3 text-right">
                       <div className="inline-flex items-center justify-end relative">
-                        <span className="absolute left-2.5 text-xs text-slate-400 font-mono">$</span>
+                        <span className="absolute left-2 text-xs text-slate-400 font-mono">$</span>
                         <input
                           type="number"
                           step="0.5"
                           value={tier.cryptoRebatePerLot}
                           onChange={e => handleTierChange(idx, 'cryptoRebatePerLot', Number(e.target.value))}
-                          className="w-24 pl-6 pr-2.5 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono text-purple-700 font-bold text-right focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-500 transition-all tabular-nums"
+                          className="w-20 pl-5 pr-2 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono text-purple-700 font-bold text-right focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-500 transition-all tabular-nums"
                         />
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-4 text-right">
+                    {/* Indices Rebate */}
+                    <td className="py-3.5 px-3 text-right">
                       <div className="inline-flex items-center justify-end relative">
-                        <span className="absolute left-2.5 text-xs text-slate-400 font-mono">$</span>
+                        <span className="absolute left-2 text-xs text-slate-400 font-mono">$</span>
                         <input
                           type="number"
                           step="0.5"
                           value={tier.indicesRebatePerLot}
                           onChange={e => handleTierChange(idx, 'indicesRebatePerLot', Number(e.target.value))}
-                          className="w-24 pl-6 pr-2.5 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono text-blue-700 font-bold text-right focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 transition-all tabular-nums"
+                          className="w-20 pl-5 pr-2 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono text-blue-700 font-bold text-right focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-500 transition-all tabular-nums"
                         />
                       </div>
                     </td>
 
-                    <td className="py-3.5 px-5 text-right">
+                    {/* Sub-IB Share */}
+                    <td className="py-3.5 px-4 text-right">
                       <div className="inline-flex items-center justify-end relative">
                         <input
                           type="number"
                           value={tier.subIbSharePercent}
                           onChange={e => handleTierChange(idx, 'subIbSharePercent', Number(e.target.value))}
-                          className="w-20 pr-6 pl-2.5 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-800 text-right focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-500 transition-all tabular-nums"
+                          className="w-18 pr-5 pl-2 py-1.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-800 text-right focus:outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-500 transition-all tabular-nums"
                         />
-                        <span className="absolute right-2 text-xs text-slate-400 font-bold">%</span>
+                        <span className="absolute right-1.5 text-xs text-slate-400 font-bold">%</span>
                       </div>
                     </td>
                   </tr>
@@ -504,7 +556,7 @@ export default function IBConfigurationPage() {
 
           {/* Tier Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-            {['all', 'VIP', 'Diamond', 'Platinum', 'Gold'].map(t => (
+            {['all', 'Silver', 'Gold', 'Platinum', 'Diamond', 'VIP'].map(t => (
               <button
                 key={t}
                 type="button"
@@ -516,7 +568,7 @@ export default function IBConfigurationPage() {
                     : "bg-purple-50/60 text-slate-600 hover:bg-purple-100/70 hover:text-purple-700"
                 )}
               >
-                {t === 'all' ? 'All Tiers' : t}
+                {t === 'all' ? 'All Tiers' : t === 'Silver' ? 'Silver (Default)' : t}
               </button>
             ))}
           </div>
@@ -592,9 +644,12 @@ export default function IBConfigurationPage() {
                     <div className="text-[11px] text-slate-400 font-normal">{p.subIbCount} Sub-IBs</div>
                   </td>
 
-                  {/* Trading Volume */}
-                  <td className="py-4 px-4 font-mono font-bold text-purple-700 text-xs">
-                    {p.totalVolumeLots.toLocaleString()} Lots
+                  {/* Trading Volume & Trades */}
+                  <td className="py-4 px-4 font-mono font-bold text-xs">
+                    <div className="text-purple-700">{p.totalVolumeLots.toLocaleString()} Lots</div>
+                    <div className="text-indigo-600 font-medium text-[11px]">
+                      {(p.totalTradesCount || 0).toLocaleString()} Trades
+                    </div>
                   </td>
 
                   {/* Commission */}
@@ -788,6 +843,10 @@ export default function IBConfigurationPage() {
                 <span className="font-mono font-bold text-purple-700">{selectedPartner.totalVolumeLots.toLocaleString()} Lots</span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-purple-100/60">
+                <span className="text-slate-500 font-medium">Total Trades Executed</span>
+                <span className="font-mono font-bold text-indigo-700">{(selectedPartner.totalTradesCount || 0).toLocaleString()} Trades</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-purple-100/60">
                 <span className="text-slate-500 font-medium">Lifetime Commission Earned</span>
                 <span className="font-mono font-extrabold text-emerald-600 text-sm">${selectedPartner.totalCommissionEarned.toLocaleString()}</span>
               </div>
@@ -862,11 +921,12 @@ export default function IBConfigurationPage() {
                 value={partnerForm.tier}
                 onChange={e => {
                   const t = e.target.value;
-                  const defaultRates: Record<string, string> = { Gold: '8.0', Platinum: '10.0', Diamond: '12.0', VIP: '15.0' };
-                  setPartnerForm({ ...partnerForm, tier: t, rebatePerLotUsd: defaultRates[t] || '8.0' });
+                  const defaultRates: Record<string, string> = { Silver: '6.0', Gold: '8.0', Platinum: '10.0', Diamond: '12.0', VIP: '15.0' };
+                  setPartnerForm({ ...partnerForm, tier: t, rebatePerLotUsd: defaultRates[t] || '6.0' });
                 }}
                 className="w-full px-3 py-2.5 bg-white border border-purple-100 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 focus:outline-none focus:border-purple-600 cursor-pointer"
               >
+                <option value="Silver">Silver Tier (Default)</option>
                 <option value="Gold">Gold Tier</option>
                 <option value="Platinum">Platinum Tier</option>
                 <option value="Diamond">Diamond Tier</option>

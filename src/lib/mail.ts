@@ -435,7 +435,36 @@ export const emailTemplates = {
       'Password updated',
       `
         <p style="color: #475569; font-size: 15px; line-height: 1.6;">Hello <strong>${name}</strong>,</p>
-        <p style="color: #475569; font-size: 15px; line-height: 1.6;">Your password has been changed successfully. If this wasn’t you, secure your account immediately.</p>
+        <p style="color: #475569; font-size: 15px; line-height: 1.6;">Your portal account password has been changed successfully. If this wasn’t you, secure your account immediately.</p>
+      `
+    ),
+  }),
+
+  // 18b. MT5 Trading/Investor password changed mail
+  mt5PasswordChanged: (name: string, login: number | string, type: 'main' | 'investor', brandName = BRAND_NAME) => ({
+    subject: `Security Alert: MT5 ${type === 'investor' ? 'Investor (Read-Only)' : 'Master Trading'} Password Changed for Account #${login}`,
+    html: createBaseEmail(
+      `MT5 Password Updated`,
+      `
+        <p style="color: #475569; font-size: 15px; line-height: 1.6;">Hello <strong>${name}</strong>,</p>
+        <p style="color: #475569; font-size: 15px; line-height: 1.6;">The <strong>${type === 'investor' ? 'Investor (Read-Only)' : 'Master Trading'}</strong> password for your MetaTrader 5 account has been updated successfully.</p>
+        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 18px; margin: 20px 0;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 6px 0; color: #64748b; font-size: 14px;">MT5 Account Login:</td>
+              <td style="padding: 6px 0; color: #0f172a; font-weight: bold; font-size: 14px; font-family: monospace;">#${login}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Password Type:</td>
+              <td style="padding: 6px 0; color: #0f172a; font-weight: bold; font-size: 14px;">${type === 'investor' ? 'Investor (Read-Only)' : 'Master Trading (Execution)'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Timestamp:</td>
+              <td style="padding: 6px 0; color: #0f172a; font-size: 14px;">${new Date().toUTCString()}</td>
+            </tr>
+          </table>
+        </div>
+        <p style="color: #ef4444; font-size: 14px; font-weight: 600;">If you did not authorize this change, please contact support or reset your credentials immediately.</p>
       `
     ),
   }),

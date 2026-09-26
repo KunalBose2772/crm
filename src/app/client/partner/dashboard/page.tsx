@@ -20,12 +20,13 @@ import {
 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
 import { ClientPageHeader } from '@/components/layout/ClientPageHeader';
+import { evaluatePartnerTier } from '@/lib/ibTierEngine';
 import { clsx } from 'clsx';
 
 function ClientPartnerDashboardContent() {
   const searchParams = useSearchParams();
   const targetClientId = searchParams?.get('clientId');
-  const { clients, impersonation, clientUser, ibPartners, openClientModal, showToast } = useCRM();
+  const { clients, impersonation, clientUser, ibPartners, ibTiers, openClientModal, showToast } = useCRM();
   const clientFromParam = targetClientId ? clients.find(c => c.id === targetClientId) : null;
   const rawClient = clientFromParam || impersonation.client || clientUser || clients[0];
   const client = (rawClient?.id ? clients.find(c => c.id === rawClient.id || c.email === rawClient.email) : null) || rawClient;
@@ -61,13 +62,25 @@ function ClientPartnerDashboardContent() {
   }, []);
 
   const partnerCode = existingPartner?.referralCode || (client ? `IB-${client.id.replace('CL-', '')}` : 'IB-88912');
-  const partnerTier = existingPartner?.tier || 'Gold';
+  const partnerTier = existingPartner?.tier || 'Silver';
   const baseUrl = origin || (process.env.NEXT_PUBLIC_APP_URL || '');
   const partnerLink = baseUrl ? `${baseUrl}/register?ib=${partnerCode}` : `/register?ib=${partnerCode}`;
   const totalVolume = existingPartner?.totalVolumeLots || 0;
+  const totalTrades = existingPartner?.totalTradesCount || 0;
   const lifetimeEarned = existingPartner?.totalCommissionEarned || 0;
   const walletBalance = existingPartner?.withdrawableCommission || 0;
   const activeTradersCount = existingPartner?.activeClientsCount || 0;
+
+  // Evaluate Auto-Promotion and Threshold Progress
+  const evaluation = evaluatePartnerTier(
+    {
+      tier: partnerTier,
+      totalVolumeLots: totalVolume,
+      totalTradesCount: totalTrades,
+      activeClientsCount: activeTradersCount,
+    },
+    ibTiers
+  );
 
   const referredTraders: Array<{ id: string; country: string; lots: number; rebate: string; status: string; joined: string }> = [];
 
@@ -80,18 +93,18 @@ function ClientPartnerDashboardContent() {
         body: JSON.stringify({
           name: client?.name || 'IB Partner',
           email: client?.email || '',
-          tier: 'Gold',
-          rebatePerLotUsd: 8.0
+          tier: 'Silver',
+          rebatePerLotUsd: 6.0
         })
       });
       const data = await res.json();
       setIsActivating(false);
       setIsActivated(true);
-      showToast('success', 'Partner Profile Activated', `Assigned IB Code ${data.partner?.referralCode || partnerCode} with Gold Tier commission.`);
+      showToast('success', 'Partner Profile Activated', `Assigned IB Code ${data.partner?.referralCode || partnerCode} with Silver Tier commission.`);
     } catch {
       setIsActivating(false);
       setIsActivated(true);
-      showToast('success', 'Partner Profile Activated', `Assigned IB Code ${partnerCode} with Gold Tier commission.`);
+      showToast('success', 'Partner Profile Activated', `Assigned IB Code ${partnerCode} with Silver Tier commission.`);
     }
   };
 
@@ -219,6 +232,117 @@ function ClientPartnerDashboardContent() {
             </div>
           </div>
 
+          {/* Tier Promotion Roadmap & Clauses Progress Card */}
+          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-950 rounded-2xl sm:rounded-3xl p-6 sm:p-7 text-white shadow-lg border border-indigo-500/20 relative overflow-hidden">
+            <div className="absolute -right-16 -top-16 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="relative z-10 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-amber-300 shadow-inner">
+                    <Award className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-blue-200 uppercase tracking-wider font-mono">Current Status</span>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-400/20 text-amber-300 border border-amber-400/40 font-heading">
+                        {evaluation.currentTier} IB Tier
+                      </span>
+                      {evaluation.currentTier === 'Silver' && (
+                        <span className="text-[10px] bg-white/10 text-slate-300 px-2 py-0.5 rounded-md font-mono">
+                          Default Starting Tier
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-extrabold text-white mt-0.5 font-heading">
+                      {evaluation.nextTier ? `Upgrade Progress to ${evaluation.nextTier.tierName} Tier` : 'Peak Institutional Tier Achieved'}
+                    </h3>
+                  </div>
+                </div>
+
+                {evaluation.isEligibleForPromotion && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-xs font-bold animate-pulse">
+                    <Sparkles className="w-4 h-4 text-emerald-400" />
+                    <span>Auto-Promoted to {evaluation.promotedToTier?.tierName}!</span>
+                  </span>
+                )}
+              </div>
+
+              {/* Progress Milestones */}
+              {evaluation.nextTier ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-blue-200 font-medium">Overall Progression to {evaluation.nextTier.tierName}</span>
+                    <span className="font-mono font-extrabold text-amber-300 text-sm">{evaluation.overallProgress}%</span>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden p-0.5">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 via-indigo-400 to-amber-400 h-full rounded-full transition-all duration-700 shadow-sm"
+                      style={{ width: `${Math.min(100, Math.max(5, evaluation.overallProgress))}%` }}
+                    />
+                  </div>
+
+                  {/* Promotion Clauses Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                    {/* Lots Milestone */}
+                    <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-300 font-medium">Trading Volume</span>
+                        <span className="font-mono text-white font-bold">{totalVolume.toFixed(1)} / {evaluation.nextTier.minLots} Lots</span>
+                      </div>
+                      <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-blue-400 h-full rounded-full" style={{ width: `${evaluation.progressLots}%` }} />
+                      </div>
+                      <p className="text-[10px] text-blue-200">
+                        {evaluation.remainingLots === 0 ? '✓ Volume requirement satisfied' : `${evaluation.remainingLots.toFixed(1)} lots remaining`}
+                      </p>
+                    </div>
+
+                    {/* Trades Milestone */}
+                    <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-300 font-medium">Processed Trades</span>
+                        <span className="font-mono text-white font-bold">{totalTrades.toLocaleString()} / {(evaluation.nextTier.minTrades || 0).toLocaleString()} Trades</span>
+                      </div>
+                      <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-indigo-400 h-full rounded-full" style={{ width: `${evaluation.progressTrades}%` }} />
+                      </div>
+                      <p className="text-[10px] text-blue-200">
+                        {evaluation.remainingTrades === 0 ? '✓ Trades count satisfied' : `${evaluation.remainingTrades.toLocaleString()} trades remaining`}
+                      </p>
+                    </div>
+
+                    {/* Active Traders Milestone */}
+                    <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-300 font-medium">Active Traders</span>
+                        <span className="font-mono text-white font-bold">{activeTradersCount} / {evaluation.nextTier.minActiveClients || 0} Traders</span>
+                      </div>
+                      <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-emerald-400 h-full rounded-full" style={{ width: `${evaluation.progressClients}%` }} />
+                      </div>
+                      <p className="text-[10px] text-blue-200">
+                        {evaluation.remainingClients === 0 ? '✓ Trader network satisfied' : `${evaluation.remainingClients} clients remaining`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {evaluation.nextTier.description && (
+                    <p className="text-xs text-blue-200/80 italic bg-white/5 px-3 py-2 rounded-lg border border-white/10">
+                      Clause rule: {evaluation.nextTier.description}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-xs text-blue-200 space-y-1">
+                  <p className="font-bold text-white">Congratulations! You are receiving maximum VIP institutional rebates.</p>
+                  <p>Enjoy peak per-lot rebates, premium asset spreads, and maximum sub-IB revenue splits.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* 3 Overview Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white border border-slate-200/90 rounded-2xl p-5 space-y-2 shadow-xs hover:shadow-md transition-shadow">
@@ -229,18 +353,18 @@ function ClientPartnerDashboardContent() {
                 </span>
               </div>
               <div className="text-2xl font-mono font-extrabold text-purple-700">ACTIVE IB</div>
-              <p className="text-xs text-slate-500">${(existingPartner?.rebatePerLotUsd || 8).toFixed(2)} USD rebate per standard lot</p>
+              <p className="text-xs text-slate-500">${(existingPartner?.rebatePerLotUsd || 6).toFixed(2)} USD rebate per standard lot</p>
             </div>
 
             <div className="bg-white border border-slate-200/90 rounded-2xl p-5 space-y-2 shadow-xs hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-slate-400 font-bold">Referred Traders</span>
+                <span className="text-[10px] font-mono uppercase text-slate-400 font-bold">Referred Volume & Trades</span>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold">
-                  {activeTradersCount} Total
+                  {activeTradersCount} Traders
                 </span>
               </div>
               <div className="text-2xl font-mono font-extrabold text-emerald-600">{totalVolume.toFixed(2)} Lots</div>
-              <p className="text-xs text-slate-500">Aggregate trading volume generated</p>
+              <p className="text-xs text-slate-500">{totalTrades.toLocaleString()} trades executed across your network</p>
             </div>
 
             <div className="bg-white border border-slate-200/90 rounded-2xl p-5 space-y-2 shadow-xs hover:shadow-md transition-shadow">

@@ -33,8 +33,11 @@ export const KYCVerificationModal: React.FC<KYCVerificationModalProps> = ({
   onClose,
   isInline = false,
 }) => {
-  const { clients, impersonation, kycRecords, submitKycRecord, showToast } = useCRM();
-  const activeClient = impersonation.client || clients[0];
+  const { clients, impersonation, clientUser, authLoading, kycRecords, submitKycRecord, showToast } = useCRM();
+  
+  // Accurately resolve active client from impersonation, logged-in clientUser, or clients list
+  const rawClient = impersonation.client || clientUser || (clients.length > 0 ? clients[0] : null);
+  const activeClient = (rawClient ? clients.find(c => (rawClient.email && c.email?.toLowerCase() === rawClient.email?.toLowerCase()) || (rawClient.id && c.id === rawClient.id)) : null) || rawClient;
 
   const [documentType, setDocumentType] = useState<'Passport' | 'National_ID' | 'Driving_License'>('Passport');
   const [documentNumber, setDocumentNumber] = useState('');
@@ -45,8 +48,9 @@ export const KYCVerificationModal: React.FC<KYCVerificationModalProps> = ({
 
   const [hasLocalPending, setHasLocalPending] = useState(false);
 
-  const existingKyc = kycRecords.find(k => k.clientId === activeClient?.id || k.clientEmail === activeClient?.email);
+  const existingKyc = kycRecords.find(k => (activeClient?.id && k.clientId === activeClient.id) || (activeClient?.email && k.clientEmail?.toLowerCase() === activeClient.email.toLowerCase()));
   const isApproved = !!activeClient?.kycVerified || existingKyc?.status === 'verified';
+  const isPending = !isApproved && (existingKyc?.status === 'pending' || hasLocalPending || isSubmittedLocal);
 
   useEffect(() => {
     try {
@@ -75,8 +79,6 @@ export const KYCVerificationModal: React.FC<KYCVerificationModalProps> = ({
   }, [activeClient, existingKyc]);
 
   if (!isOpen) return null;
-
-  const isPending = !isApproved && (existingKyc?.status === 'pending' || isSubmittedLocal || hasLocalPending);
 
   const uploadFileToSupabase = async (file: File): Promise<string> => {
     const formData = new FormData();

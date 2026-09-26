@@ -138,10 +138,11 @@ export interface IBPartner {
   id: string;
   name: string;
   email: string;
-  tier: 'Gold' | 'Platinum' | 'Diamond' | 'VIP';
+  tier: 'Silver' | 'Gold' | 'Platinum' | 'Diamond' | 'VIP';
   referralCode: string;
   activeClientsCount: number;
   totalVolumeLots: number;
+  totalTradesCount?: number;
   totalCommissionEarned: number;
   withdrawableCommission: number;
   status: 'active' | 'inactive';
@@ -167,11 +168,14 @@ export interface IBWithdrawalRequest {
 export interface IBTierConfig {
   tierName: string;
   minLots: number;
+  minTrades?: number;
+  minActiveClients?: number;
   forexRebatePerLot: number;
   metalsRebatePerLot: number;
   cryptoRebatePerLot: number;
   indicesRebatePerLot: number;
   subIbSharePercent: number;
+  description?: string;
 }
 
 export interface DashboardStats {
@@ -268,6 +272,71 @@ export interface PaymentGatewayConfig {
     instructions?: string;
   };
   createdAt: string;
+}
+
+// Copy Trading Types (OctaFX / OctaBroker standard)
+export interface MasterTrader {
+  id: string;
+  name: string;
+  avatar?: string;
+  country: string;
+  countryCode: string;
+  verified: boolean;
+  login: number;
+  strategyName: string;
+  description: string;
+  joinedDate: string;
+  totalCopiers: number;
+  activeCopiers: number;
+  totalProfitShare: number; // e.g. 20%
+  minInvestment: number; // e.g. $25, $50, $100
+  riskScore: number; // 1 to 5
+  overallGain: number; // % total
+  gain3m: number;
+  gain6m: number;
+  gain1y: number;
+  floatingProfit: number;
+  equity: number;
+  balance: number;
+  winRate: number; // %
+  maxDrawdown: number; // %
+  profitFactor: number;
+  totalTrades: number;
+  avgHoldingTime: string;
+  sparklineData: number[]; // Points for mini chart
+  monthlyReturns?: { month: string; year: number; returnPct: number }[];
+  favoritePairs?: { symbol: string; percentage: number }[];
+}
+
+export interface CopySubscription {
+  id: string;
+  clientId: string;
+  masterId: string;
+  masterName: string;
+  masterAvatar?: string;
+  copierAccountLogin: number;
+  allocatedAmount: number;
+  currentEquity: number;
+  unrealizedPnL: number;
+  realizedPnL: number;
+  copyMode: 'proportional' | 'equal' | 'fixed_ratio';
+  riskStopPercent: number; // Drawdown stop guard e.g. 20%
+  status: 'active' | 'paused' | 'stopped';
+  startDate: string;
+}
+
+export interface CopiedTradeRecord {
+  id: string;
+  masterTicket: number;
+  copierTicket: number;
+  symbol: string;
+  type: 'BUY' | 'SELL';
+  lots: number;
+  openPrice: number;
+  currentPrice: number;
+  profit: number;
+  openTime: string;
+  status: 'OPEN' | 'CLOSED';
 }
 
 

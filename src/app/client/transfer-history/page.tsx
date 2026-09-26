@@ -127,21 +127,21 @@ export default function ClientTransferHistoryPage() {
           {/* 2 Quick Metric Cards */}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-xs">
-              <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-amber-200 font-mono">
+              <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-amber-200 font-heading">
                 <ArrowUpDown className="h-4 w-4 text-amber-300" />
                 <span>Total Records</span>
               </div>
-              <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono">{filteredRecords.length}</p>
-              <p className="mt-1 text-xs text-blue-100/90">Visible after active filters.</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-white font-heading">{filteredRecords.length}</p>
+              <p className="mt-1 text-xs text-blue-100/90 font-sans">Visible after active filters.</p>
             </div>
 
             <div className="rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-xs text-white">
-              <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-amber-200 font-mono">
+              <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-amber-200 font-heading">
                 <CalendarRange className="h-4 w-4 text-amber-300" />
                 <span>View Mode</span>
               </div>
               <p className="text-sm sm:text-base font-extrabold font-heading">Top filters, bottom history</p>
-              <p className="mt-1 text-xs text-blue-100/90">Built for faster review and scanning.</p>
+              <p className="mt-1 text-xs text-blue-100/90 font-sans">Built for faster review and scanning.</p>
             </div>
           </div>
         </div>

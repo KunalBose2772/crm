@@ -86,7 +86,8 @@ function ClientTradingContestContent() {
   const fetchContestData = useCallback(async (isSilent = false) => {
     if (!isSilent) setIsRefreshing(true);
     try {
-      const url = client?.id ? `/api/trading-contest?clientId=${client.id}` : '/api/trading-contest';
+      const resolvedClientId = targetClientId || client?.id;
+      const url = resolvedClientId ? `/api/trading-contest?clientId=${resolvedClientId}` : '/api/trading-contest';
       const res = await fetch(url);
       const data = await res.json();
       if (data.success) {

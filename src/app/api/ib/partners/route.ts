@@ -25,11 +25,12 @@ export async function GET(req: NextRequest) {
       referralCode: r.referral_code,
       activeClientsCount: 0,
       totalVolumeLots: parseFloat(r.total_volume_lots) || 0,
+      totalTradesCount: parseInt(r.total_trades_count || r.trades_count || '0', 10) || 0,
       totalCommissionEarned: parseFloat(r.total_commission_earned) || 0,
       withdrawableCommission: parseFloat(r.withdrawable_commission) || 0,
       status: r.status || 'active',
       joinedAt: r.created_at,
-      rebatePerLotUsd: parseFloat(r.rebate_per_lot) || 8.0,
+      rebatePerLotUsd: parseFloat(r.rebate_per_lot) || 6.0,
       subIbCount: 0,
     }));
 
@@ -51,8 +52,8 @@ export async function POST(req: NextRequest) {
     const name = sanitizeString(body.name || '', 100);
     const email = sanitizeString(body.email || '', 100).toLowerCase();
     const referralCode = sanitizeString(body.referralCode || `REF${Math.floor(100000 + Math.random() * 900000)}`, 30);
-    const tier = sanitizeString(body.tier || 'Gold', 20);
-    const rebatePerLot = parseFloat(body.rebatePerLotUsd || body.rebatePerLot || '8.0');
+    const tier = sanitizeString(body.tier || 'Silver', 20);
+    const rebatePerLot = parseFloat(body.rebatePerLotUsd || body.rebatePerLot || '6.0');
 
     if (!name || !email) {
       return NextResponse.json({ success: false, error: 'Partner name and email are required.' }, { status: 400 });

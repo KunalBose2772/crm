@@ -320,10 +320,61 @@ class MT5ClientService {
     type: 'main' | 'investor' = 'main'
   ): Promise<boolean> {
     return await this.executeSession(async (req) => {
+      // 1. Try standard /api/user/change_password
       const res = await req(
         `/api/user/change_password?login=${login}&type=${type}&password=${encodeURIComponent(password)}`
       );
-      return res && res.retcode === '0 Done';
+      if (res && res.retcode === '0 Done') {
+        return true;
+      }
+
+      // 2. Fallback to /api/user/update if change_password is not enabled on server
+      const passParam = type === 'investor' ? 'pass_investor' : 'pass_main';
+      const updateRes = await req(
+        `/api/user/update?login=${login}&${passParam}=${encodeURIComponent(password)}`
+      );
+      if (updateRes && updateRes.retcode === '0 Done') {
+        return true;
+      }
+
+        const errMsg = res?.retcode || updateRes?.retcode || 'Password change failed on MT5 server';
+        throw new Error(`MT5 password update failed: ${errMsg}`);
+      });
+    }
+
+  /**
+   * Fetches open positions for a trading account from MT5
+   */
+  public async getPositions(login: string | number): Promise<any[]> {
+    return await this.executeSession(async (req) => {
+      try {
+        const res = await req(`/api/position/get_page?login=${login}&offset=0&total=50`);
+        if (res && res.retcode === '0 Done' && Array.isArray(res.answer)) {
+          return res.answer;
+        }
+        return [];
+      } catch (err: any) {
+        console.warn(`[MT5Client] getPositions #${login} note:`, err.message);
+        return [];
+      }
+    });
+  }
+
+  /**
+   * Fetches trade history deals for an account from MT5
+   */
+  public async getDeals(login: string | number): Promise<any[]> {
+    return await this.executeSession(async (req) => {
+      try {
+        const res = await req(`/api/deal/get_page?login=${login}&offset=0&total=50`);
+        if (res && res.retcode === '0 Done' && Array.isArray(res.answer)) {
+          return res.answer;
+        }
+        return [];
+      } catch (err: any) {
+        console.warn(`[MT5Client] getDeals #${login} note:`, err.message);
+        return [];
+      }
     });
   }
 }

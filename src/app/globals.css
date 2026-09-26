@@ -3,6 +3,7 @@
 @theme inline {
   --font-heading: var(--font-sora);
   --font-sans: var(--font-inter);
+  --font-roboto: var(--font-roboto);
   --font-mono: var(--font-jetbrains-mono);
 }
 
@@ -24,19 +25,35 @@ body {
   color-scheme: light;
 }
 
-/* Headings use Sora */
-h1, h2, h3, h4, h5, h6, .font-heading {
+/* Headings and KPI metric numbers use Sora */
+h1, h2, h3, h4, h5, h6, .font-heading, .kpi-number, [data-kpi="true"] {
   font-family: var(--font-sora), -apple-system, BlinkMacSystemFont, sans-serif;
   letter-spacing: -0.025em;
 }
 
+/* Table content and table cells (including numbers) use Roboto for pristine small-size legibility */
+table, table td, table tbody tr, .table-content {
+  font-family: var(--font-roboto), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Table headers can retain clean crisp styling */
+table th {
+  font-family: var(--font-sora), var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: 0.05em;
+}
+
 /* Paragraphs and general UI copy use Inter */
-p, span, label, input, select, textarea, button, table, .font-sans {
+p, span, label, input, select, textarea, button, .font-sans {
   font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Numbers, financial figures, transaction IDs, codes use JetBrains Mono */
-code, kbd, samp, pre, .font-mono, [data-mono="true"], .tabular-nums {
+/* Roboto utility class */
+.font-roboto {
+  font-family: var(--font-roboto), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* Code, debug, tech monospace */
+code, kbd, samp, pre, .font-mono, [data-mono="true"] {
   font-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-feature-settings: "tnum" 1, "zero" 1;
   font-variant-numeric: tabular-nums;

@@ -75,6 +75,11 @@ export const AdminSidebar: React.FC<{ isCollapsed?: boolean }> = ({ isCollapsed 
           badge: pendingKycCount > 0 ? pendingKycCount : undefined,
           badgeColor: 'purple',
         },
+        {
+          label: 'Copy Trading',
+          href: '/admin/copy-trading',
+          icon: <TrendingUp className="w-5 h-5 text-emerald-600" />,
+        },
       ],
     },
     {

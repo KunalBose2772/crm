@@ -150,6 +150,65 @@ function ClientDashboardContent() {
     return () => clearInterval(interval);
   }, []);
 
+  // Live MT5 Market Board Telemetry
+  const [marketTelemetry, setMarketTelemetry] = useState<{
+    tradesScanned: number;
+    openPositionsCount: number;
+    netProfit: number;
+    winRate: number;
+    openTrades: any[];
+    closedTrades: any[];
+    bestSymbol: string;
+  }>({
+    tradesScanned: 0,
+    openPositionsCount: 0,
+    netProfit: 0,
+    winRate: 0,
+    openTrades: [],
+    closedTrades: [],
+    bestSymbol: 'BTCUSD.x',
+  });
+
+  const fetchMarketBoard = React.useCallback(async () => {
+    try {
+      const resolvedClientId = targetClientId || client?.id;
+      const url = resolvedClientId ? `/api/trading-contest?clientId=${resolvedClientId}` : '/api/trading-contest';
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success) {
+        const opens = data.trades?.open || [];
+        const closeds = data.trades?.closed || [];
+        const allTrades = [...opens, ...closeds];
+        const profitable = allTrades.filter((t: any) => t.profit > 0);
+        const winPct = allTrades.length > 0 ? Math.round((profitable.length / allTrades.length) * 100) : 0;
+        const totalNet = parseFloat(allTrades.reduce((acc: number, t: any) => acc + (t.profit || 0), 0).toFixed(2));
+        
+        // Find most frequent symbol
+        const symMap: Record<string, number> = {};
+        allTrades.forEach((t: any) => {
+          symMap[t.symbol] = (symMap[t.symbol] || 0) + 1;
+        });
+        const topSym = Object.entries(symMap).sort((a, b) => b[1] - a[1])[0]?.[0] || 'BTCUSD.x';
+
+        setMarketTelemetry({
+          tradesScanned: allTrades.length,
+          openPositionsCount: opens.length,
+          netProfit: totalNet,
+          winRate: winPct,
+          openTrades: opens,
+          closedTrades: closeds,
+          bestSymbol: topSym,
+        });
+      }
+    } catch (e: any) {
+      console.warn('Market Board fetch note:', e.message);
+    }
+  }, [targetClientId, client?.id]);
+
+  useEffect(() => {
+    fetchMarketBoard();
+  }, [fetchMarketBoard]);
+
   const handleStopImpersonation = () => {
     stopImpersonation();
     router.push('/admin/client-page');
@@ -396,7 +455,7 @@ function ClientDashboardContent() {
               </div>
             </div>
             <div className="mt-3 relative z-10">
-              <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#064e3b] font-mono tabular-nums leading-none">
+              <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#064e3b] font-heading leading-none">
                 ${computedTotalDeposit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </h3>
             </div>
@@ -427,7 +486,7 @@ function ClientDashboardContent() {
               </div>
             </div>
             <div className="mt-3 relative z-10">
-              <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#312e81] font-mono tabular-nums leading-none">
+              <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#312e81] font-heading leading-none">
                 ${totalEquity.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </h3>
             </div>
@@ -458,7 +517,7 @@ function ClientDashboardContent() {
               </div>
             </div>
             <div className="mt-3 relative z-10">
-              <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#881337] font-mono tabular-nums leading-none">
+              <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#881337] font-heading leading-none">
                 ${computedTotalWithdrawal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </h3>
             </div>
@@ -489,7 +548,7 @@ function ClientDashboardContent() {
               </div>
             </div>
             <div className="mt-3 relative z-10">
-              <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#0c4a6e] font-mono tabular-nums leading-none">
+              <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#0c4a6e] font-heading leading-none">
                 {accountsCount}
               </h3>
             </div>
@@ -538,7 +597,7 @@ function ClientDashboardContent() {
               </div>
             </div>
             <div className="mt-3 relative z-10">
-              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-mono tabular-nums leading-none">
+              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-heading leading-none">
                 ${computedTotalDeposit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </h3>
             </div>
@@ -547,7 +606,7 @@ function ClientDashboardContent() {
                 <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                 {completedDeposits.length} approved
               </span>
-              <span className="text-blue-100/80 font-mono text-[11px]">Weight: 100%</span>
+              <span className="text-blue-100/80 font-sans text-[11px]">Weight: 100%</span>
             </div>
           </div>
 
@@ -562,7 +621,7 @@ function ClientDashboardContent() {
               </div>
             </div>
             <div className="mt-3 relative z-10">
-              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-mono tabular-nums leading-none">
+              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-heading leading-none">
                 ${computedTotalWithdrawal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </h3>
             </div>
@@ -571,7 +630,7 @@ function ClientDashboardContent() {
                 <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                 {completedWithdrawals.length} completed
               </span>
-              <span className="text-blue-100/80 font-mono text-[11px]">Outflow</span>
+              <span className="text-blue-100/80 font-sans text-[11px]">Outflow</span>
             </div>
           </div>
 
@@ -586,7 +645,7 @@ function ClientDashboardContent() {
               </div>
             </div>
             <div className="mt-3 relative z-10">
-              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-mono tabular-nums leading-none">
+              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-heading leading-none">
                 {clientDeposits.length + clientWithdrawals.length + clientTransactions.length}
               </h3>
             </div>
@@ -595,7 +654,7 @@ function ClientDashboardContent() {
                 <ArrowUpRight className="w-3 h-3 stroke-[2.5]" />
                 Live
               </span>
-              <span className="text-blue-100/80 font-mono text-[11px]">Total Events</span>
+              <span className="text-blue-100/80 font-sans text-[11px]">Total Events</span>
             </div>
           </div>
 
@@ -610,7 +669,7 @@ function ClientDashboardContent() {
               </div>
             </div>
             <div className="mt-3 relative z-10">
-              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-mono tabular-nums leading-none">
+              <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-heading leading-none">
                 {netFlow >= 0 ? `+$${netFlow.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : `-$${Math.abs(netFlow).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
               </h3>
             </div>
@@ -1100,7 +1159,7 @@ function ClientDashboardContent() {
           <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Tracked Balance</p>
-              <p className="text-lg font-extrabold text-slate-900 font-mono mt-1">${totalBalance.toLocaleString()}</p>
+              <p className="text-lg font-extrabold text-slate-900 font-heading mt-1">${totalBalance.toLocaleString()}</p>
             </div>
             <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center">
               <BadgeDollarSign className="w-5 h-5" />
@@ -1110,7 +1169,7 @@ function ClientDashboardContent() {
           <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Average Account</p>
-              <p className="text-lg font-extrabold text-slate-900 font-mono mt-1">
+              <p className="text-lg font-extrabold text-slate-900 font-heading mt-1">
                 ${accountsCount > 0 ? (totalBalance / accountsCount).toLocaleString() : '0.00'}
               </p>
             </div>
@@ -1122,7 +1181,7 @@ function ClientDashboardContent() {
           <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Account Status</p>
-              <p className="text-lg font-extrabold text-slate-900 mt-1">{accountsCount} live / 0 idle</p>
+              <p className="text-lg font-extrabold text-slate-900 font-heading mt-1">{accountsCount} live / 0 idle</p>
             </div>
             <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
               <WalletCards className="w-5 h-5" />
@@ -1139,13 +1198,13 @@ function ClientDashboardContent() {
                   <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">
                     #{idx + 1}
                   </span>
-                  <span className="font-bold text-slate-900 text-sm">{acc.login} • {acc.type || 'STANDARD'}</span>
+                  <span className="font-bold text-slate-900 text-sm font-heading">{acc.login} • {acc.type || 'STANDARD'}</span>
                 </div>
-                <span className="font-mono font-bold text-slate-800 text-sm">${(acc.balance || 0).toLocaleString()}</span>
+                <span className="font-heading font-bold text-slate-800 text-sm">${(acc.balance || 0).toLocaleString()}</span>
               </div>
 
               <div className="space-y-1">
-                <div className="flex justify-between text-xs text-slate-500 font-mono">
+                <div className="flex justify-between text-xs text-slate-500 font-sans">
                   <span>Leverage {acc.leverage}</span>
                   <span>{acc.server}</span>
                 </div>
@@ -1183,19 +1242,30 @@ function ClientDashboardContent() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Trades Scanned</p>
-            <p className="text-xl font-extrabold text-slate-900 font-mono mt-1">0</p>
+            <p className="text-xl font-extrabold text-slate-900 font-heading mt-1 font-mono">
+              {marketTelemetry.tradesScanned}
+            </p>
           </div>
           <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Open Positions</p>
-            <p className="text-xl font-extrabold text-slate-900 font-mono mt-1">0</p>
+            <p className="text-xl font-extrabold text-blue-700 font-heading mt-1 font-mono">
+              {marketTelemetry.openPositionsCount}
+            </p>
           </div>
           <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Net Profit</p>
-            <p className="text-xl font-extrabold text-slate-900 font-mono mt-1">$0.00</p>
+            <p className={clsx(
+              "text-xl font-extrabold font-heading mt-1 font-mono",
+              marketTelemetry.netProfit >= 0 ? "text-emerald-600" : "text-rose-600"
+            )}>
+              {marketTelemetry.netProfit >= 0 ? `+$${marketTelemetry.netProfit.toFixed(2)}` : `-$${Math.abs(marketTelemetry.netProfit).toFixed(2)}`}
+            </p>
           </div>
           <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Win Rate</p>
-            <p className="text-xl font-extrabold text-slate-900 font-mono mt-1">0%</p>
+            <p className="text-xl font-extrabold text-slate-900 font-heading mt-1 font-mono">
+              {marketTelemetry.winRate}%
+            </p>
           </div>
         </div>
 
@@ -1204,44 +1274,87 @@ function ClientDashboardContent() {
           {/* Control Deck */}
           <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-heading">Symbol Basket</label>
-              <div className="p-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800">
-                All Symbols
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-heading">Active Symbol</label>
+              <div className="p-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800 flex items-center justify-between">
+                <span>{marketTelemetry.bestSymbol || 'BTCUSD.x'}</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold">LIVE</span>
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-heading">Time Horizon</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 font-heading">Broker Server</label>
               <div className="p-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-800">
-                Last 7 Days
+                TheKFMarket-Live (MT5)
               </div>
             </div>
 
             <button
               type="button"
-              onClick={handleRefreshData}
+              onClick={async () => {
+                await fetchMarketBoard();
+                await handleRefreshData();
+              }}
               disabled={isRefreshing}
               className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <RotateCw className={clsx('w-3.5 h-3.5', isRefreshing && 'animate-spin')} />
-              <span>Sync Chart Feed</span>
+              <span>Sync Market Feed</span>
             </button>
           </div>
 
-          {/* Visualizer Radar */}
-          <div className="lg:col-span-2 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-6 sm:p-8 text-center flex flex-col items-center justify-center space-y-3">
-            <div className="relative w-20 h-20 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-2 border-blue-200 animate-ping opacity-35" />
-              <div className="w-16 h-16 rounded-full border border-blue-300 flex items-center justify-center bg-blue-50/60">
-                <Orbit className="w-7 h-7 text-blue-600 animate-spin" style={{ animationDuration: '12s' }} />
+          {/* Visualizer Radar or Active Position Stream */}
+          <div className="lg:col-span-2 rounded-2xl border border-slate-200/80 bg-slate-50/50 p-5 text-center flex flex-col justify-center min-h-[170px]">
+            {marketTelemetry.openTrades.length > 0 ? (
+              <div className="space-y-2 text-left">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-extrabold text-slate-800 font-heading">Live MT5 Market Feed Active</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-slate-500">{marketTelemetry.openPositionsCount} Open Orders</span>
+                </div>
+                <div className="grid gap-2 pt-1 max-h-[120px] overflow-y-auto">
+                  {marketTelemetry.openTrades.slice(0, 3).map((trade: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className={clsx(
+                          "px-2 py-0.5 rounded-md text-[10px] font-bold font-mono",
+                          trade.type === 'BUY' ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200"
+                        )}>
+                          {trade.type}
+                        </span>
+                        <span className="font-bold text-slate-900 font-mono">{trade.symbol}</span>
+                        <span className="text-slate-500 text-[11px] font-mono">#{trade.ticket}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-slate-600 font-mono text-[11px]">Vol: {trade.lots}</span>
+                        <span className={clsx(
+                          "font-extrabold font-mono text-xs",
+                          trade.profit >= 0 ? "text-emerald-600" : "text-rose-600"
+                        )}>
+                          {trade.profit >= 0 ? `+$${trade.profit.toFixed(2)}` : `-$${Math.abs(trade.profit).toFixed(2)}`}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div>
-              <h4 className="text-base font-extrabold text-slate-900 font-heading">Market Feed Synchronized</h4>
-              <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                Waiting for first trade execution to stream real-time price routes and order telemetry.
-              </p>
-            </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center space-y-3 py-3">
+                <div className="relative w-14 h-14 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border-2 border-blue-200 animate-ping opacity-35" />
+                  <div className="w-12 h-12 rounded-full border border-blue-300 flex items-center justify-center bg-blue-50/60">
+                    <Orbit className="w-6 h-6 text-blue-600 animate-spin" style={{ animationDuration: '12s' }} />
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-slate-900 font-heading">Market Feed Synchronized</h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5 max-w-sm">
+                    Listening for trades across your live MT5 accounts.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1390,25 +1503,25 @@ function ClientDashboardContent() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   <div className="rounded-xl border border-slate-200/80 bg-white p-2.5 text-center">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Balance</p>
-                    <p className="text-sm sm:text-base font-extrabold text-slate-900 font-mono mt-0.5">
+                    <p className="text-sm sm:text-base font-extrabold text-slate-900 font-heading mt-0.5">
                       ${(acc.balance || 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="rounded-xl border border-slate-200/80 bg-white p-2.5 text-center">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Equity</p>
-                    <p className="text-sm sm:text-base font-extrabold text-slate-900 font-mono mt-0.5">
+                    <p className="text-sm sm:text-base font-extrabold text-slate-900 font-heading mt-0.5">
                       ${(acc.equity || acc.balance || 0).toLocaleString()}
                     </p>
                   </div>
                   <div className="rounded-xl border border-slate-200/80 bg-white p-2.5 text-center">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Leverage</p>
-                    <p className="text-sm sm:text-base font-extrabold text-slate-900 font-mono mt-0.5">
+                    <p className="text-sm sm:text-base font-extrabold text-slate-900 font-heading mt-0.5">
                       {acc.leverage || '1:100'}
                     </p>
                   </div>
                   <div className="rounded-xl border border-slate-200/80 bg-white p-2.5 text-center">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">Health</p>
-                    <p className="text-sm sm:text-base font-extrabold text-emerald-600 font-mono mt-0.5">100%</p>
+                    <p className="text-sm sm:text-base font-extrabold text-emerald-600 font-heading mt-0.5">100%</p>
                   </div>
                 </div>
 

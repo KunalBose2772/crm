@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCRM } from '@/context/CRMContext';
 import { Client, TradingAccount } from '@/types/crm';
@@ -47,6 +47,23 @@ export default function ClientManagementPage() {
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  // Close filter dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setFilterMenuOpen(false);
+      }
+    }
+    if (filterMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [filterMenuOpen]);
+
   const [statusFilter, setStatusFilter] = useState<'all' | 'activated' | 'suspended'>('all');
   const [emailFilter, setEmailFilter] = useState<'all' | 'verified' | 'unverified'>('all');
   const [kycFilter, setKycFilter] = useState<'all' | 'verified' | 'unverified'>('all');
@@ -309,7 +326,7 @@ export default function ClientManagementPage() {
             {/* Quick Action Buttons */}
             <div className="flex items-center gap-2 shrink-0">
               {/* Filter Popover Button */}
-              <div className="relative">
+              <div className="relative" ref={filterRef}>
                 <button
                   type="button"
                   onClick={() => setFilterMenuOpen(!filterMenuOpen)}

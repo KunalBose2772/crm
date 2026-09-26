@@ -218,33 +218,33 @@ function ClientReferContent() {
               {/* Live Metric Counters */}
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
-                  <p className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-slate-400">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
                     Total Referrals
                   </p>
-                  <p className="mt-1 text-2xl font-extrabold text-slate-900 font-mono">
+                  <p className="mt-1 text-2xl font-extrabold text-slate-900 font-heading">
                     {existingPartner?.activeClientsCount ?? 0}
                   </p>
-                  <p className="mt-1 text-[11px] text-slate-500">Registered traders</p>
+                  <p className="mt-1 text-[11px] text-slate-500 font-sans">Registered traders</p>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
-                  <p className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-slate-400">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
                     Network Volume
                   </p>
-                  <p className="mt-1 text-2xl font-extrabold text-blue-700 font-mono">
+                  <p className="mt-1 text-2xl font-extrabold text-blue-700 font-heading">
                     {(existingPartner?.totalVolumeLots ?? 0).toFixed(2)} Lots
                   </p>
-                  <p className="mt-1 text-[11px] text-slate-500">Aggregated trading flow</p>
+                  <p className="mt-1 text-[11px] text-slate-500 font-sans">Aggregated trading flow</p>
                 </div>
 
                 <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
-                  <p className="text-[10px] font-mono font-bold uppercase tracking-[0.24em] text-slate-400">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
                     Total Earned
                   </p>
-                  <p className="mt-1 text-2xl font-extrabold text-emerald-600 font-mono">
+                  <p className="mt-1 text-2xl font-extrabold text-emerald-600 font-heading">
                     ${(existingPartner?.totalCommissionEarned ?? 0).toFixed(2)}
                   </p>
-                  <p className="mt-1 text-[11px] text-slate-500">Lifetime rebate cash</p>
+                  <p className="mt-1 text-[11px] text-slate-500 font-sans">Lifetime rebate cash</p>
                 </div>
               </div>
 

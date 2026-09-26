@@ -39,7 +39,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const targetClientId = searchParams?.get('clientId');
 
-  const { clients, kycRecords, impersonation, startImpersonation, stopImpersonation, clientModal, openClientModal, closeClientModal, showToast, clientUser, logout } = useCRM();
+  const { clients, kycRecords, impersonation, startImpersonation, stopImpersonation, clientModal, openClientModal, closeClientModal, showToast, clientUser, authLoading, logout } = useCRM();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -56,7 +56,10 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Active trader information (from impersonation, matching targetClientId, logged in clientUser, first client, or generic portal default)
   const clientFromParam = targetClientId ? clients.find(c => c.id === targetClientId) : null;
-  const activeClient = clientFromParam || impersonation.client || clientUser || clients[0];
+  const rawClient = clientFromParam || impersonation.client || clientUser || (clients.length > 0 ? clients[0] : null);
+  // Match with latest clients state to get live kyc_verified attribute
+  const activeClient = (rawClient ? clients.find(c => (rawClient.email && c.email?.toLowerCase() === rawClient.email?.toLowerCase()) || (rawClient.id && c.id === rawClient.id)) : null) || rawClient;
+
   const currentTrader = activeClient || {
     name: 'Trading Client',
     email: 'client@portal.com',
@@ -96,18 +99,25 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
   const isKycVerified = !!activeClient?.kycVerified || clientKycRecord?.status === 'verified';
   const isKycPending = !isKycVerified && (clientKycRecord?.status === 'pending' || hasLocalPending);
 
-  // Strict Regulatory Compliance Gate: If unverified and KYC not yet submitted, lock to KYC form
+  // Strict Regulatory Compliance Gate: Do NOT trigger on initial page load if auth is loading or if already verified
   const hasWarnedRef = React.useRef(false);
   React.useEffect(() => {
+    if (authLoading) return;
     if (pathname.startsWith('/client/login')) return;
-    if (activeClient?.id && !isKycVerified && !isKycPending && pathname !== '/client/kyc') {
+    if (!activeClient || !activeClient.id) return;
+
+    // If verified or already pending review, NEVER redirect to /client/kyc
+    if (isKycVerified || isKycPending) return;
+
+    // Only redirect if unverified and not on the KYC page
+    if (pathname !== '/client/kyc') {
       if (!hasWarnedRef.current) {
         hasWarnedRef.current = true;
         showToast('warning', 'Mandatory KYC Required', 'You must submit your identification documents before accessing trading desk features.');
       }
       router.replace('/client/kyc');
     }
-  }, [activeClient?.id, isKycVerified, isKycPending, pathname, router, showToast]);
+  }, [activeClient, isKycVerified, isKycPending, pathname, router, showToast, authLoading]);
 
   const traderInitials = currentTrader.name
     .split(' ')
@@ -122,7 +132,10 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
       title: 'Overview',
       items: [
         { label: 'Dashboard', href: '/client/dashboard', icon: LayoutDashboard },
-        { label: 'KYC Verification', href: '/client/kyc', icon: ShieldCheck },
+        // Show KYC Verification in sidebar only if unverified, or if currently on /client/kyc page
+        ...(!isKycVerified || pathname === '/client/kyc'
+          ? [{ label: 'KYC Verification', href: '/client/kyc', icon: ShieldCheck }]
+          : []),
         { label: 'Open New Account', href: '/client/open-account', icon: PlusCircle },
         { label: 'Trading Accounts', href: '/client/account-list', icon: Briefcase },
         { label: 'Trading Contest', href: '/client/trading-contest', icon: Trophy },
@@ -140,6 +153,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
     {
       title: 'Growth & Network',
       items: [
+        { label: 'Copy Trading', href: '/client/copy-trading', icon: TrendingUp },
         { label: 'Partners Zone', href: '/client/partner/dashboard', icon: Users },
         { label: 'Trading Platforms', href: '/client/platforms', icon: Monitor },
         { label: 'Refer a Friend', href: '/client/refer', icon: Gift },
@@ -453,6 +467,23 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                       >
                         <ShieldCheck className="w-4 h-4 text-emerald-600" />
                         Trading Accounts
+                      </Link>
+
+                      <Link
+                        href="/client/kyc"
+                        onClick={() => setShowProfileMenu(false)}
+                        className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:text-blue-700 hover:bg-blue-50 rounded-xl flex items-center justify-between transition-colors cursor-pointer font-medium"
+                      >
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                          <span>KYC Compliance</span>
+                        </div>
+                        <span className={clsx(
+                          "text-[9px] font-bold px-1.5 py-0.5 rounded-full",
+                          isKycVerified ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                        )}>
+                          {isKycVerified ? 'Verified' : 'Pending'}
+                        </span>
                       </Link>
 
                       <Link

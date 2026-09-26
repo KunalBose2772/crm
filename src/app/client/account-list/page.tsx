@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { 
@@ -133,6 +133,9 @@ function ClientAccountListContent() {
           login: passwordModalAccount,
           password: newPassword,
           type: passwordType,
+          clientId: client?.id,
+          email: client?.email,
+          clientName: client?.name,
         }),
       });
       const data = await res.json();
@@ -184,6 +187,16 @@ function ClientAccountListContent() {
     setOpenDropdownId((prev) => (prev === id ? null : id));
   };
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setOpenDropdownId(null);
+      setIsFilterOpen(false);
+    };
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, []);
+
   return (
     <div className="space-y-6 font-sans select-none max-w-7xl mx-auto pb-12">
       {/* 1. ROYAL BLUE PAGE HEADER */}
@@ -195,21 +208,27 @@ function ClientAccountListContent() {
         actionButton={
           <div className="flex items-center gap-3 shrink-0 flex-wrap">
             {/* Filter Dropdown */}
-            <div className="relative">
+            <div className="relative" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className="inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-semibold text-white shadow-xs backdrop-blur-xs transition hover:bg-white/15 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsFilterOpen(prev => !prev);
+                }}
+                className="inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-semibold text-white shadow-xs backdrop-blur-xs transition hover:bg-white/15 cursor-pointer active:scale-95"
               >
                 <Funnel className="h-3.5 w-3.5 text-amber-300" />
                 <span>
                   <span className="hidden sm:inline text-blue-200">Filter:</span> {filter}
                 </span>
-                <ChevronDown className={clsx("h-3.5 w-3.5 text-blue-200 transition-transform", isFilterOpen && "rotate-180")} />
+                <ChevronDown className={clsx("h-3.5 w-3.5 text-blue-200 transition-transform duration-200", isFilterOpen && "rotate-180")} />
               </button>
 
               {isFilterOpen && (
-                <div className="absolute right-0 top-full mt-2 w-36 rounded-2xl bg-white border border-slate-200 shadow-xl py-1 z-50 text-slate-800 text-xs font-bold">
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-full mt-2 w-36 rounded-2xl bg-white border border-slate-200 shadow-xl py-1 z-50 text-slate-800 text-xs font-bold animate-in fade-in zoom-in-95"
+                >
                   {(['All', 'MT5', 'Live', 'Demo'] as const).map((opt) => (
                     <button
                       key={opt}
@@ -249,10 +268,10 @@ function ClientAccountListContent() {
         <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-heading">
                 Total Balance
               </p>
-              <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 font-mono">
+              <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 font-heading">
                 ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </p>
               <span className="text-[11px] text-slate-400 font-sans mt-0.5 block">Aggregated USD liquidity</span>
@@ -267,10 +286,10 @@ function ClientAccountListContent() {
         <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-heading">
                 Total Equity
               </p>
-              <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-blue-700 font-mono">
+              <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-blue-700 font-heading">
                 ${totalEquity.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </p>
               <span className="text-[11px] text-slate-400 font-sans mt-0.5 block">Mark-to-market valuation</span>
@@ -285,10 +304,10 @@ function ClientAccountListContent() {
         <div className="bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-xs hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-mono font-bold uppercase tracking-[0.2em] text-slate-400">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-heading">
                 Total P&amp;L
               </p>
-              <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-emerald-600 font-mono">
+              <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-emerald-600 font-heading">
                 {totalPnl >= 0 ? `+$${totalPnl.toFixed(2)}` : `-$${Math.abs(totalPnl).toFixed(2)}`}
               </p>
               <span className="text-[11px] text-slate-400 font-sans mt-0.5 block">Floating unclosed positions</span>
@@ -333,26 +352,32 @@ function ClientAccountListContent() {
           return (
             <div
               key={acc.id}
-              className="overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white shadow-xs hover:shadow-md transition-all duration-200"
+              className={clsx(
+                "rounded-2xl sm:rounded-3xl border border-slate-200/90 bg-white shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200",
+                isDropdownOpen ? "relative z-30" : "relative z-0"
+              )}
             >
               {/* Account Card Row */}
               <div
                 onClick={() => toggleExpand(acc.id)}
-                className="cursor-pointer p-5 sm:p-6 transition-colors hover:bg-slate-50/50"
+                className={clsx(
+                  "cursor-pointer p-4 sm:p-5 transition-colors hover:bg-slate-50/40 rounded-2xl sm:rounded-3xl",
+                  isExpanded && "rounded-b-none"
+                )}
               >
                 <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                   {/* Left: Avatar & Meta Information */}
-                  <div className="flex flex-1 items-center gap-3.5 sm:gap-5 min-w-0">
-                    <div className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-base sm:text-lg font-extrabold text-white shadow-xs">
+                  <div className="flex flex-1 items-center gap-3.5 sm:gap-4 min-w-0">
+                    <div className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-sm sm:text-base font-extrabold text-white shadow-xs">
                       {initial}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="mb-1.5 flex flex-wrap items-center gap-2 sm:gap-3">
-                        <h3 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 font-heading">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-sm sm:text-base font-bold tracking-tight text-slate-900 font-heading">
                           {acc.name}
                         </h3>
-                        <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wide">
                           {acc.status}
                         </span>
                         <button
@@ -368,11 +393,11 @@ function ClientAccountListContent() {
                       </div>
 
                       {/* Chips */}
-                      <div className="flex flex-wrap items-center gap-2 text-xs sm:text-xs">
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
                         <button
                           type="button"
                           onClick={(e) => handleCopyLogin(e, acc.login)}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono font-bold text-slate-800 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-700 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer"
                           title="Click to copy account ID"
                         >
                           <span>{acc.login}</span>
@@ -383,55 +408,55 @@ function ClientAccountListContent() {
                           )}
                         </button>
 
-                        <span className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-50 border border-cyan-200 px-2.5 py-1 font-bold text-cyan-800 text-[11px]">
-                          <Layers className="h-3.5 w-3.5 text-cyan-600" />
+                        <span className="inline-flex items-center gap-1 rounded-lg bg-blue-50 border border-blue-200/80 px-2 py-0.5 font-bold text-blue-700 text-[10px] uppercase font-mono">
+                          <Layers className="h-3 w-3 text-blue-600" />
                           {acc.type}
                         </span>
 
-                        <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-700 font-semibold text-[11px]">
-                          <Server className="h-3.5 w-3.5 text-amber-500" />
+                        <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200/80 bg-slate-50 px-2 py-0.5 text-slate-600 font-semibold text-[10px] font-mono">
+                          <Server className="h-3 w-3 text-amber-500" />
                           {acc.platform}
                         </span>
 
-                        <span className="rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1 text-slate-600 font-mono text-[11px]">
-                          Leverage {acc.leverage}
+                        <span className="rounded-lg border border-slate-200/80 bg-slate-50 px-2 py-0.5 text-slate-500 font-mono text-[10px]">
+                          1:{acc.leverage.replace('1:', '')}
                         </span>
                       </div>
                     </div>
                   </div>
 
                   {/* Middle: 3 Metric Columns */}
-                  <div className="grid w-full grid-cols-3 gap-2.5 sm:gap-3 lg:w-auto lg:min-w-[340px]">
-                    <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 text-center">
-                      <p className="mb-0.5 text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-slate-400">
+                  <div className="grid w-full grid-cols-3 gap-2 sm:gap-3 lg:w-auto lg:min-w-[320px]">
+                    <div className="rounded-xl border border-slate-200/80 bg-slate-50/60 px-3 py-2 text-center">
+                      <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 leading-tight">
                         Balance
                       </p>
-                      <p className="text-sm sm:text-base font-extrabold text-slate-900 font-mono">
+                      <p className="mt-0.5 text-sm sm:text-base font-extrabold text-slate-900 font-mono">
                         ${acc.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 text-center">
-                      <p className="mb-0.5 text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-slate-400">
+                    <div className="rounded-xl border border-slate-200/80 bg-slate-50/60 px-3 py-2 text-center">
+                      <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 leading-tight">
                         Equity
                       </p>
-                      <p className="text-sm sm:text-base font-extrabold text-blue-700 font-mono">
+                      <p className="mt-0.5 text-sm sm:text-base font-extrabold text-blue-700 font-mono">
                         ${acc.equity.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 px-3 py-2.5 text-center">
-                      <p className="mb-0.5 text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-slate-400">
+                    <div className="rounded-xl border border-slate-200/80 bg-slate-50/60 px-3 py-2 text-center">
+                      <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 leading-tight">
                         P&amp;L
                       </p>
-                      <p className="text-sm sm:text-base font-extrabold text-emerald-600 font-mono">
+                      <p className="mt-0.5 text-sm sm:text-base font-extrabold text-emerald-600 font-mono">
                         {acc.pnl >= 0 ? `+$${acc.pnl.toFixed(2)}` : `-$${Math.abs(acc.pnl).toFixed(2)}`}
                       </p>
                     </div>
                   </div>
 
                   {/* Right: Actions */}
-                  <div className="action-buttons flex w-full items-center justify-end gap-2 lg:w-auto sm:gap-2.5">
+                  <div className="action-buttons flex w-full items-center justify-end gap-1.5 lg:w-auto sm:gap-2">
                     {/* Deposit Button */}
                     <button
                       type="button"
@@ -439,10 +464,10 @@ function ClientAccountListContent() {
                         e.stopPropagation();
                         openClientModal('deposit');
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 px-3.5 py-2.5 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
                     >
-                      <ArrowDownLeft className="h-4 w-4" />
-                      <span className="hidden xl:inline">Deposit</span>
+                      <ArrowDownLeft className="h-3.5 w-3.5" />
+                      <span>Deposit</span>
                     </button>
 
                     {/* Withdraw Button */}
@@ -452,20 +477,20 @@ function ClientAccountListContent() {
                         e.stopPropagation();
                         openClientModal('withdrawal');
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-2xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 px-3.5 py-2.5 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-3 py-2 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
                     >
-                      <ArrowUpRight className="h-4 w-4" />
-                      <span className="hidden xl:inline">Withdraw</span>
+                      <ArrowUpRight className="h-3.5 w-3.5 text-slate-500" />
+                      <span>Withdraw</span>
                     </button>
 
                     {/* Quick Sync Button */}
                     <button
                       type="button"
                       onClick={(e) => handleSyncAccount(e, acc.login)}
-                      className="inline-flex items-center gap-1.5 rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 px-3 py-2.5 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 px-2.5 py-2 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
                       title="Sync live MT5 balance"
                     >
-                      <RotateCw className={clsx("h-3.5 w-3.5 text-slate-600", syncingLogin === acc.login && "animate-spin text-blue-600")} />
+                      <RotateCw className={clsx("h-3.5 w-3.5 text-slate-500", syncingLogin === acc.login && "animate-spin text-blue-600")} />
                       <span className="hidden xl:inline">Sync</span>
                     </button>
 
@@ -474,7 +499,7 @@ function ClientAccountListContent() {
                       <button
                         type="button"
                         onClick={(e) => toggleDropdown(e, acc.id)}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 p-2.5 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+                        className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors cursor-pointer shadow-2xs"
                         title="Account settings"
                       >
                         <Ellipsis className="h-4 w-4" />
@@ -512,7 +537,7 @@ function ClientAccountListContent() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
                               setOpenDropdownId(null);
                               setPasswordModalAccount(acc.login);
                               setNewPassword('');
@@ -524,7 +549,7 @@ function ClientAccountListContent() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
                               setOpenDropdownId(null);
                               setLeverageModalAccount(acc.login);
                               setNewLeverage(acc.leverage.startsWith('1:') ? acc.leverage : `1:${acc.leverage}`);
@@ -543,7 +568,7 @@ function ClientAccountListContent() {
 
               {/* Expandable Accordion Drawer */}
               {isExpanded && (
-                <div className="border-t border-slate-100 bg-slate-50/60 p-5 sm:p-6 transition-all">
+                <div className="border-t border-slate-100 bg-slate-50/60 p-5 sm:p-6 transition-all rounded-b-2xl sm:rounded-b-3xl">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono text-xs">
                     <div className="space-y-0.5">
                       <span className="text-[10px] uppercase font-bold text-slate-400">Server Host</span>
