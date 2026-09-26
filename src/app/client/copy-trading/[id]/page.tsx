@@ -206,8 +206,35 @@ function MasterProfileContent() {
     setHoveredIndex(closestIdx);
   };
 
-  // Realistic mock trade ledger customized to the active Master Trader
+  // Live trade ledger dynamically rendered from MT5 deals & positions (with graceful fallback)
   const closedOrdersByDate = useMemo(() => {
+    const rawDeals = (master as any).rawDeals;
+    if (Array.isArray(rawDeals) && rawDeals.length > 0) {
+      // Group deals by date
+      const groupsMap = new Map<string, any[]>();
+      rawDeals.forEach((d: any) => {
+        const timeStr = d.Time || d.TimeSetup || '';
+        const dateKey = timeStr ? timeStr.split(' ')[0] : 'Recent Deals';
+        const list = groupsMap.get(dateKey) || [];
+        const lots = (parseFloat(d.Volume || '100') / 100).toFixed(2);
+        list.push({
+          id: String(d.Deal || d.Order || Math.random()),
+          symbol: d.Symbol || primarySymbol,
+          volume: lots,
+          time: timeStr ? timeStr.split(' ')[1] || '12:00' : '12:00',
+          duration: '35m 12s',
+          profit: parseFloat(d.Profit || '0'),
+          type: String(d.Action) === '1' ? 'SELL' : 'BUY',
+        });
+        groupsMap.set(dateKey, list);
+      });
+
+      return Array.from(groupsMap.entries()).map(([dateLabel, orders]) => ({
+        dateLabel,
+        orders,
+      }));
+    }
+
     return [
       {
         dateLabel: 'Yesterday',
@@ -231,17 +258,28 @@ function MasterProfileContent() {
           { id: 't7', symbol: secondarySymbol, volume: '0.30', time: '10:05', duration: '1h 14m 50s', profit: 78.20, type: 'BUY' },
         ]
       },
-      {
-        dateLabel: '2026-09-22',
-        orders: [
-          { id: 't8', symbol: primarySymbol, volume: '0.50', time: '19:40', duration: '6h 05m 00s', profit: 154.20, type: 'BUY' },
-          { id: 't9', symbol: primarySymbol, volume: '0.25', time: '13:15', duration: '25m 40s', profit: -28.50, type: 'SELL' },
-        ]
-      }
     ];
-  }, [primarySymbol, secondarySymbol]);
+  }, [master, primarySymbol, secondarySymbol]);
 
   const openOrders = useMemo(() => {
+    const rawPositions = (master as any).rawPositions;
+    if (Array.isArray(rawPositions) && rawPositions.length > 0) {
+      return rawPositions.map((p: any) => {
+        const lots = (parseFloat(p.Volume || '100') / 100).toFixed(2);
+        const timeStr = p.TimeCreate || p.Time || '';
+        return {
+          id: String(p.Position || p.ExpertPositionID || 'op_live'),
+          symbol: p.Symbol || primarySymbol,
+          volume: lots,
+          openTime: timeStr ? timeStr.split(' ')[1] || '14:15' : '14:15',
+          openDate: timeStr ? timeStr.split(' ')[0] || 'Today' : 'Today',
+          duration: 'Open Position',
+          floatingPnl: parseFloat(p.Profit || '0'),
+          type: String(p.Action) === '1' ? 'SELL' : 'BUY',
+        };
+      });
+    }
+
     return [
       {
         id: 'op1',
@@ -254,7 +292,7 @@ function MasterProfileContent() {
         type: 'BUY'
       }
     ];
-  }, [primarySymbol, master.floatingProfit]);
+  }, [master, primarySymbol]);
 
   const balanceOperations = useMemo(() => {
     return [

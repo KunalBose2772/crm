@@ -520,6 +520,59 @@ export const emailTemplates = {
     ),
   }),
 
+  // Copy Trading Email Notifications
+  copyTradingStarted: (name: string, masterName: string, allocatedAmount: number | string, copyMode: string, copierLogin: number | string) => ({
+    subject: `Copy Trading Activated: Following ${masterName}`,
+    html: createBaseEmail(
+      `Copy Trading Strategy Linked`,
+      `
+        <p style="color: #475569; font-size: 15px; line-height: 1.6;">Hello <strong>${name}</strong>,</p>
+        <p style="color: #475569; font-size: 15px; line-height: 1.6;">You have successfully started copying <strong>${masterName}</strong>. Your trading account is now synchronizing orders automatically in real-time.</p>
+        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 18px; margin: 20px 0;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Master Trader:</td>
+              <td style="padding: 6px 0; color: #0f172a; font-weight: bold; font-size: 14px;">${masterName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Copier MT5 Account:</td>
+              <td style="padding: 6px 0; color: #0f172a; font-weight: bold; font-size: 14px; font-family: monospace;">#${copierLogin}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Allocated Capital:</td>
+              <td style="padding: 6px 0; color: #0f172a; font-weight: bold; font-size: 14px;">$${Number(allocatedAmount).toLocaleString()} USD</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748b; font-size: 14px;">Copy Sizing Mode:</td>
+              <td style="padding: 6px 0; color: #0f172a; font-weight: bold; font-size: 14px; text-transform: capitalize;">${copyMode}</td>
+            </tr>
+          </table>
+        </div>
+        <p style="color: #64748b; font-size: 13px;">You can monitor open positions, view High-Water Mark audit splits, or pause copying at any time from your Copy Trading command desk.</p>
+      `,
+      { text: 'Manage Copy Subscriptions', url: 'http://localhost:3000/client/copy-trading' }
+    ),
+  }),
+
+  copyTradingStatusUpdated: (name: string, masterName: string, status: 'paused' | 'active' | 'stopped', copierLogin: number | string) => ({
+    subject: `Copy Trading ${status.toUpperCase()}: ${masterName}`,
+    html: createBaseEmail(
+      `Copy Trading Status: ${status.toUpperCase()}`,
+      `
+        <p style="color: #475569; font-size: 15px; line-height: 1.6;">Hello <strong>${name}</strong>,</p>
+        <p style="color: #475569; font-size: 15px; line-height: 1.6;">Your copy trading subscription to <strong>${masterName}</strong> on Account <strong>#${copierLogin}</strong> has been updated to <strong>${status}</strong>.</p>
+        <p style="color: #64748b; font-size: 13px;">${
+          status === 'paused'
+            ? 'Existing open trades will remain open or can be managed manually, but no new master positions will be mirrored until resumed.'
+            : status === 'stopped'
+            ? 'The copy relationship has ended. All allocation locks have been released.'
+            : 'Trade replication has resumed. New master orders will automatically be mirrored.'
+        }</p>
+      `,
+      { text: 'View Dashboard', url: 'http://localhost:3000/client/copy-trading' }
+    ),
+  }),
+
   // Admin notification when a trading account is opened
   adminAccountOpenedNotification: (clientName: string, clientEmail: string, login: number | string, accountType: string, server: string, leverage: string) => ({
     subject: `[New Account] Live MT5 Account #${login} Created for ${clientName}`,

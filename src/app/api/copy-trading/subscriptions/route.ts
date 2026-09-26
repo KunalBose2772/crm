@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CopySubscription } from '@/types/crm';
 import { supabaseAdmin } from '@/lib/supabase';
 import { mt5Client } from '@/services/mt5/mt5Client';
+import { sendEmail, emailTemplates } from '@/lib/mail';
 
 const BUCKET_NAME = 'system-config';
 const SUBS_FILE = 'copy_trading_subscriptions.json';
@@ -156,6 +157,33 @@ export async function POST(req: NextRequest) {
     cachedSubscriptions = updatedSubs;
     await saveSubscriptionsToStorage(updatedSubs);
 
+    // Send confirmation email to client
+    try {
+      const { data: clientData } = await supabaseAdmin
+        .from('clients')
+        .select('name, email')
+        .eq('id', clientId)
+        .maybeSingle();
+
+      const recipientEmail = clientData?.email;
+      const recipientName = clientData?.name || 'Valued Trader';
+
+      if (recipientEmail && recipientEmail.includes('@')) {
+        sendEmail({
+          to: recipientEmail,
+          ...emailTemplates.copyTradingStarted(
+            recipientName,
+            newSub.masterName,
+            newSub.allocatedAmount,
+            newSub.copyMode,
+            newSub.copierAccountLogin
+          ),
+        }).catch(err => console.warn('[Copy Trading] Email notify error:', err.message));
+      }
+    } catch (e: any) {
+      console.warn('[Copy Trading] Failed to dispatch start email:', e.message);
+    }
+
     return NextResponse.json({
       success: true,
       subscription: newSub,
@@ -193,6 +221,32 @@ export async function PATCH(req: NextRequest) {
 
     cachedSubscriptions = allSubs;
     await saveSubscriptionsToStorage(allSubs);
+
+    // Send update email notification
+    try {
+      const { data: clientData } = await supabaseAdmin
+        .from('clients')
+        .select('name, email')
+        .eq('id', sub.clientId)
+        .maybeSingle();
+
+      const recipientEmail = clientData?.email;
+      const recipientName = clientData?.name || 'Valued Trader';
+
+      if (recipientEmail && recipientEmail.includes('@')) {
+        sendEmail({
+          to: recipientEmail,
+          ...emailTemplates.copyTradingStatusUpdated(
+            recipientName,
+            sub.masterName,
+            sub.status,
+            sub.copierAccountLogin
+          ),
+        }).catch(err => console.warn('[Copy Trading Status] Email notify error:', err.message));
+      }
+    } catch (e: any) {
+      console.warn('[Copy Trading Status] Failed to dispatch update email:', e.message);
+    }
 
     return NextResponse.json({
       success: true,

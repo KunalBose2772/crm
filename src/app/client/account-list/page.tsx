@@ -115,7 +115,7 @@ function ClientAccountListContent() {
           server: a.server || 'TheKFMarket-Live',
           freeMargin: typeof a.freeMargin === 'number' && a.freeMargin > 0 ? a.freeMargin : (parseFloat(a.freeMargin || '0') > 0 ? parseFloat(a.freeMargin) : bal),
           marginLevel: '0.00%',
-          isLive: true,
+          isLive: a.isLive !== undefined ? Boolean(a.isLive) : !(String(a.server || '').toLowerCase().includes('demo') || String(a.mt5Group || a.mt5_group || '').toLowerCase().includes('demo')),
         };
       })
     : defaultAccounts;

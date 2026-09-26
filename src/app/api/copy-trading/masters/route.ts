@@ -72,6 +72,19 @@ export async function GET(req: NextRequest) {
             positions.filter((p: any) => parseFloat(p.Profit || '0') > 0).length;
           const winRate = totalDeals > 0 ? Math.round((profitable / totalDeals) * 100) : m.winRate;
 
+          // Dynamically compute sparkline curve from real MT5 deals if available
+          let dynamicSparkline = m.sparklineData;
+          if (closedDeals.length >= 3) {
+            let runningBal = 100;
+            dynamicSparkline = [100];
+            closedDeals.forEach((d: any) => {
+              const p = parseFloat(d.Profit || '0');
+              const deltaPct = bal > 0 ? (p / bal) * 100 : 0;
+              runningBal += deltaPct;
+              dynamicSparkline!.push(parseFloat(runningBal.toFixed(1)));
+            });
+          }
+
           return {
             ...m,
             balance: bal,
@@ -79,6 +92,9 @@ export async function GET(req: NextRequest) {
             floatingProfit: parseFloat(floating.toFixed(2)),
             totalTrades: totalDeals > 0 ? totalDeals : m.totalTrades,
             winRate: winRate > 0 ? winRate : m.winRate,
+            sparklineData: dynamicSparkline,
+            rawPositions: positions,
+            rawDeals: closedDeals,
           };
         } catch {
           return m;
