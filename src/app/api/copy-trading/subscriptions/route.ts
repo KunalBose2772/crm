@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CopySubscription } from '@/types/crm';
 import { supabaseAdmin } from '@/lib/supabase';
+import { mt5Client } from '@/services/mt5/mt5Client';
 
 const BUCKET_NAME = 'system-config';
 const SUBS_FILE = 'copy_trading_subscriptions.json';
@@ -68,13 +69,41 @@ export async function GET(req: NextRequest) {
 
     const allSubs = await loadSubscriptionsFromStorage();
 
-    const result = clientId
+    const targetSubs = clientId
       ? allSubs.filter(s => s.clientId === clientId)
       : allSubs;
 
+    // Dynamically query live MT5 account equity and PnL for each copier account
+    const enrichedSubs = await Promise.all(
+      targetSubs.map(async (sub) => {
+        try {
+          if (!sub.copierAccountLogin) return sub;
+          const [mt5Acc, positions] = await Promise.all([
+            mt5Client.getAccount(sub.copierAccountLogin).catch(() => null),
+            mt5Client.getPositions(sub.copierAccountLogin).catch(() => []),
+          ]);
+
+          if (mt5Acc) {
+            const floating = positions.reduce((sum: number, p: any) => sum + (parseFloat(p.Profit) || 0), 0);
+            const liveEquity = mt5Acc.equity;
+            const diff = liveEquity - (sub.allocatedAmount || 1000);
+            return {
+              ...sub,
+              currentEquity: liveEquity > 0 ? liveEquity : sub.currentEquity,
+              unrealizedPnL: parseFloat(floating.toFixed(2)),
+              realizedPnL: diff > floating ? parseFloat((diff - floating).toFixed(2)) : sub.realizedPnL,
+            };
+          }
+          return sub;
+        } catch {
+          return sub;
+        }
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      subscriptions: result,
+      subscriptions: enrichedSubs,
     });
   } catch (error: any) {
     return NextResponse.json(

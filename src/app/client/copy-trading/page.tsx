@@ -763,53 +763,55 @@ function CopyTradingHubContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-sans">
-                {[
-                  {
-                    time: 'Today 14:22 UTC',
-                    master: 'Titan Trend Master (#4587463242561)',
-                    account: client?.accounts?.[0]?.login ? `MT5 #${client.accounts[0].login}` : 'MT5 #4587463242557',
-                    profit: '+$240.00',
-                    hwm: '$1,200.00 (Exceeded)',
-                    fee: '20%',
-                    comm: '+$48.00',
-                    status: 'Settled',
-                  },
-                  {
-                    time: 'Today 11:05 UTC',
-                    master: 'Apex FX Scalper Pro (#4587463242562)',
-                    account: client?.accounts?.[1]?.login ? `MT5 #${client.accounts[1].login}` : 'MT5 #4587463242558',
-                    profit: '+$180.00',
-                    hwm: '$2,500.00 (Exceeded)',
-                    fee: '25%',
-                    comm: '+$45.00',
-                    status: 'Settled',
-                  },
-                  {
-                    time: 'Yesterday 19:40 UTC',
-                    master: 'Titan Trend Master (#4587463242561)',
-                    account: client?.accounts?.[2]?.login ? `MT5 #${client.accounts[2].login}` : 'MT5 #4587463242559',
-                    profit: '+$520.00',
-                    hwm: '$5,000.00 (Exceeded)',
-                    fee: '20%',
-                    comm: '+$104.00',
-                    status: 'Settled',
-                  },
-                ].map((row, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/60 transition">
-                    <td className="py-3.5 px-5 font-mono text-[11px] text-slate-500">{row.time}</td>
-                    <td className="py-3.5 px-4 font-bold text-slate-800">{row.master}</td>
-                    <td className="py-3.5 px-4 text-slate-600 font-mono font-medium">{row.account}</td>
-                    <td className="py-3.5 px-4 font-bold text-emerald-600 font-mono">{row.profit}</td>
-                    <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{row.hwm}</td>
-                    <td className="py-3.5 px-4 font-bold text-purple-700">{row.fee}</td>
-                    <td className="py-3.5 px-4 font-extrabold text-emerald-600 font-mono">{row.comm}</td>
-                    <td className="py-3.5 px-5 text-right">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                        {row.status}
-                      </span>
+                {subscriptions.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-slate-400 font-medium">
+                      No active copy subscriptions or closed trades recorded yet.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  subscriptions.map((sub, idx) => {
+                    const gross = sub.realizedPnL || (sub.unrealizedPnL > 0 ? sub.unrealizedPnL : 0);
+                    const feePct = 20; // 20% HWM standard fee
+                    const feeAmount = (gross * (feePct / 100));
+                    const isSettled = gross > 0;
+
+                    return (
+                      <tr key={sub.id || idx} className="hover:bg-slate-50/60 transition">
+                        <td className="py-3.5 px-5 font-mono text-[11px] text-slate-500">
+                          {sub.startDate || 'Recent'}
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-slate-800">
+                          {sub.masterName}
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-600 font-mono font-medium">
+                          MT5 #{sub.copierAccountLogin}
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-emerald-600 font-mono">
+                          +${gross.toFixed(2)}
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">
+                          ${sub.allocatedAmount.toFixed(2)} (HWM Baseline)
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-purple-700">
+                          {feePct}%
+                        </td>
+                        <td className="py-3.5 px-4 font-extrabold text-emerald-600 font-mono">
+                          +${feeAmount.toFixed(2)}
+                        </td>
+                        <td className="py-3.5 px-5 text-right">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-bold ${
+                            isSettled
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-slate-50 text-slate-600 border-slate-200'
+                          }`}>
+                            {isSettled ? 'Settled' : 'Monitoring'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

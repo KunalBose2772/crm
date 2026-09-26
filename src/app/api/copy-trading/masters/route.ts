@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { INITIAL_MASTER_TRADERS } from '@/data/mockCopyTrading';
 import { MasterTrader } from '@/types/crm';
 import { supabaseAdmin } from '@/lib/supabase';
+import { mt5Client } from '@/services/mt5/mt5Client';
 
 const BUCKET_NAME = 'system-config';
 const MASTERS_FILE = 'copy_trading_masters.json';
@@ -52,7 +53,40 @@ export async function GET(req: NextRequest) {
 
     const allMasters = await loadMastersFromStorage();
 
-    let filtered = allMasters.filter(m => {
+    // Query live MT5 server telemetry for each master trader (Balance, Equity, Floating PnL, Positions, Deals)
+    const liveMasters = await Promise.all(
+      allMasters.map(async (m) => {
+        try {
+          const [mt5Acc, positions, deals] = await Promise.all([
+            mt5Client.getAccount(m.login).catch(() => null),
+            mt5Client.getPositions(m.login).catch(() => []),
+            mt5Client.getDeals(m.login).catch(() => []),
+          ]);
+
+          const bal = mt5Acc ? mt5Acc.balance : m.balance;
+          const eq = mt5Acc ? mt5Acc.equity : (m.equity || bal);
+          const floating = positions.reduce((sum: number, p: any) => sum + (parseFloat(p.Profit) || 0), 0);
+          const closedDeals = deals.filter((d: any) => String(d.Action) !== '2');
+          const totalDeals = closedDeals.length + positions.length;
+          const profitable = closedDeals.filter((d: any) => parseFloat(d.Profit || '0') > 0).length +
+            positions.filter((p: any) => parseFloat(p.Profit || '0') > 0).length;
+          const winRate = totalDeals > 0 ? Math.round((profitable / totalDeals) * 100) : m.winRate;
+
+          return {
+            ...m,
+            balance: bal,
+            equity: eq,
+            floatingProfit: parseFloat(floating.toFixed(2)),
+            totalTrades: totalDeals > 0 ? totalDeals : m.totalTrades,
+            winRate: winRate > 0 ? winRate : m.winRate,
+          };
+        } catch {
+          return m;
+        }
+      })
+    );
+
+    let filtered = liveMasters.filter(m => {
       if (search && !m.name.toLowerCase().includes(search) && !m.strategyName.toLowerCase().includes(search)) {
         return false;
       }
