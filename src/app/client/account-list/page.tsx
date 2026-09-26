@@ -28,7 +28,9 @@ import {
   RotateCw,
   X,
   KeyRound,
-  Gauge
+  Gauge,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
 import { ClientPageHeader } from '@/components/layout/ClientPageHeader';
@@ -52,6 +54,7 @@ function ClientAccountListContent() {
   const [passwordModalAccount, setPasswordModalAccount] = useState<number | null>(null);
   const [passwordType, setPasswordType] = useState<'main' | 'investor'>('main');
   const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   const [leverageModalAccount, setLeverageModalAccount] = useState<number | null>(null);
@@ -163,6 +166,12 @@ function ClientAccountListContent() {
     e.preventDefault();
     if (!passwordModalAccount || !newPassword || newPassword.length < 8) {
       showToast('error', 'Invalid Password', 'Password must be at least 8 characters long.');
+      return;
+    }
+    const hasLetters = /[a-zA-Z]/.test(newPassword);
+    const hasNumbers = /[0-9]/.test(newPassword);
+    if (!hasLetters || !hasNumbers) {
+      showToast('error', 'Password Complexity', 'MT5 password must contain both letters and numbers.');
       return;
     }
     setIsUpdatingPassword(true);
@@ -735,15 +744,27 @@ function ClientAccountListContent() {
                 <label className="text-xs font-bold uppercase text-slate-600 block mb-1.5 font-heading">
                   New MT5 Password
                 </label>
-                <input
-                  type="text"
-                  required
-                  minLength={8}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Min 8 alphanumeric characters"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    required
+                    minLength={8}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Min 8 letters & numbers"
+                    className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 font-mono text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1 font-mono">
+                  Must be at least 8 characters and include letters & numbers.
+                </p>
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2">

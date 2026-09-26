@@ -37,6 +37,7 @@ import {
   XCircle,
   CheckCircle2,
   ExternalLink,
+  RefreshCw,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -205,14 +206,40 @@ export default function ClientManagementPage() {
     setIsEditingDetails(false);
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const [isUpdatingClientPassword, setIsUpdatingClientPassword] = useState(false);
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPasswordVal) {
-      showToast('error', 'Password Required', 'Please enter a new password.');
+    if (!newPasswordVal || newPasswordVal.length < 6) {
+      showToast('error', 'Password Required', 'Please enter a new password (min 6 characters).');
       return;
     }
-    showToast('success', 'Password Updated', `New credentials applied for ${selectedClient?.name}.`);
-    setIsPasswordModalOpen(false);
+    if (!selectedClient?.id) {
+      showToast('error', 'Error', 'No client selected.');
+      return;
+    }
+    setIsUpdatingClientPassword(true);
+    try {
+      const res = await fetch('/api/clients', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: selectedClient.id,
+          password: newPasswordVal,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update client password.');
+      }
+      showToast('success', 'Password Updated', `New credentials saved for ${selectedClient.name}.`);
+      setIsPasswordModalOpen(false);
+      setNewPasswordVal('');
+    } catch (err: any) {
+      showToast('error', 'Update Failed', err.message || 'Could not update password.');
+    } finally {
+      setIsUpdatingClientPassword(false);
+    }
   };
 
   const [isSubmittingClient, setIsSubmittingClient] = useState(false);
@@ -1425,9 +1452,17 @@ export default function ClientManagementPage() {
             <div className="pt-3 flex items-center gap-3">
               <button
                 type="submit"
-                className="flex-1 py-2.5 px-5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#6366F1] hover:from-[#6D28D9] hover:to-[#4F46E5] text-white font-bold text-xs shadow-xs active:scale-95 transition-all cursor-pointer"
+                disabled={isUpdatingClientPassword}
+                className="flex-1 py-2.5 px-5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#6366F1] hover:from-[#6D28D9] hover:to-[#4F46E5] disabled:opacity-50 text-white font-bold text-xs shadow-xs active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-1.5"
               >
-                Update Password
+                {isUpdatingClientPassword ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Updating...</span>
+                  </>
+                ) : (
+                  <span>Update Password</span>
+                )}
               </button>
               <button
                 type="button"

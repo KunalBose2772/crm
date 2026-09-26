@@ -23,7 +23,16 @@ export async function POST(req: NextRequest) {
 
     if (!login || isNaN(login) || !password || password.length < 8) {
       return NextResponse.json(
-        { success: false, error: 'Login and a password of at least 8 characters are required' },
+        { success: false, error: 'Login and a password of at least 8 characters are required.' },
+        { status: 400 }
+      );
+    }
+
+    const hasLetters = /[a-zA-Z]/.test(password);
+    const hasNumbers = /[0-9]/.test(password);
+    if (!hasLetters || !hasNumbers) {
+      return NextResponse.json(
+        { success: false, error: 'MT5 password must contain both letters and numbers (minimum 8 characters).' },
         { status: 400 }
       );
     }
@@ -38,19 +47,31 @@ export async function POST(req: NextRequest) {
       console.warn('[API /api/mt5/accounts/password] MT5 WebAPI Warning:', mt5ErrorMessage);
     }
 
-    // Persist to Supabase trading_accounts password field & lookup client for email dispatch
+    // If real server is configured and failed, return the actual MT5 error
+    const isMock = process.env.NEXT_PUBLIC_USE_MOCK_API === 'true' || !process.env.MT5_MANAGER_LOGIN;
+    if (!success && !isMock) {
+      return NextResponse.json(
+        { success: false, error: mt5ErrorMessage || 'Failed to change password on MT5 server.' },
+        { status: 400 }
+      );
+    }
+
+    // Lookup client for email dispatch & update account timestamp
     let clientEmail: string | null = null;
     let clientName: string | null = null;
 
     try {
-      const passField = type === 'investor' ? 'investor_password' : 'main_password';
-      const { data: updatedAcc } = await (supabaseAdmin.from('trading_accounts') as any)
-        .update({ [passField]: password, updated_at: new Date().toISOString() })
-        .eq('login', login)
+      const { data: accRecord } = await (supabaseAdmin.from('trading_accounts') as any)
         .select('client_id')
+        .eq('login', login)
         .maybeSingle();
 
-      const clientId = updatedAcc?.client_id || body.clientId;
+      // Update timestamp on trading account
+      await (supabaseAdmin.from('trading_accounts') as any)
+        .update({ updated_at: new Date().toISOString() })
+        .eq('login', login);
+
+      const clientId = accRecord?.client_id || body.clientId;
       if (clientId) {
         const { data: clientRecord } = await (supabaseAdmin.from('clients') as any)
           .select('name, email')
@@ -62,7 +83,7 @@ export async function POST(req: NextRequest) {
         }
       }
     } catch (dbErr: any) {
-      console.warn('[API /api/mt5/accounts/password] Supabase update warning:', dbErr.message);
+      console.warn('[API /api/mt5/accounts/password] Supabase lookup warning:', dbErr.message);
     }
 
     // Trigger security notification email
@@ -78,19 +99,9 @@ export async function POST(req: NextRequest) {
       }).catch(err => console.warn('[API /api/mt5/accounts/password] Email warning:', err.message));
     }
 
-    // If live MT5 succeeds OR if running in development/mock/fallback mode, acknowledge success
-    if (success || process.env.NEXT_PUBLIC_USE_MOCK_API === 'true' || !process.env.MT5_MANAGER_LOGIN) {
-      return NextResponse.json({
-        success: true,
-        message: `Successfully updated ${type === 'investor' ? 'Investor' : 'Trading'} password for account #${login}.`,
-      });
-    }
-
-    // If real server is configured and explicitly rejected with error, return the actual reason or fallback success
     return NextResponse.json({
       success: true,
-      message: `Password updated for account #${login}.`,
-      warning: mt5ErrorMessage,
+      message: `Successfully updated ${type === 'investor' ? 'Investor' : 'Trading'} password for account #${login}.`,
     });
   } catch (error: any) {
     console.error('[API /api/mt5/accounts/password] Handler Error:', error.message);

@@ -228,3 +228,42 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
+
+export async function PATCH(req: NextRequest) {
+  try {
+    if (!validateOrigin(req)) {
+      return NextResponse.json({ success: false, error: 'Unauthorized origin' }, { status: 403 });
+    }
+
+    const body = await req.json();
+    const { clientId, password } = body;
+
+    if (!clientId || !password || password.length < 6) {
+      return NextResponse.json(
+        { success: false, error: 'Client ID and a password of at least 6 characters are required.' },
+        { status: 400 }
+      );
+    }
+
+    const { error } = await supabaseAdmin
+      .from('clients')
+      .update({
+        password_hash: password,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', clientId);
+
+    if (error) {
+      console.error('[API /api/clients] PATCH Error:', error.message);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Client credentials updated successfully.',
+    });
+  } catch (err: any) {
+    console.error('[API /api/clients] PATCH Error:', err.message);
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
+}

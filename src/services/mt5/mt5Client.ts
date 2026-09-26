@@ -364,6 +364,7 @@ class MT5ClientService {
         `/api/user/change_password?login=${login}&type=${type}&password=${encodeURIComponent(password)}`
       );
       if (res && res.retcode === '0 Done') {
+        this.invalidateAccountCache(login);
         return true;
       }
 
@@ -373,13 +374,14 @@ class MT5ClientService {
         `/api/user/update?login=${login}&${passParam}=${encodeURIComponent(password)}`
       );
       if (updateRes && updateRes.retcode === '0 Done') {
+        this.invalidateAccountCache(login);
         return true;
       }
 
-        const errMsg = res?.retcode || updateRes?.retcode || 'Password change failed on MT5 server';
-        throw new Error(`MT5 password update failed: ${errMsg}`);
-      });
-    }
+      const errMsg = res?.retcode || updateRes?.retcode || 'Password change failed on MT5 server';
+      throw new Error(`MT5 password update failed: ${errMsg}`);
+    });
+  }
 
   /**
    * Fetches open positions for a trading account from MT5 (cached for 3s)
