@@ -297,9 +297,9 @@ function CopyTradingHubContent() {
             }`}
           >
             <DollarSign className="w-3.5 h-3.5 text-purple-600" />
-            <span>{isMasterTrader ? 'My Strategy Commission Ledger' : 'Commission Ledger'}</span>
+            <span>{isMasterTrader ? 'My Strategy Commission Ledger' : 'Performance Fee Deductions'}</span>
             <span className="px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-700 text-[10px] font-mono">
-              HWM {currentClientMaster?.totalProfitShare || 20}%
+              {isMasterTrader ? `HWM ${currentClientMaster?.totalProfitShare || 20}%` : 'HWM Verified'}
             </span>
           </button>
         </div>
@@ -612,73 +612,129 @@ function CopyTradingHubContent() {
         </div>
       )}
 
-      {/* Tab 3: Master Commission Ledger & Transparency View */}
+      {/* Tab 3: Master Commission Ledger (for Master Traders) OR Performance Fee Audit (for Copiers) */}
       {activeTab === 'master_earnings' && (
         <div className="space-y-5 animate-in fade-in select-none">
-          {/* Top Overview Cards for Master Trader Earnings */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-            <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
-                Cumulative Commission Earned
-              </span>
-              <p className="mt-1 text-xl sm:text-2xl font-black text-emerald-600 font-heading">
-                $1,480.50
-              </p>
-              <span className="text-[11px] text-slate-500 font-medium">
-                High-Water Mark (HWM) audited
-              </span>
-            </div>
+          {/* Top Overview Cards - Tailored to Master vs Copier */}
+          {isMasterTrader ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
+                  Cumulative Commission Earned
+                </span>
+                <p className="mt-1 text-xl sm:text-2xl font-black text-emerald-600 font-heading">
+                  $1,480.50
+                </p>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  High-Water Mark (HWM) audited
+                </span>
+              </div>
 
-            <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
-                Active Strategy Followers
-              </span>
-              <p className="mt-1 text-xl sm:text-2xl font-black text-blue-700 font-heading">
-                284 Copiers
-              </p>
-              <span className="text-[11px] text-slate-500 font-medium">
-                Titan Trend Master & Apex FX
-              </span>
-            </div>
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
+                  Active Strategy Followers
+                </span>
+                <p className="mt-1 text-xl sm:text-2xl font-black text-blue-700 font-heading">
+                  {currentClientMaster?.totalCopiers || 284} Copiers
+                </p>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {currentClientMaster?.strategyName || 'Verified Strategy'}
+                </span>
+              </div>
 
-            <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
-                Total Copier Capital Managed
-              </span>
-              <p className="mt-1 text-xl sm:text-2xl font-black text-slate-900 font-heading">
-                $48,920.00
-              </p>
-              <span className="text-[11px] text-slate-500 font-medium">
-                Cloned across live accounts
-              </span>
-            </div>
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
+                  Total Copier Capital Managed
+                </span>
+                <p className="mt-1 text-xl sm:text-2xl font-black text-slate-900 font-heading">
+                  $48,920.00
+                </p>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  Cloned across live accounts
+                </span>
+              </div>
 
-            <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
-                Settlement Cycle
-              </span>
-              <p className="mt-1 text-xl sm:text-2xl font-black text-purple-700 font-heading">
-                Weekly (Sat 00:00)
-              </p>
-              <span className="text-[11px] text-slate-500 font-medium">
-                Direct MT5 wallet deposit
-              </span>
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
+                  Settlement Cycle
+                </span>
+                <p className="mt-1 text-xl sm:text-2xl font-black text-purple-700 font-heading">
+                  Weekly (Sat 00:00)
+                </p>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  Direct MT5 wallet deposit
+                </span>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
+                  Total Profit Generated
+                </span>
+                <p className="mt-1 text-xl sm:text-2xl font-black text-emerald-600 font-heading">
+                  +${totalCopiedProfit >= 0 ? totalCopiedProfit.toFixed(2) : '0.00'}
+                </p>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  From followed Master strategies
+                </span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
+                  Performance Fees Shared
+                </span>
+                <p className="mt-1 text-xl sm:text-2xl font-black text-purple-700 font-heading">
+                  ${(totalCopiedProfit * 0.20 > 0 ? (totalCopiedProfit * 0.20).toFixed(2) : '29.70')}
+                </p>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  Only paid on profitable gains (HWM)
+                </span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
+                  Net Profit Retained
+                </span>
+                <p className="mt-1 text-xl sm:text-2xl font-black text-blue-700 font-heading">
+                  +${(totalCopiedProfit * 0.80 > 0 ? (totalCopiedProfit * 0.80).toFixed(2) : '118.80')}
+                </p>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  80% pure profit kept in account
+                </span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-heading">
+                  Active Subscriptions
+                </span>
+                <p className="mt-1 text-xl sm:text-2xl font-black text-slate-900 font-heading">
+                  {subscriptions.filter(s => s.status === 'active').length} Strategies
+                </p>
+                <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3" /> Protected by Stop Guards
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Detailed Audit Table */}
           <div className="overflow-x-auto bg-white rounded-3xl border border-slate-200/90 shadow-xs">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h3 className="font-extrabold text-slate-900 text-sm font-heading">
-                  Real-Time Commission Sharing Audit Ledger
+                  {isMasterTrader 
+                    ? 'Master Trader Follower Profit-Share Audit' 
+                    : 'Performance Fee Sharing & High-Water Mark Deductions'}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Every closed trade that creates new net profit is recorded here with formula transparency.
+                  {isMasterTrader
+                    ? 'Every closed trade executed for your followers that creates new net profit is recorded here with mathematical fee transparency.'
+                    : 'Transparent breakdown of performance fees shared with your copied masters under the High-Water Mark rule.'}
                 </p>
               </div>
               <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold font-mono">
-                Auto-Settled to Wallet
+                {isMasterTrader ? 'Auto-Settled to Wallet' : 'High-Water Mark Protected'}
               </span>
             </div>
 
@@ -687,11 +743,11 @@ function CopyTradingHubContent() {
                 <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500 font-semibold uppercase tracking-wider text-[10px]">
                   <th className="py-3 px-5">Date & Time</th>
                   <th className="py-3 px-4">Master Strategy</th>
-                  <th className="py-3 px-4">Copier Account</th>
-                  <th className="py-3 px-4">Closed Profit</th>
+                  <th className="py-3 px-4">Trading Account</th>
+                  <th className="py-3 px-4">{isMasterTrader ? 'Copier Gross Profit' : 'Gross Profit Won'}</th>
                   <th className="py-3 px-4">HWM Threshold</th>
                   <th className="py-3 px-4">Fee %</th>
-                  <th className="py-3 px-4">Your Commission</th>
+                  <th className="py-3 px-4">{isMasterTrader ? 'Your Commission' : 'Fee Shared with Master'}</th>
                   <th className="py-3 px-5 text-right">Settlement Status</th>
                 </tr>
               </thead>
@@ -700,7 +756,7 @@ function CopyTradingHubContent() {
                   {
                     time: 'Today 14:22 UTC',
                     master: 'Titan Trend Master (#4587463242561)',
-                    copier: 'MT5 #4587463242557 (Client Kunal B.)',
+                    account: client?.accounts?.[0]?.login ? `MT5 #${client.accounts[0].login}` : 'MT5 #4587463242557',
                     profit: '+$240.00',
                     hwm: '$1,200.00 (Exceeded)',
                     fee: '20%',
@@ -710,7 +766,7 @@ function CopyTradingHubContent() {
                   {
                     time: 'Today 11:05 UTC',
                     master: 'Apex FX Scalper Pro (#4587463242562)',
-                    copier: 'MT5 #4587463242558 (Client Kunal B.)',
+                    account: client?.accounts?.[1]?.login ? `MT5 #${client.accounts[1].login}` : 'MT5 #4587463242558',
                     profit: '+$180.00',
                     hwm: '$2,500.00 (Exceeded)',
                     fee: '25%',
@@ -720,28 +776,18 @@ function CopyTradingHubContent() {
                   {
                     time: 'Yesterday 19:40 UTC',
                     master: 'Titan Trend Master (#4587463242561)',
-                    copier: 'MT5 #4587463242559 (Client Kunal B.)',
+                    account: client?.accounts?.[2]?.login ? `MT5 #${client.accounts[2].login}` : 'MT5 #4587463242559',
                     profit: '+$520.00',
                     hwm: '$5,000.00 (Exceeded)',
                     fee: '20%',
                     comm: '+$104.00',
                     status: 'Settled',
                   },
-                  {
-                    time: 'Sep 24 16:15 UTC',
-                    master: 'Apex FX Scalper Pro (#4587463242562)',
-                    copier: 'MT5 #4587463242560 (Client Test)',
-                    profit: '+$310.00',
-                    hwm: '$1,800.00 (Exceeded)',
-                    fee: '25%',
-                    comm: '+$77.50',
-                    status: 'Settled',
-                  },
                 ].map((row, idx) => (
                   <tr key={idx} className="hover:bg-slate-50/60 transition">
                     <td className="py-3.5 px-5 font-mono text-[11px] text-slate-500">{row.time}</td>
                     <td className="py-3.5 px-4 font-bold text-slate-800">{row.master}</td>
-                    <td className="py-3.5 px-4 text-slate-600">{row.copier}</td>
+                    <td className="py-3.5 px-4 text-slate-600 font-mono font-medium">{row.account}</td>
                     <td className="py-3.5 px-4 font-bold text-emerald-600 font-mono">{row.profit}</td>
                     <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{row.hwm}</td>
                     <td className="py-3.5 px-4 font-bold text-purple-700">{row.fee}</td>
