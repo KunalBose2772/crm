@@ -191,8 +191,13 @@ export default function ClientManagementPage() {
   // Wire "Login as Client" directly to Client Portal at /client/dashboard in a new tab
   const handleImpersonate = (client: Client) => {
     startImpersonation(client);
-    showToast('info', 'Client Portal Active', `Opening client workspace for ${client.name} in a new tab...`);
-    window.open(`/client/dashboard?clientId=${client.id}`, '_blank');
+    showToast('info', 'Client Portal Active', `Opening client workspace for ${client.name}...`);
+    const targetUrl = `/client/dashboard?clientId=${encodeURIComponent(client.id)}`;
+    const newWindow = window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+      // If browser blocked popup window, fallback to internal navigation
+      window.location.href = targetUrl;
+    }
   };
 
   const handleSaveDetails = () => {
@@ -673,15 +678,17 @@ export default function ClientManagementPage() {
                             <Monitor className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Login as Client Button (Wired to /client/dashboard) */}
-                          <button
-                            type="button"
-                            onClick={() => handleImpersonate(client)}
-                            className="p-1.5 rounded-lg border border-emerald-200/80 bg-white hover:bg-emerald-50 text-emerald-700 transition-colors cursor-pointer shadow-2xs"
+                          {/* Login as Client Button (Wired to /client/dashboard in new tab) */}
+                          <a
+                            href={`/client/dashboard?clientId=${encodeURIComponent(client.id)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => startImpersonation(client)}
+                            className="p-1.5 rounded-lg border border-emerald-200/80 bg-white hover:bg-emerald-50 text-emerald-700 transition-colors cursor-pointer shadow-2xs inline-flex items-center justify-center"
                             title="Login as Client (Client Portal)"
                           >
                             <LogIn className="w-3.5 h-3.5" />
-                          </button>
+                          </a>
 
                           {/* Manage Password Button */}
                           <button
@@ -827,14 +834,16 @@ export default function ClientManagementPage() {
                     <span>Accounts</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleImpersonate(client)}
+                  <a
+                    href={`/client/dashboard?clientId=${encodeURIComponent(client.id)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => startImpersonation(client)}
                     className="flex flex-col items-center justify-center p-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors text-[10px] font-bold cursor-pointer"
                   >
                     <LogIn className="w-3.5 h-3.5 mb-0.5" />
                     <span>Login</span>
-                  </button>
+                  </a>
 
                   <button
                     type="button"

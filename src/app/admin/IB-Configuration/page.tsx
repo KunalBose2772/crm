@@ -665,15 +665,19 @@ export default function IBConfigurationPage() {
                   {/* Action */}
                   <td className="py-4 px-4 pr-6 text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        type="button"
+                      <a
+                        href={`/client/partner/dashboard?clientId=${encodeURIComponent(
+                          clients.find(c => (p.email && c.email?.toLowerCase() === p.email.toLowerCase()) || (p.id && c.id === p.id))?.id || p.id
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         onClick={() => handleImpersonatePartner(p)}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-emerald-200/80 bg-white hover:bg-emerald-50 text-emerald-700 text-xs font-bold transition-all cursor-pointer shadow-2xs"
                         title="Login as Partner (Client IB Workspace)"
                       >
                         <LogIn className="w-3.5 h-3.5" />
                         <span>Portal</span>
-                      </button>
+                      </a>
 
                       <button
                         type="button"
