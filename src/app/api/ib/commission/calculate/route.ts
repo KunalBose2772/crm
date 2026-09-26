@@ -55,8 +55,19 @@ export async function POST(req: NextRequest) {
     // Match partner by referral code or use first active partner for pipeline testing
     const partner = allPartners.find(p => p.status === 'active') || allPartners[0];
 
-    // 3. Compute commission based on partner tier rate
-    const rebateRate = parseFloat(partner.rebate_per_lot) || 8.0;
+    // 3. Compute commission based on asset class & partner tier rate
+    // Owner Rule: On referral, BTC / Crypto standard lot earns 15% commission / $15 per lot
+    const isCrypto = symbol.includes('BTC') || symbol.includes('ETH') || symbol.includes('CRYPTO');
+    const isMetals = symbol.includes('XAU') || symbol.includes('GOLD') || symbol.includes('XAG');
+    
+    let rebateRate = parseFloat(partner.rebate_per_lot) || 8.0;
+    if (isCrypto) {
+      // BTC 1 Standard lot = 15% broker markup commission split ($15.00/lot default)
+      rebateRate = 15.0;
+    } else if (isMetals) {
+      rebateRate = 10.0;
+    }
+
     const commissionEarned = Math.round((tradeVolumeLots * rebateRate) * 100) / 100;
 
     // 4. Update IB partner volume, commission earned, and withdrawable balance in Supabase

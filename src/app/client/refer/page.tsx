@@ -250,26 +250,31 @@ function ClientReferContent() {
 
               {/* Commission Tier Schedule */}
               <div className="space-y-3 pt-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">
-                  Commission Tier Levels
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">
+                    Commission &amp; Asset Rebate Schedule
+                  </h3>
+                  <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                    BTC / Crypto: 15% Commission / Lot
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Tier 1 (1–5 Users)</span>
-                    <div className="text-base font-bold text-slate-700 font-mono">15% Rebate</div>
-                    <p className="text-[11px] text-slate-500">Starter affiliate rate</p>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Tier 1 (Starter IB)</span>
+                    <div className="text-base font-bold text-slate-700 font-mono">15% Commission</div>
+                    <p className="text-[11px] text-slate-500">1 Standard Lot BTC / Crypto ($15.00/lot or 15% spread split)</p>
                   </div>
                   <div className="p-3.5 rounded-xl border-2 border-blue-500 bg-blue-50/50 space-y-1 relative">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 font-mono flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-blue-600" /> Current Tier
+                      <Sparkles className="w-3 h-3 text-blue-600" /> Current Tier (Gold)
                     </span>
                     <div className="text-base font-bold text-blue-900 font-mono">20% Rebate</div>
-                    <p className="text-[11px] text-blue-700">6–20 active traders</p>
+                    <p className="text-[11px] text-blue-700">Forex $8/lot • BTC $15/lot • Metals $10/lot</p>
                   </div>
                   <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">VIP (20+ Users)</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">VIP Tier</span>
                     <div className="text-base font-bold text-slate-700 font-mono">30% Rebate</div>
-                    <p className="text-[11px] text-slate-500">Institutional IB rate</p>
+                    <p className="text-[11px] text-slate-500">Institutional IB rate • Max volume share</p>
                   </div>
                 </div>
               </div>

@@ -351,7 +351,12 @@ export default function IBConfigurationPage() {
                 <th className="py-3.5 px-3 text-right">Min Traders</th>
                 <th className="py-3.5 px-3 text-right">Forex ($/lot)</th>
                 <th className="py-3.5 px-3 text-right">Metals ($/lot)</th>
-                <th className="py-3.5 px-3 text-right">Crypto ($/lot)</th>
+                <th className="py-3.5 px-3 text-right text-purple-700">
+                  <div className="flex flex-col items-end">
+                    <span>Crypto ($/lot)</span>
+                    <span className="text-[9px] text-purple-600 font-mono font-normal">BTC 15% commission</span>
+                  </div>
+                </th>
                 <th className="py-3.5 px-3 text-right">Indices ($/lot)</th>
                 <th className="py-3.5 px-4 text-right">Sub-IB (%)</th>
               </tr>
