@@ -168,15 +168,26 @@ function CopyTradingHubContent() {
   const totalCopiedCapital = subscriptions.reduce((acc, s) => acc + (s.allocatedAmount || 0), 0);
   const totalCopiedProfit = subscriptions.reduce((acc, s) => acc + (s.realizedPnL || 0) + (s.unrealizedPnL || 0), 0);
 
-  // Check if the active client is already a registered Master Trader
-  const currentClientMaster = masters.find(m => 
-    client && (
-      (m.id && client.id && (m.id === `master_${client.id}` || client.id.includes(m.id) || m.id.includes(client.id))) ||
-      (client.email && (m.id?.includes(client.email) || client.email.includes('master.'))) ||
-      (client.name && m.name.toLowerCase() === client.name.toLowerCase()) ||
-      (client.accounts && client.accounts.some((acc: any) => Number(acc.login) === Number(m.login)))
-    )
-  );
+  // Check if the active client is already a registered Master Trader (exact match by login, id, or email)
+  const currentClientMaster = masters.find(m => {
+    if (!client) return false;
+    // 1. Direct login match from client's accounts or client.id ending in login
+    if (client.accounts && client.accounts.some((acc: any) => Number(acc.login) === Number(m.login))) {
+      return true;
+    }
+    if (client.id && (client.id === `cli_master_${m.login}` || client.id === `master_${m.login}` || client.id === m.id)) {
+      return true;
+    }
+    // 2. Direct email match
+    if (client.email && m.id && (client.email.toLowerCase() === `master.${m.name.toLowerCase().split(' ')[0]}@thekfmarket.com` || client.email.toLowerCase().includes(m.name.toLowerCase().replace(/\s+/g, '.')))) {
+      return true;
+    }
+    // 3. Exact name match
+    if (client.name && m.name && client.name.trim().toLowerCase() === m.name.trim().toLowerCase()) {
+      return true;
+    }
+    return false;
+  });
 
   const isMasterTrader = Boolean(currentClientMaster);
 
