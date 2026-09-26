@@ -122,6 +122,10 @@ export default function AdminDepositsPage() {
         return true;
       })
       .sort((a, b) => {
+        // Always float pending review deposits to the top so admin doesn't need to scroll or hunt
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (b.status === 'pending' && a.status !== 'pending') return 1;
+
         if (sortField === 'amount') {
           return sortOrder === 'desc' ? b.amount - a.amount : a.amount - b.amount;
         }
@@ -324,11 +328,27 @@ export default function AdminDepositsPage() {
           </div>
         </div>
 
-        {/* Card 3: Pending Review */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl border border-purple-100/90 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all duration-300 group">
+        {/* Card 3: Pending Review (Interactive Filter) */}
+        <div 
+          onClick={() => {
+            setStatusFilter(prev => prev === 'pending' ? 'all' : 'pending');
+            setCurrentPage(1);
+          }}
+          className={clsx(
+            "rounded-2xl sm:rounded-3xl border p-4 sm:p-5 shadow-xs hover:shadow-md transition-all duration-300 group cursor-pointer",
+            statusFilter === 'pending' 
+              ? "bg-amber-50/70 border-amber-300 ring-2 ring-amber-400/50 shadow-amber-500/10" 
+              : "bg-white border-purple-100/90"
+          )}
+        >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 font-heading">
-              Pending Review
+            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 font-heading flex items-center gap-1.5">
+              <span>Pending Review</span>
+              {statusFilter === 'pending' && (
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-500 text-white text-[9px] font-extrabold uppercase font-mono">
+                  ACTIVE
+                </span>
+              )}
             </span>
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
               <Clock className="w-5 h-5" />
@@ -338,7 +358,7 @@ export default function AdminDepositsPage() {
             <span className="text-2xl sm:text-3xl font-extrabold text-amber-600 font-mono">
               {pendingCount}
             </span>
-            <span className="text-xs text-amber-500/80 font-medium">awaiting check</span>
+            <span className="text-xs text-amber-600/90 font-medium">awaiting check</span>
           </div>
         </div>
 
@@ -364,6 +384,64 @@ export default function AdminDepositsPage() {
       {/* 3. Search, Filter, and Export Controls Bar */}
       <div className="bg-white rounded-2xl sm:rounded-3xl border border-purple-100/90 shadow-xs p-3.5 sm:p-5 relative z-20">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3">
+          {/* Quick Status Pill Tabs */}
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100/80 rounded-2xl border border-slate-200/80 shrink-0">
+            <button
+              type="button"
+              onClick={() => { setStatusFilter('all'); setCurrentPage(1); }}
+              className={clsx(
+                "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                statusFilter === 'all' 
+                  ? "bg-white text-slate-900 shadow-xs" 
+                  : "text-slate-600 hover:text-slate-900"
+              )}
+            >
+              All ({deposits.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => { setStatusFilter('pending'); setCurrentPage(1); }}
+              className={clsx(
+                "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5",
+                statusFilter === 'pending' 
+                  ? "bg-amber-500 text-white shadow-xs" 
+                  : "text-amber-700 hover:bg-amber-100/50"
+              )}
+            >
+              <span>Pending Review</span>
+              <span className={clsx(
+                "px-1.5 py-0.2 rounded-full text-[10px] font-mono",
+                statusFilter === 'pending' ? "bg-white/20 text-white" : "bg-amber-200 text-amber-900"
+              )}>
+                {pendingCount}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setStatusFilter('completed'); setCurrentPage(1); }}
+              className={clsx(
+                "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                statusFilter === 'completed' 
+                  ? "bg-emerald-600 text-white shadow-xs" 
+                  : "text-emerald-700 hover:bg-emerald-100/50"
+              )}
+            >
+              Approved ({approvedDeposits.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => { setStatusFilter('rejected'); setCurrentPage(1); }}
+              className={clsx(
+                "px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer",
+                statusFilter === 'rejected' 
+                  ? "bg-rose-600 text-white shadow-xs" 
+                  : "text-rose-700 hover:bg-rose-100/50"
+              )}
+            >
+              Declined ({rejectedCount})
+            </button>
+          </div>
+
           {/* Search Input */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400" />
@@ -372,7 +450,7 @@ export default function AdminDepositsPage() {
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               placeholder="Search by name, email, or account..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl sm:rounded-2xl border border-purple-100 bg-purple-50/20 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200/50 transition-all font-sans"
+              className="w-full pl-10 pr-4 py-2 rounded-xl sm:rounded-2xl border border-purple-100 bg-purple-50/20 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200/50 transition-all font-sans"
             />
             {searchQuery && (
               <button
@@ -565,18 +643,33 @@ export default function AdminDepositsPage() {
                   return (
                     <tr
                       key={dep.id}
-                      className="hover:bg-gradient-to-r hover:from-purple-50/40 hover:to-indigo-50/30 transition-all duration-200 group"
+                      className={clsx(
+                        "transition-all duration-200 group",
+                        dep.status === 'pending'
+                          ? "bg-amber-50/40 hover:bg-amber-50/70 border-l-4 border-l-amber-500"
+                          : "hover:bg-gradient-to-r hover:from-purple-50/40 hover:to-indigo-50/30"
+                      )}
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
                       {/* 1. User */}
                       <td className="px-6 py-4 text-sm">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-500 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                          <div className={clsx(
+                            "w-9 h-9 rounded-full text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs",
+                            dep.status === 'pending' 
+                              ? "bg-gradient-to-tr from-amber-500 to-orange-500" 
+                              : "bg-gradient-to-tr from-purple-600 to-indigo-500"
+                          )}>
                             {dep.clientName.slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-semibold text-slate-900 group-hover:text-purple-700 transition-colors">
-                              {dep.clientName}
+                            <div className="font-semibold text-slate-900 group-hover:text-purple-700 transition-colors flex items-center gap-2">
+                              <span>{dep.clientName}</span>
+                              {dep.status === 'pending' && (
+                                <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 text-[10px] font-bold font-mono">
+                                  NEW
+                                </span>
+                              )}
                             </div>
                             <div className="text-xs text-slate-500 font-mono">
                               {dep.clientEmail}
@@ -666,65 +759,70 @@ export default function AdminDepositsPage() {
 
                       {/* 9. Action */}
                       <td className="px-6 py-4 text-right">
-                        <div 
-                          ref={activeMenuId === dep.id ? menuRef : undefined}
-                          className="relative inline-block text-left"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => setActiveMenuId(activeMenuId === dep.id ? null : dep.id)}
-                            className="inline-flex items-center justify-center p-2 rounded-xl text-slate-600 hover:text-purple-700 hover:bg-purple-100/70 transition-colors cursor-pointer"
-                            title="More Actions"
-                          >
-                            <MoreHorizontal className="w-5 h-5" />
-                          </button>
-
-                          {activeMenuId === dep.id && (
-                            <div 
-                              className={clsx(
-                                "absolute right-0 w-48 rounded-2xl bg-white border border-purple-100 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 space-y-1 ring-1 ring-black/5",
-                                isNearBottom ? "bottom-full mb-2 origin-bottom-right" : "top-full mt-1 origin-top-right"
-                              )}
-                            >
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* 1-Click Quick Action Buttons for Pending Requests */}
+                          {dep.status === 'pending' && (
+                            <>
                               <button
                                 type="button"
-                                onClick={() => handleOpenDetail(dep)}
-                                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2 cursor-pointer transition-colors"
+                                onClick={() => handleOpenAction(dep, false)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs hover:shadow transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                                title="Approve and credit MT5 balance"
                               >
-                                <Eye className="w-3.5 h-3.5 text-purple-600" />
-                                <span>View Details</span>
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Approve</span>
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleOpenDoc(dep)}
-                                className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2 cursor-pointer transition-colors"
+                                onClick={() => handleOpenAction(dep, true)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 hover:text-rose-800 text-xs font-bold transition-all cursor-pointer whitespace-nowrap active:scale-95"
+                                title="Reject request"
                               >
-                                <FileText className="w-3.5 h-3.5 text-indigo-600" />
-                                <span>Preview Receipt</span>
+                                <X className="w-3.5 h-3.5" />
+                                <span>Reject</span>
                               </button>
-                              {dep.status === 'pending' && (
-                                <>
-                                  <div className="h-px bg-slate-100 my-1" />
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenAction(dep, false)}
-                                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 cursor-pointer transition-colors"
-                                  >
-                                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span>Approve Deposit</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenAction(dep, true)}
-                                    className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-rose-700 hover:bg-rose-50 flex items-center gap-2 cursor-pointer transition-colors"
-                                  >
-                                    <ShieldX className="w-3.5 h-3.5 text-rose-600" />
-                                    <span>Reject Deposit</span>
-                                  </button>
-                                </>
-                              )}
-                            </div>
+                            </>
                           )}
+
+                          <div 
+                            ref={activeMenuId === dep.id ? menuRef : undefined}
+                            className="relative inline-block text-left"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setActiveMenuId(activeMenuId === dep.id ? null : dep.id)}
+                              className="inline-flex items-center justify-center p-2 rounded-xl text-slate-600 hover:text-purple-700 hover:bg-purple-100/70 transition-colors cursor-pointer"
+                              title="More Options"
+                            >
+                              <MoreHorizontal className="w-5 h-5" />
+                            </button>
+
+                            {activeMenuId === dep.id && (
+                              <div 
+                                className={clsx(
+                                  "absolute right-0 w-48 rounded-2xl bg-white border border-purple-100 shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 space-y-1 ring-1 ring-black/5",
+                                  isNearBottom ? "bottom-full mb-2 origin-bottom-right" : "top-full mt-1 origin-top-right"
+                                )}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenDetail(dep)}
+                                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2 cursor-pointer transition-colors"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-purple-600" />
+                                  <span>View Details</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenDoc(dep)}
+                                  className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-purple-50 hover:text-purple-700 flex items-center gap-2 cursor-pointer transition-colors"
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                                  <span>Preview Receipt</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>

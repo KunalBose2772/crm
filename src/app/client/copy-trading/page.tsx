@@ -21,7 +21,13 @@ import {
   Flame,
   Filter,
   Sparkles,
-  Info
+  Info,
+  Crown,
+  Rocket,
+  Zap,
+  BarChart3,
+  Settings,
+  Eye
 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
 import { ClientPageHeader } from '@/components/layout/ClientPageHeader';
@@ -162,36 +168,89 @@ function CopyTradingHubContent() {
   const totalCopiedCapital = subscriptions.reduce((acc, s) => acc + (s.allocatedAmount || 0), 0);
   const totalCopiedProfit = subscriptions.reduce((acc, s) => acc + (s.realizedPnL || 0) + (s.unrealizedPnL || 0), 0);
 
+  // Check if the active client is already a registered Master Trader
+  const currentClientMaster = masters.find(m => 
+    client && (
+      (m.id && client.id && (m.id === `master_${client.id}` || client.id.includes(m.id) || m.id.includes(client.id))) ||
+      (client.email && (m.id?.includes(client.email) || client.email.includes('master.'))) ||
+      (client.name && m.name.toLowerCase() === client.name.toLowerCase()) ||
+      (client.accounts && client.accounts.some((acc: any) => Number(acc.login) === Number(m.login)))
+    )
+  );
+
+  const isMasterTrader = Boolean(currentClientMaster);
+
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <ClientPageHeader
-        badge="Social Trading & Copy Engine"
-        badgeIcon={<TrendingUp className="w-6 h-6 text-white" />}
-        title="Copy Trading Platform"
-        subtitle="Mirror verified professional Master Traders in real-time on your MT5 account. Automate your returns with institutional-grade risk controls."
-        chips={[
-          {
-            label: 'Copied Profit',
-            value: `$${totalCopiedProfit >= 0 ? '+' : ''}${totalCopiedProfit.toFixed(2)}`,
-            icon: <DollarSign className="w-3.5 h-3.5 text-emerald-300" />,
-          },
-          {
-            label: 'Active Copied',
-            value: `${subscriptions.filter(s => s.status === 'active').length} Strategies`,
-            icon: <Users className="w-3.5 h-3.5 text-sky-300" />,
-          },
-        ]}
-        actionButton={
-          <button
-            onClick={() => setIsBecomeMasterOpen(true)}
-            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-white text-blue-900 font-extrabold text-xs hover:bg-blue-50 transition-all shadow-sm shrink-0 whitespace-nowrap active:scale-[0.98] cursor-pointer"
-          >
-            <Award className="w-4 h-4 text-blue-600 shrink-0" />
-            <span>Become a Master Trader</span>
-          </button>
-        }
-      />
+      {/* Header Banner - Customized dynamically for Master Traders vs Copiers */}
+      {isMasterTrader ? (
+        <ClientPageHeader
+          badge="Verified Master Strategy Command Hub"
+          badgeIcon={<Crown className="w-6 h-6 text-amber-300" />}
+          title={`${currentClientMaster?.name || client?.name || 'Master Strategy'} Control Center`}
+          subtitle={`Strategy: ${currentClientMaster?.strategyName || 'Institutional Multi-Asset'} • MT5 #${currentClientMaster?.login || client?.accounts?.[0]?.login || 'Master'} • Automated follower trade broadcast & High-Water Mark profit split.`}
+          chips={[
+            {
+              label: 'Performance Fee',
+              value: `${currentClientMaster?.totalProfitShare || 20}% HWM`,
+              icon: <DollarSign className="w-3.5 h-3.5 text-emerald-300" />,
+            },
+            {
+              label: 'Strategy Followers',
+              value: `${currentClientMaster?.activeCopiers || currentClientMaster?.totalCopiers || 284} Copiers`,
+              icon: <Users className="w-3.5 h-3.5 text-sky-300" />,
+            },
+            {
+              label: 'Overall Strategy Gain',
+              value: `+${currentClientMaster?.overallGain || 142.6}%`,
+              icon: <TrendingUp className="w-3.5 h-3.5 text-amber-300" />,
+            },
+          ]}
+          actionButton={
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-amber-400/20 border border-amber-300/40 text-amber-200 font-extrabold text-xs shadow-sm">
+                <Crown className="w-4 h-4 text-amber-300 shrink-0" />
+                <span>Active Master Trader</span>
+              </span>
+              <Link
+                href={`/client/copy-trading/${currentClientMaster?.id || masters[0]?.id}${targetClientId ? `?clientId=${targetClientId}` : ''}`}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-white text-blue-900 font-extrabold text-xs hover:bg-blue-50 transition-all shadow-sm shrink-0 whitespace-nowrap active:scale-[0.98] cursor-pointer"
+              >
+                <Eye className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>My Public Profile</span>
+              </Link>
+            </div>
+          }
+        />
+      ) : (
+        <ClientPageHeader
+          badge="Social Trading & Copy Engine"
+          badgeIcon={<TrendingUp className="w-6 h-6 text-white" />}
+          title="Copy Trading Platform"
+          subtitle="Mirror verified professional Master Traders in real-time on your MT5 account. Automate your returns with institutional-grade risk controls."
+          chips={[
+            {
+              label: 'Copied Profit',
+              value: `$${totalCopiedProfit >= 0 ? '+' : ''}${totalCopiedProfit.toFixed(2)}`,
+              icon: <DollarSign className="w-3.5 h-3.5 text-emerald-300" />,
+            },
+            {
+              label: 'Active Copied',
+              value: `${subscriptions.filter(s => s.status === 'active').length} Strategies`,
+              icon: <Users className="w-3.5 h-3.5 text-sky-300" />,
+            },
+          ]}
+          actionButton={
+            <button
+              onClick={() => setIsBecomeMasterOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-white text-blue-900 font-extrabold text-xs hover:bg-blue-50 transition-all shadow-sm shrink-0 whitespace-nowrap active:scale-[0.98] cursor-pointer"
+            >
+              <Award className="w-4 h-4 text-blue-600 shrink-0" />
+              <span>Become a Master Trader</span>
+            </button>
+          }
+        />
+      )}
 
       {/* Navigation Tabs */}
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3 border-b border-slate-200 pb-4">
@@ -238,9 +297,9 @@ function CopyTradingHubContent() {
             }`}
           >
             <DollarSign className="w-3.5 h-3.5 text-purple-600" />
-            <span>Commission Ledger</span>
+            <span>{isMasterTrader ? 'My Strategy Commission Ledger' : 'Commission Ledger'}</span>
             <span className="px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-700 text-[10px] font-mono">
-              HWM 20%
+              HWM {currentClientMaster?.totalProfitShare || 20}%
             </span>
           </button>
         </div>
@@ -315,6 +374,73 @@ function CopyTradingHubContent() {
         )}
       </div>
 
+      {/* Master Trader Broadcast & Live Telemetry Deck (Exclusive to Master Traders) */}
+      {isMasterTrader && (
+        <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-5 sm:p-6 text-white border border-indigo-900/60 shadow-xl relative overflow-hidden">
+          {/* Background Ambient Glow */}
+          <div className="absolute -right-20 -top-20 w-80 h-80 rounded-full bg-blue-500/15 blur-3xl pointer-events-none" />
+          <div className="absolute right-1/3 -bottom-20 w-60 h-60 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+            <div className="space-y-2 max-w-xl">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 rounded-xl bg-amber-400/20 border border-amber-300/30 text-amber-300 font-extrabold text-[11px] flex items-center gap-1.5 shadow-2xs font-heading">
+                  <Crown className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  <span>Master Broadcast Active</span>
+                </span>
+                <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Syncing to MT5 Server Realtime
+                </span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black font-heading tracking-tight text-white">
+                {currentClientMaster?.strategyName || 'Verified Master'} Strategy Desk
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 font-sans leading-relaxed">
+                Every trade executed on your MT5 Master account (<span className="text-amber-300 font-mono font-bold">#{currentClientMaster?.login || 'Master'}</span>) is instantly replicated across your copier fleet with institutional lot-ratio scaling.
+              </p>
+            </div>
+
+            {/* Live Metrics Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/5 border border-white/10 p-3.5 rounded-2xl backdrop-blur-md">
+              <div className="space-y-1">
+                <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Followers Volume</div>
+                <div className="text-base sm:text-lg font-black text-white font-heading">
+                  {currentClientMaster?.activeCopiers || currentClientMaster?.totalCopiers || 284} Copiers
+                </div>
+                <div className="text-[10px] text-emerald-400 font-bold flex items-center gap-0.5">
+                  <TrendingUp className="w-2.5 h-2.5" /> +14 this week
+                </div>
+              </div>
+
+              <div className="space-y-1 border-l border-white/10 pl-3">
+                <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">HWM Profit Share</div>
+                <div className="text-base sm:text-lg font-black text-amber-300 font-heading">
+                  {currentClientMaster?.totalProfitShare || 20}%
+                </div>
+                <div className="text-[10px] text-slate-400">High-Water Mark</div>
+              </div>
+
+              <div className="space-y-1 border-l border-white/10 pl-3">
+                <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Strategy Gain</div>
+                <div className="text-base sm:text-lg font-black text-emerald-400 font-heading">
+                  +{currentClientMaster?.overallGain || 142.6}%
+                </div>
+                <div className="text-[10px] text-emerald-400 font-bold">Verified MT5</div>
+              </div>
+
+              <div className="space-y-1 border-l border-white/10 pl-3">
+                <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Settlement Cycle</div>
+                <div className="text-base sm:text-lg font-black text-sky-300 font-heading">
+                  Weekly
+                </div>
+                <div className="text-[10px] text-sky-400 font-medium">Direct to Wallet</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tab 1: Master Traders Directory (1 column on mobile, customizable 2x/3x/4x on desktop) */}
       {activeTab === 'masters' && (
         <div className={`grid grid-cols-1 gap-3 sm:gap-4 ${
@@ -328,6 +454,13 @@ function CopyTradingHubContent() {
             const isBeingCopied = subscriptions.some(
               s => s.masterId === master.id && s.status === 'active'
             );
+            const isOwnStrategy = Boolean(
+              currentClientMaster && (
+                currentClientMaster.id === master.id ||
+                Number(currentClientMaster.login) === Number(master.login) ||
+                (master.name && currentClientMaster.name && master.name.toLowerCase() === currentClientMaster.name.toLowerCase())
+              )
+            );
 
             return (
               <MasterTraderCard
@@ -335,6 +468,7 @@ function CopyTradingHubContent() {
                 master={master}
                 isAdmin={false}
                 isBeingCopied={isBeingCopied}
+                isOwnStrategy={isOwnStrategy}
                 profileHref={`/client/copy-trading/${master.id}${targetClientId ? `?clientId=${targetClientId}` : ''}`}
                 onCopy={(m) => {
                   setSelectedMasterForCopy(m);
