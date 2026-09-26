@@ -42,21 +42,28 @@ export async function GET(req: NextRequest) {
     const formattedClients = clients.map((c: any) => {
       const clientAccounts = (accounts || [])
         .filter((a: any) => a.client_id === c.id)
-        .map((a: any) => ({
-          id: a.id,
-          login: Number(a.login),
-          type: a.account_type || 'Standard',
-          group: a.mt5_group,
-          server: a.server,
-          currency: a.currency,
-          leverage: a.leverage,
-          balance: parseFloat(a.balance) || 0,
-          equity: parseFloat(a.equity) || 0,
-          freeMargin: parseFloat(a.free_margin) || 0,
-          margin: parseFloat(a.margin) || 0,
-          status: a.status,
-          createdAt: a.created_at,
-        }));
+        .map((a: any) => {
+          const bal = parseFloat(a.balance) || 0;
+          const eqRaw = parseFloat(a.equity) || 0;
+          const eq = eqRaw > 0 ? eqRaw : bal;
+          const fmRaw = parseFloat(a.free_margin) || 0;
+          const fm = fmRaw > 0 ? fmRaw : bal;
+          return {
+            id: a.id,
+            login: Number(a.login),
+            type: a.account_type || 'Standard',
+            group: a.mt5_group,
+            server: a.server,
+            currency: a.currency,
+            leverage: a.leverage,
+            balance: bal,
+            equity: eq,
+            freeMargin: fm,
+            margin: parseFloat(a.margin) || 0,
+            status: a.status,
+            createdAt: a.created_at,
+          };
+        });
 
       const computedTotalBalance = clientAccounts.reduce((sum: number, acc: any) => sum + (acc.balance || 0), 0);
       const computedTotalEquity = clientAccounts.reduce((sum: number, acc: any) => sum + (acc.equity || acc.balance || 0), 0);

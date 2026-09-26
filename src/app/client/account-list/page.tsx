@@ -59,28 +59,65 @@ function ClientAccountListContent() {
   const [isUpdatingLeverage, setIsUpdatingLeverage] = useState(false);
 
   const [syncingLogin, setSyncingLogin] = useState<number | null>(null);
+  const [isAutoSyncing, setIsAutoSyncing] = useState(false);
+
+  // Auto-sync accounts with live MT5 on mount and periodically every 15s
+  useEffect(() => {
+    if (!client?.accounts || client.accounts.length === 0) return;
+
+    let isMounted = true;
+    const autoSyncAll = async () => {
+      if (isAutoSyncing) return;
+      setIsAutoSyncing(true);
+      try {
+        await Promise.all(
+          client.accounts.map((acc: any) => syncAccountBalance(Number(acc.login)).catch(() => null))
+        );
+      } finally {
+        if (isMounted) setIsAutoSyncing(false);
+      }
+    };
+
+    // Run immediately on page load
+    autoSyncAll();
+
+    // Periodic sync every 15 seconds
+    const interval = setInterval(autoSyncAll, 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [client?.id]);
 
   // Accounts list (from context or standard client accounts)
   const defaultAccounts: any[] = [];
 
   const accounts = client?.accounts && client.accounts.length > 0
-    ? client.accounts.map((a: any, idx: number) => ({
-        id: a.id || `acc_${idx}`,
-        login: Number(a.login),
-        name: client.name || 'Trader',
-        platform: a.platform || 'MT5',
-        type: a.accountType || a.type || 'STANDARD',
-        status: a.status || 'Active',
-        currency: a.currency || 'USD',
-        balance: typeof a.balance === 'number' ? a.balance : parseFloat(a.balance || '0'),
-        equity: typeof a.equity === 'number' ? a.equity : parseFloat(a.equity || '0'),
-        pnl: 0.00,
-        leverage: a.leverage ? a.leverage.replace('1:', '') : '100',
-        server: a.server || 'TheKFMarket-Live',
-        freeMargin: typeof a.freeMargin === 'number' ? a.freeMargin : parseFloat(a.freeMargin || a.balance || '0'),
-        marginLevel: '0.00%',
-        isLive: true,
-      }))
+    ? client.accounts.map((a: any, idx: number) => {
+        const bal = typeof a.balance === 'number' ? a.balance : parseFloat(a.balance || '0');
+        const rawEq = typeof a.equity === 'number' ? a.equity : parseFloat(a.equity || '0');
+        // If equity is 0 or unpopulated but balance exists, fallback equity to balance
+        const eq = rawEq > 0 ? rawEq : bal;
+        const pnl = eq - bal;
+
+        return {
+          id: a.id || `acc_${idx}`,
+          login: Number(a.login),
+          name: client.name || 'Trader',
+          platform: a.platform || 'MT5',
+          type: a.accountType || a.type || 'STANDARD',
+          status: a.status || 'Active',
+          currency: a.currency || 'USD',
+          balance: bal,
+          equity: eq,
+          pnl: pnl,
+          leverage: a.leverage ? a.leverage.replace('1:', '') : '100',
+          server: a.server || 'TheKFMarket-Live',
+          freeMargin: typeof a.freeMargin === 'number' && a.freeMargin > 0 ? a.freeMargin : (parseFloat(a.freeMargin || '0') > 0 ? parseFloat(a.freeMargin) : bal),
+          marginLevel: '0.00%',
+          isLive: true,
+        };
+      })
     : defaultAccounts;
 
   const filteredAccounts = accounts.filter((acc) => {
@@ -207,6 +244,29 @@ function ClientAccountListContent() {
         subtitle="Review live balances, switch by account type, and open new setups from the same workspace."
         actionButton={
           <div className="flex items-center gap-3 shrink-0 flex-wrap">
+            {/* Auto-Sync All Accounts Live with MT5 */}
+            <button
+              type="button"
+              onClick={async () => {
+                if (isAutoSyncing || !client?.accounts) return;
+                setIsAutoSyncing(true);
+                try {
+                  await Promise.all(
+                    client.accounts.map((acc: any) => syncAccountBalance(Number(acc.login)).catch(() => null))
+                  );
+                  showToast('success', 'Accounts Synchronized', 'All MT5 account ledgers and mark-to-market valuations refreshed.');
+                } finally {
+                  setIsAutoSyncing(false);
+                }
+              }}
+              disabled={isAutoSyncing}
+              className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 hover:bg-white/15 px-3.5 py-2.5 text-xs font-semibold text-white shadow-xs backdrop-blur-xs transition active:scale-95 cursor-pointer disabled:opacity-50"
+              title="Synchronize all accounts with live MT5 Server"
+            >
+              <RotateCw className={clsx("h-3.5 w-3.5 text-emerald-300", isAutoSyncing && "animate-spin text-white")} />
+              <span>{isAutoSyncing ? 'Syncing...' : 'Sync Live MT5'}</span>
+            </button>
+
             {/* Filter Dropdown */}
             <div className="relative" onClick={(e) => e.stopPropagation()}>
               <button
